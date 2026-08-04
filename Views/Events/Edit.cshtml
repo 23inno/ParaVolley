@@ -1,0 +1,75 @@
+@model Event
+@{
+    ViewData["Title"] = "Edit Event";
+}
+
+<div class="topbar">
+    <h2 class="page-title">Edit Event</h2>
+    <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
+</div>
+
+<div class="pv-card" style="max-width:640px;">
+    <form asp-action="Edit" method="post">
+        <input type="hidden" asp-for="Id" />
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+        <div class="mb-3">
+            <label asp-for="Title" class="form-label fw-semibold"></label>
+            <input asp-for="Title" class="form-control" />
+            <span asp-validation-for="Title" class="text-danger small"></span>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label asp-for="Date" class="form-label fw-semibold"></label>
+                <input asp-for="Date" class="form-control" type="date" />
+            </div>
+            <div class="col-md-6 mb-3">
+                <label asp-for="Time" class="form-label fw-semibold"></label>
+                <input asp-for="Time" class="form-control" placeholder="e.g. 14:00" />
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Location" class="form-label fw-semibold"></label>
+            <input asp-for="Location" class="form-control" />
+        </div>
+
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <label asp-for="Type" class="form-label fw-semibold"></label>
+                <select asp-for="Type" class="form-select">
+                    <option value="Tournament">Tournament</option>
+                    <option value="Practice">Practice</option>
+                    <option value="Match">Match</option>
+                    <option value="Workshop">Workshop</option>
+                </select>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label asp-for="Status" class="form-label fw-semibold"></label>
+                <select asp-for="Status" class="form-select">
+                    <option value="Upcoming">Upcoming</option>
+                    <option value="InProgress">In Progress</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Cancelled">Cancelled</option>
+                </select>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label asp-for="Participants" class="form-label fw-semibold"></label>
+                <input asp-for="Participants" class="form-control" type="number" />
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <label asp-for="Description" class="form-label fw-semibold"></label>
+            <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-pv"><i class="bi bi-check-lg"></i> Save Changes</button>
+        <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

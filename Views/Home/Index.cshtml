@@ -1,0 +1,267 @@
+@model DashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="topbar">
+    <div>
+        <h2 class="page-title">Dashboard</h2>
+        <p class="text-muted mb-0">Welcome back, here's what's happening today.</p>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-top">
+                <span class="stat-title">Total Players</span>
+                <div class="icon-box icon-box-green"><i class="bi bi-people-fill"></i></div>
+            </div>
+            <div class="value">@Model.TotalPlayers</div>
+            <div class="change">+12% from last month</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-top">
+                <span class="stat-title">Upcoming Events</span>
+                <div class="icon-box icon-box-gold"><i class="bi bi-calendar-event-fill"></i></div>
+            </div>
+            <div class="value">@Model.UpcomingEvents</div>
+            <div class="change">5 this week</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-top">
+                <span class="stat-title">Active Matches</span>
+                <div class="icon-box icon-box-blue"><i class="bi bi-trophy-fill"></i></div>
+            </div>
+            <div class="value">@Model.UpcomingMatches</div>
+            <div class="change">3 in progress</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-top">
+                <span class="stat-title">Team Performance</span>
+                <div class="icon-box icon-box-purple"><i class="bi bi-graph-up-arrow"></i></div>
+            </div>
+            <div class="value">92%</div>
+            <div class="change">+5% improvement</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-lg-8">
+        <div class="pv-card h-100" style="position:relative;">
+            <h5 class="fw-bold mb-3">Player Statistics</h5>
+            <div style="position:relative; height:320px;">
+                <canvas id="playerStatsChart"></canvas>
+                <div id="chartTooltip" class="chart-tooltip">
+                    <div class="tt-month" id="tt-month"></div>
+                    <div class="tt-row tt-active">Active Players : <span id="tt-active"></span></div>
+                    <div class="tt-row tt-new">New Players : <span id="tt-new"></span></div>
+                    <div class="tt-row tt-inactive">Inactive : <span id="tt-inactive"></span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="pv-card h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0">Upcoming Events</h5>
+                <a asp-controller="Events" asp-action="Index" class="small">View All</a>
+            </div>
+
+            @if (!Model.NextEvents.Any())
+            {
+                <p class="text-muted small">No upcoming events.</p>
+            }
+            @foreach (var ev in Model.NextEvents)
+            {
+                var pillClass = ev.Type switch
+                {
+                    EventType.Tournament => "badge-type-tournament",
+                    EventType.Practice => "badge-type-practice",
+                    EventType.Match => "badge-type-match",
+                    _ => "badge-type-workshop"
+                };
+                <a asp-controller="Events" asp-action="Details" asp-route-id="@ev.Id" class="event-item dash-clickable-row js-dash-modal-trigger">
+                    <div class="event-top">
+                        <div class="event-title">@ev.Title</div>
+                        <span class="badge-type-pill @pillClass">@ev.Type</span>
+                    </div>
+                    <div class="event-meta"><i class="bi bi-calendar3"></i> @ev.Date.ToString("MMM d, yyyy")</div>
+                    <div class="event-meta"><i class="bi bi-clock"></i> @ev.Time</div>
+                    <div class="event-meta"><i class="bi bi-geo-alt"></i> @ev.Location</div>
+                </a>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="pv-card h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0">Upcoming Matches</h5>
+                <a asp-controller="Matches" asp-action="Index" class="small">View all</a>
+            </div>
+            @if (!Model.NextMatches.Any())
+            {
+                <p class="text-muted small">No scheduled matches.</p>
+            }
+            @foreach (var m in Model.NextMatches)
+            {
+                <a asp-controller="Matches" asp-action="Details" asp-route-id="@m.Id" class="border-bottom py-2 dash-clickable-row js-dash-modal-trigger">
+                    <div class="fw-semibold">@m.TeamA <span class="text-muted fw-normal">vs</span> @m.TeamB</div>
+                    <div class="text-muted small"><i class="bi bi-geo-alt"></i> @m.Venue &middot; @m.Date.ToString("MMM d, yyyy") @m.Time</div>
+                </a>
+            }
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="pv-card h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0">Recent Announcements</h5>
+                <a asp-controller="Announcements" asp-action="Index" class="small">View all</a>
+            </div>
+            @foreach (var a in Model.RecentAnnouncements)
+            {
+                <a asp-controller="Announcements" asp-action="Details" asp-route-id="@a.Id" class="border-bottom py-2 dash-clickable-row js-dash-modal-trigger">
+                    <div class="fw-semibold">
+                        @if (a.IsPinned)
+                        {
+                            <span class="badge badge-pinned me-1"><i class="bi bi-pin-angle-fill"></i></span>
+                        }
+                        @a.Title
+                    </div>
+                    <div class="text-muted small">@a.Date.ToString("MMM d, yyyy") &middot; @a.Author</div>
+                </a>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Shared modal used to preview an Event / Match / Announcement without leaving the Dashboard -->
+<div class="modal fade" id="dashModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="dashModalContent">
+            <div class="modal-body text-center py-5">
+                <div class="spinner-border text-success" role="status"><span class="visually-hidden">Loading...</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script>
+        const chartData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PlayerStatsChart,
+            new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }));
+
+        const ctx = document.getElementById('playerStatsChart').getContext('2d');
+        const tooltipEl = document.getElementById('chartTooltip');
+
+        const chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: chartData.map(d => d.month),
+                datasets: [
+                    {
+                        label: 'Active Players',
+                        data: chartData.map(d => d.active),
+                        backgroundColor: '#0B6E4F',
+                        borderRadius: 4,
+                        maxBarThickness: 34
+                    },
+                    {
+                        label: 'New Players',
+                        data: chartData.map(d => d.new),
+                        backgroundColor: '#FFC72C',
+                        borderRadius: 4,
+                        maxBarThickness: 34
+                    },
+                    {
+                        label: 'Inactive',
+                        data: chartData.map(d => d.inactive),
+                        backgroundColor: '#adb5bd',
+                        borderRadius: 4,
+                        maxBarThickness: 34
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { usePointStyle: true, boxWidth: 8, padding: 20 }
+                    },
+                    tooltip: {
+                        enabled: false,
+                        external: function (context) {
+                            const tt = context.tooltip;
+                            if (!tt || tt.opacity === 0) {
+                                tooltipEl.style.opacity = 0;
+                                return;
+                            }
+
+                            const idx = tt.dataPoints && tt.dataPoints.length ? tt.dataPoints[0].dataIndex : 0;
+                            const d = chartData[idx];
+
+                            document.getElementById('tt-month').textContent = d.month;
+                            document.getElementById('tt-active').textContent = d.active;
+                            document.getElementById('tt-new').textContent = d.new;
+                            document.getElementById('tt-inactive').textContent = d.inactive;
+
+                            const canvasRect = context.chart.canvas.getBoundingClientRect();
+                            const containerRect = context.chart.canvas.parentNode.getBoundingClientRect();
+
+                            let left = tt.caretX + (canvasRect.left - containerRect.left) + 12;
+                            let top = tt.caretY + (canvasRect.top - containerRect.top) - 10;
+
+                            tooltipEl.style.left = left + 'px';
+                            tooltipEl.style.top = top + 'px';
+                            tooltipEl.style.opacity = 1;
+                        }
+                    }
+                },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { beginAtZero: true, grid: { color: '#f1f1f1' } }
+                }
+            }
+        });
+    </script>
+    <script>
+        (function () {
+            var modalEl = document.getElementById('dashModal');
+            var modalContent = document.getElementById('dashModalContent');
+            var bsModal = new bootstrap.Modal(modalEl);
+
+            document.querySelectorAll('.js-dash-modal-trigger').forEach(function (row) {
+                row.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    var url = row.getAttribute('href');
+
+                    modalContent.innerHTML = '<div class="modal-body text-center py-5"><div class="spinner-border text-success" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+                    bsModal.show();
+
+                    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                        .then(function (res) { return res.text(); })
+                        .then(function (html) { modalContent.innerHTML = html; })
+                        .catch(function () {
+                            modalContent.innerHTML = '<div class="modal-body"><div class="alert alert-danger mb-0">Could not load that item. Please try again.</div></div>';
+                        });
+                });
+            });
+        })();
+    </script>
+}

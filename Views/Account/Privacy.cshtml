@@ -1,0 +1,33 @@
+@{
+    ViewData["Title"] = "Privacy Policy";
+    Layout = "_Layout";
+    var isAuthed = User.Identity != null && User.Identity.IsAuthenticated;
+}
+
+<div class="@(isAuthed ? "" : "login-shell")">
+    <div class="pv-card mx-auto" style="max-width:760px; @(isAuthed ? "" : "background:#fff;")">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+            <h2 class="fw-bold mb-0">Privacy Policy</h2>
+            @if (!isAuthed)
+            {
+                <a asp-action="Login" class="btn btn-outline-secondary btn-sm">Back to Sign In</a>
+            }
+        </div>
+        <p class="text-muted small">Last updated: July 2026</p>
+
+        <h5 class="fw-bold mt-4">What we collect</h5>
+        <p>ParaVolley Mpumalanga's Sports Management System stores information you provide directly, including player, coach, and match records, attendance data, and account details for staff who log in to this system.</p>
+
+        <h5 class="fw-bold mt-4">How we use it</h5>
+        <p>Data is used solely to operate the club's day-to-day sports management: scheduling matches and events, tracking attendance and performance, and communicating announcements to subscribed members.</p>
+
+        <h5 class="fw-bold mt-4">Who can see it</h5>
+        <p>Access is restricted to authenticated staff accounts (Admins and Coaches) as configured under Settings &gt; Roles &amp; Users. We do not sell or share personal data with third parties.</p>
+
+        <h5 class="fw-bold mt-4">Your choices</h5>
+        <p>You can unsubscribe from News &amp; Announcements emails at any time, and account holders can request their data be corrected or removed by contacting the system administrator.</p>
+
+        <h5 class="fw-bold mt-4">Contact</h5>
+        <p class="mb-0">Questions about this policy can be directed to your system administrator via the <a asp-action="Support">Support</a> page.</p>
+    </div>
+</div>

@@ -1,0 +1,297 @@
+@model IEnumerable<Coach>
+@{
+    ViewData["Title"] = "Coaches";
+    var totalCount = (int)ViewBag.TotalCount;
+    var filteredCount = Model.Count();
+    var hasActiveFilters = !string.IsNullOrWhiteSpace((string?)ViewBag.SelectedTeam)
+        || !string.IsNullOrWhiteSpace((string?)ViewBag.SelectedStatus);
+}
+
+<div class="row g-3 mb-3">
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-top">
+                <span class="stat-title">Total Coaches</span>
+                <div class="icon-box icon-box-green"><i class="bi bi-person-gear"></i></div>
+            </div>
+            <div class="value">@ViewBag.TotalCount</div>
+            <div class="change">Professional staff</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-top">
+                <span class="stat-title">Active Coaches</span>
+                <div class="icon-box icon-box-gold"><i class="bi bi-check-circle-fill"></i></div>
+            </div>
+            <div class="value">@ViewBag.ActiveCount</div>
+            <div class="change">Currently coaching</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-top">
+                <span class="stat-title">Teams Assigned</span>
+                <div class="icon-box icon-box-blue"><i class="bi bi-people-fill"></i></div>
+            </div>
+            <div class="value">@ViewBag.TeamsAssignedCount</div>
+            <div class="change">Team coverage</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-top">
+                <span class="stat-title">Available</span>
+                <div class="icon-box icon-box-purple"><i class="bi bi-person-plus-fill"></i></div>
+            </div>
+            <div class="value">@ViewBag.AvailableCount</div>
+            <div class="change">Ready to assign</div>
+        </div>
+    </div>
+</div>
+
+<div class="pm-header-card mb-3">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+        <div>
+            <h2 class="pm-title">Coach Management</h2>
+            <p class="pm-subtitle"><span id="visibleCount">@filteredCount</span> of @totalCount coaches</p>
+        </div>
+
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <div class="search-input-wrap m-0">
+                <i class="bi bi-search"></i>
+                <input type="text" id="liveSearchInput" class="form-control" placeholder="Search coaches..." autocomplete="off" />
+            </div>
+
+            <button type="button" id="filterToggleBtn" class="btn btn-filter-toggle @(hasActiveFilters ? "active" : "")">
+                <i class="bi bi-funnel"></i> Filter
+            </button>
+
+            <a asp-action="Export" id="exportLink" class="btn btn-pm-outline" asp-route-team="@ViewBag.SelectedTeam" asp-route-status="@ViewBag.SelectedStatus">
+                <i class="bi bi-download"></i> Export
+            </a>
+
+            <a asp-action="Create" class="btn btn-pm-add-gold js-modal-trigger"><i class="bi bi-plus-lg"></i> Add Coach</a>
+        </div>
+    </div>
+
+    <div id="filterPanel" class="filter-panel @(hasActiveFilters ? "" : "d-none")">
+        <form method="get" id="filterForm">
+            <div class="row g-3 align-items-end">
+                <div class="col-sm-6 col-lg-3">
+                    <label class="d-block">Team</label>
+                    <select name="team" class="form-select" onchange="document.getElementById('filterForm').submit()">
+                        <option value="">All Teams</option>
+                        <option value="Team A" selected="@(ViewBag.SelectedTeam == "Team A")">Team A</option>
+                        <option value="Team B" selected="@(ViewBag.SelectedTeam == "Team B")">Team B</option>
+                        <option value="Team C" selected="@(ViewBag.SelectedTeam == "Team C")">Team C</option>
+                        <option value="Team D" selected="@(ViewBag.SelectedTeam == "Team D")">Team D</option>
+                    </select>
+                </div>
+                <div class="col-sm-6 col-lg-3">
+                    <label class="d-block">Status</label>
+                    <select name="status" class="form-select" onchange="document.getElementById('filterForm').submit()">
+                        <option value="">All Status</option>
+                        <option value="Active" selected="@(ViewBag.SelectedStatus == "Active")">Active</option>
+                        <option value="Available" selected="@(ViewBag.SelectedStatus == "Available")">Available</option>
+                        <option value="OnLeave" selected="@(ViewBag.SelectedStatus == "OnLeave")">On Leave</option>
+                    </select>
+                </div>
+                <div class="col-sm-6 col-lg-3">
+                    <a asp-action="Index" class="filter-reset">Reset</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="pm-table-card">
+    <div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Coach</th>
+                    <th>Contact</th>
+                    <th>Specialty</th>
+                    <th>Team</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var coach in Model)
+                {
+                    var initials = string.Concat(coach.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(n => n[0])).ToUpper();
+                    if (initials.Length > 2) { initials = initials.Substring(0, 2); }
+
+                    var statusClass = coach.Status == CoachStatus.Active ? "active" : "inactive";
+
+                    <tr class="coach-row" data-name="@coach.Name.ToLower()" data-specialty="@coach.Specialty.ToLower()">
+                        <td>
+                            <div class="d-flex align-items-center gap-3">
+                                @if (!string.IsNullOrEmpty(coach.AvatarPath))
+                                {
+                                    <img src="@coach.AvatarPath" alt="@coach.Name" class="coach-avatar" style="object-fit:cover;" />
+                                }
+                                else
+                                {
+                                    <div class="coach-avatar">@initials</div>
+                                }
+                                <div>
+                                    <div class="pm-player-name">@coach.Name</div>
+                                    <div class="coach-cert-sub"><i class="bi bi-patch-check"></i> @coach.Certifications</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="contact-cell">
+                            <div><i class="bi bi-telephone"></i> @coach.Phone</div>
+                            <div><i class="bi bi-envelope"></i> @coach.Email</div>
+                        </td>
+                        <td>
+                            <div class="pm-player-name">@coach.Specialty</div>
+                            <div class="coach-cert-sub">@coach.Experience experience</div>
+                        </td>
+                        <td>
+                            @if (!string.IsNullOrWhiteSpace(coach.AssignedTeam))
+                            {
+                                <span class="team-pill">@coach.AssignedTeam</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted small">Unassigned</span>
+                            }
+                        </td>
+                        <td>
+                            <span class="status-pill @statusClass">@coach.Status</span>
+                        </td>
+                        <td class="text-end">
+                            <a asp-action="Details" asp-route-id="@coach.Id" class="pm-action-icon view js-modal-trigger" title="View"><i class="bi bi-eye"></i></a>
+                            <a asp-action="AssignTeam" asp-route-id="@coach.Id" class="pm-action-icon assign js-modal-trigger" title="Assign Team"><i class="bi bi-person-fill-add"></i></a>
+                            <a asp-action="Edit" asp-route-id="@coach.Id" class="pm-action-icon edit js-modal-trigger" title="Edit"><i class="bi bi-pencil-square"></i></a>
+                            <a asp-action="Delete" asp-route-id="@coach.Id" class="pm-action-icon delete js-modal-trigger" title="Delete"><i class="bi bi-trash"></i></a>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Any())
+                {
+                    <tr><td colspan="6" class="text-center text-muted py-4">No coaches found.</td></tr>
+                }
+                <tr id="noCoachResults" class="d-none">
+                    <td colspan="6" class="text-center text-muted py-4">No coaches found.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Shared modal used for Add Coach / View / Edit / Delete / Assign Team -->
+<div class="modal fade" id="coachModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="coachModalContent">
+            <div class="modal-body text-center py-5">
+                <div class="spinner-border text-success" role="status"><span class="visually-hidden">Loading...</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var toggleBtn = document.getElementById('filterToggleBtn');
+            var panel = document.getElementById('filterPanel');
+            toggleBtn.addEventListener('click', function () {
+                panel.classList.toggle('d-none');
+                toggleBtn.classList.toggle('active');
+            });
+
+            // Instant, client-side search by coach name or specialty - no page
+            // reload, so results update as you type with no scroll/focus loss.
+            var searchInput = document.getElementById('liveSearchInput');
+            var rows = Array.from(document.querySelectorAll('.coach-row'));
+            var visibleCountEl = document.getElementById('visibleCount');
+            var noResultsRow = document.getElementById('noCoachResults');
+
+            searchInput.addEventListener('input', function () {
+                var query = searchInput.value.trim().toLowerCase();
+                var visible = 0;
+
+                rows.forEach(function (row) {
+                    var name = row.getAttribute('data-name') || '';
+                    var specialty = row.getAttribute('data-specialty') || '';
+                    var matches = query === '' || name.indexOf(query) !== -1 || specialty.indexOf(query) !== -1;
+                    row.style.display = matches ? '' : 'none';
+                    if (matches) visible++;
+                });
+
+                visibleCountEl.textContent = visible;
+                noResultsRow.classList.toggle('d-none', visible !== 0);
+            });
+
+            var exportLink = document.getElementById('exportLink');
+            var exportBaseHref = exportLink.getAttribute('href');
+            searchInput.addEventListener('input', function () {
+                var url = new URL(exportBaseHref, window.location.origin);
+                if (searchInput.value.trim()) {
+                    url.searchParams.set('search', searchInput.value.trim());
+                } else {
+                    url.searchParams.delete('search');
+                }
+                exportLink.setAttribute('href', url.pathname + url.search);
+            });
+
+            // ===== Add Coach / View / Edit / Delete / Assign Team as an in-page modal card =====
+            var modalEl = document.getElementById('coachModal');
+            var modalContent = document.getElementById('coachModalContent');
+            var bsModal = new bootstrap.Modal(modalEl);
+
+            function loadIntoModal(url) {
+                modalContent.innerHTML = '<div class="modal-body text-center py-5"><div class="spinner-border text-success" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+                bsModal.show();
+                fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(function (res) { return res.text(); })
+                    .then(function (html) { modalContent.innerHTML = html; })
+                    .catch(function () {
+                        modalContent.innerHTML = '<div class="modal-body"><div class="alert alert-danger mb-0">Could not load that coach. Please try again.</div></div>';
+                    });
+            }
+
+            document.addEventListener('click', function (e) {
+                var link = e.target.closest('.js-modal-trigger');
+                if (link) {
+                    e.preventDefault();
+                    loadIntoModal(link.getAttribute('href'));
+                }
+            });
+
+            document.addEventListener('submit', function (e) {
+                var form = e.target.closest('.js-ajax-form');
+                if (!form || !modalContent.contains(form)) return;
+
+                e.preventDefault();
+                var formData = new FormData(form);
+
+                fetch(form.getAttribute('action') || window.location.href, {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    body: formData
+                }).then(function (res) {
+                    var contentType = res.headers.get('content-type') || '';
+                    if (contentType.indexOf('application/json') !== -1) {
+                        return res.json().then(function (data) {
+                            if (data.success) {
+                                bsModal.hide();
+                                window.location.reload();
+                            }
+                        });
+                    } else {
+                        return res.text().then(function (html) { modalContent.innerHTML = html; });
+                    }
+                }).catch(function () {
+                    modalContent.innerHTML = '<div class="modal-body"><div class="alert alert-danger mb-0">Something went wrong saving. Please try again.</div></div>';
+                });
+            });
+        })();
+    </script>
+}

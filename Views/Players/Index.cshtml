@@ -1,0 +1,224 @@
+@model IEnumerable<Player>
+@{
+    ViewData["Title"] = "Players";
+    var totalCount = (int)ViewBag.TotalCount;
+    var filteredCount = Model.Count();
+    var hasActiveFilters = !string.IsNullOrWhiteSpace((string?)ViewBag.SelectedTeam)
+        || !string.IsNullOrWhiteSpace((string?)ViewBag.SelectedPosition)
+        || !string.IsNullOrWhiteSpace((string?)ViewBag.SelectedStatus);
+}
+
+<div class="pm-header-card mb-3">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+        <div>
+            <h2 class="pm-title">Player Management</h2>
+            <p class="pm-subtitle">@filteredCount of @totalCount players</p>
+        </div>
+
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <form method="get" id="searchForm" class="search-input-wrap m-0">
+                <input type="hidden" name="team" value="@ViewBag.SelectedTeam" />
+                <input type="hidden" name="position" value="@ViewBag.SelectedPosition" />
+                <input type="hidden" name="status" value="@ViewBag.SelectedStatus" />
+                <i class="bi bi-search"></i>
+                <input type="text" name="search" value="@ViewBag.Search" class="form-control" placeholder="Search players..." />
+            </form>
+
+            <button type="button" id="filterToggleBtn" class="btn btn-filter-toggle @(hasActiveFilters ? "active" : "")">
+                <i class="bi bi-funnel"></i> Filter
+            </button>
+
+            <a asp-action="Export" class="btn btn-pm-outline" asp-route-search="@ViewBag.Search" asp-route-team="@ViewBag.SelectedTeam" asp-route-position="@ViewBag.SelectedPosition" asp-route-status="@ViewBag.SelectedStatus">
+                <i class="bi bi-download"></i> Export
+            </a>
+
+            <a asp-action="Create" class="btn btn-pm-add js-player-modal"><i class="bi bi-plus-lg"></i> Add Player</a>
+        </div>
+    </div>
+
+    <div id="filterPanel" class="filter-panel @(hasActiveFilters ? "" : "d-none")">
+        <form method="get" id="filterForm">
+            <input type="hidden" name="search" value="@ViewBag.Search" />
+            <div class="row g-3 align-items-end">
+                <div class="col-sm-6 col-lg-3">
+                    <label class="d-block">Team</label>
+                    <select name="team" class="form-select" onchange="document.getElementById('filterForm').submit()">
+                        <option value="">All Teams</option>
+                        @foreach (var t in (List<string>)ViewBag.Teams)
+                        {
+                            <option value="@t" selected="@(ViewBag.SelectedTeam == t)">@t</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-sm-6 col-lg-3">
+                    <label class="d-block">Position</label>
+                    <select name="position" class="form-select" onchange="document.getElementById('filterForm').submit()">
+                        <option value="">All Positions</option>
+                        @foreach (var p in (List<string>)ViewBag.Positions)
+                        {
+                            <option value="@p" selected="@(ViewBag.SelectedPosition == p)">@p</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-sm-6 col-lg-3">
+                    <label class="d-block">Status</label>
+                    <select name="status" class="form-select" onchange="document.getElementById('filterForm').submit()">
+                        <option value="">All Status</option>
+                        <option value="Active" selected="@(ViewBag.SelectedStatus == "Active")">Active</option>
+                        <option value="Inactive" selected="@(ViewBag.SelectedStatus == "Inactive")">Inactive</option>
+                    </select>
+                </div>
+                <div class="col-sm-6 col-lg-3">
+                    <a asp-action="Index" class="filter-reset">Reset</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="pm-table-card">
+    <div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Position</th>
+                    <th>Team</th>
+                    <th>Age</th>
+                    <th>Matches</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @{ var colorIdx = 0; }
+                @foreach (var player in Model)
+                {
+                    var initials = string.Concat(player.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(n => n[0])).ToUpper();
+                    if (initials.Length > 2) { initials = initials.Substring(0, 2); }
+                    var avatarClass = $"avatar-c{colorIdx % 4}";
+                    colorIdx++;
+
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="pm-avatar @avatarClass">@initials</div>
+                                <div>
+                                    <div class="pm-player-name">@player.Name</div>
+                                    <div class="pm-player-sub">@player.Disability</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>@player.Position</td>
+                        <td><span class="team-pill">@player.Team</span></td>
+                        <td>@player.Age</td>
+                        <td>@player.Matches</td>
+                        <td>
+                            <span class="status-pill @(player.Status == PlayerStatus.Active ? "active" : "inactive")">@player.Status</span>
+                        </td>
+                        <td class="text-end">
+                            <a asp-action="Details" asp-route-id="@player.Id" class="pm-action-icon view js-player-modal" title="View"><i class="bi bi-eye"></i></a>
+                            <a asp-action="Edit" asp-route-id="@player.Id" class="pm-action-icon edit js-player-modal" title="Edit"><i class="bi bi-pencil-square"></i></a>
+                            <a asp-action="Delete" asp-route-id="@player.Id" class="pm-action-icon delete js-player-modal" title="Delete"><i class="bi bi-trash"></i></a>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Any())
+                {
+                    <tr><td colspan="7" class="text-center text-muted py-4">No players found.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Shared modal used for View / Edit / Delete - content is loaded via AJAX -->
+<div class="modal fade" id="playerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="playerModalContent">
+            <div class="modal-body text-center py-5">
+                <div class="spinner-border text-success" role="status"><span class="visually-hidden">Loading...</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var toggleBtn = document.getElementById('filterToggleBtn');
+            var panel = document.getElementById('filterPanel');
+            toggleBtn.addEventListener('click', function () {
+                panel.classList.toggle('d-none');
+                toggleBtn.classList.toggle('active');
+            });
+
+            // Debounce the search box so it submits automatically as you type
+            var searchInput = document.querySelector('#searchForm input[name="search"]');
+            var searchTimer;
+            searchInput.addEventListener('input', function () {
+                clearTimeout(searchTimer);
+                searchTimer = setTimeout(function () {
+                    document.getElementById('searchForm').submit();
+                }, 500);
+            });
+
+            // ===== View / Edit / Delete as an in-page modal card =====
+            var modalEl = document.getElementById('playerModal');
+            var modalContent = document.getElementById('playerModalContent');
+            var bsModal = new bootstrap.Modal(modalEl);
+
+            function loadIntoModal(url) {
+                modalContent.innerHTML = '<div class="modal-body text-center py-5"><div class="spinner-border text-success" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+                bsModal.show();
+                fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(function (res) { return res.text(); })
+                    .then(function (html) { modalContent.innerHTML = html; })
+                    .catch(function () {
+                        modalContent.innerHTML = '<div class="modal-body"><div class="alert alert-danger mb-0">Could not load that player. Please try again.</div></div>';
+                    });
+            }
+
+            // Open modal for any .js-player-modal link, including ones rendered
+            // later inside the modal itself (Edit/Delete links inside the View card)
+            document.addEventListener('click', function (e) {
+                var link = e.target.closest('.js-player-modal');
+                if (link) {
+                    e.preventDefault();
+                    loadIntoModal(link.getAttribute('href'));
+                }
+            });
+
+            // Intercept submits for forms rendered inside the modal (Edit save, Delete confirm)
+            document.addEventListener('submit', function (e) {
+                var form = e.target.closest('.js-ajax-form');
+                if (!form || !modalContent.contains(form)) return;
+
+                e.preventDefault();
+                var formData = new FormData(form);
+
+                fetch(form.getAttribute('action') || window.location.href, {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    body: formData
+                }).then(function (res) {
+                    var contentType = res.headers.get('content-type') || '';
+                    if (contentType.indexOf('application/json') !== -1) {
+                        return res.json().then(function (data) {
+                            if (data.success) {
+                                bsModal.hide();
+                                window.location.reload();
+                            }
+                        });
+                    } else {
+                        // Validation failed - server sent the form partial back with errors
+                        return res.text().then(function (html) { modalContent.innerHTML = html; });
+                    }
+                }).catch(function () {
+                    modalContent.innerHTML = '<div class="modal-body"><div class="alert alert-danger mb-0">Something went wrong saving. Please try again.</div></div>';
+                });
+            });
+        })();
+    </script>
+}

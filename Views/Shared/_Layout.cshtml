@@ -1,0 +1,167 @@
+@using System.Security.Claims
+@using SportsManagementMVC.Data
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext Db
+@{
+    var org = await Db.OrganisationSettings.FirstOrDefaultAsync() ?? new OrganisationSettings();
+    var appearance = await Db.AppearanceSettings.FirstOrDefaultAsync() ?? new AppearanceSettings();
+    var profile = User.Identity != null && User.Identity.IsAuthenticated
+        ? await Db.UserProfiles.FirstOrDefaultAsync()
+        : null;
+
+    var orgWords = org.OrganisationName.Split(' ', 2);
+    var orgFirstWord = orgWords.Length > 0 ? orgWords[0] : "ParaVolley";
+    var orgRest = orgWords.Length > 1 ? orgWords[1] : "";
+
+    var accent = appearance.AccentColor;
+    var accentDark = ShadeColor(accent, -0.18);
+    var themeAttr = appearance.Theme.ToString().ToLower();
+    var densityAttr = appearance.Density.ToString().ToLower();
+
+    var initials = profile != null
+        ? string.Concat(profile.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(n => n[0])).ToUpper()
+        : "AD";
+    if (initials.Length > 2) { initials = initials.Substring(0, 2); }
+}
+@functions {
+    // Darkens/lightens a #RRGGBB hex color by the given fraction (-1..1).
+    private string ShadeColor(string hex, double amount)
+    {
+        try
+        {
+            hex = hex.TrimStart('#');
+            int r = Convert.ToInt32(hex.Substring(0, 2), 16);
+            int g = Convert.ToInt32(hex.Substring(2, 2), 16);
+            int b = Convert.ToInt32(hex.Substring(4, 2), 16);
+            r = (int)Math.Clamp(r + (amount * 255), 0, 255);
+            g = (int)Math.Clamp(g + (amount * 255), 0, 255);
+            b = (int)Math.Clamp(b + (amount * 255), 0, 255);
+            return $"#{r:X2}{g:X2}{b:X2}";
+        }
+        catch
+        {
+            return hex;
+        }
+    }
+}
+<!DOCTYPE html>
+<html lang="en" data-theme="@themeAttr" data-density="@densityAttr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - @org.OrganisationName</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <style>
+        :root {
+            --pv-green: @accent;
+            --pv-green-dark: @accentDark;
+        }
+    </style>
+</head>
+<body>
+    @if (User.Identity != null && User.Identity.IsAuthenticated)
+    {
+        var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+
+        <aside class="pv-sidebar" id="pvSidebar">
+            <script>
+                if (localStorage.getItem('sidebarCollapsed') === 'true') {
+                    document.getElementById('pvSidebar').classList.add('collapsed');
+                }
+            </script>
+            <div class="brand">
+                <h1>@orgFirstWord</h1>
+                <p>@orgRest</p>
+                <button type="button" class="sidebar-collapse-btn" id="sidebarCollapseBtn" title="Collapse menu">
+                    <i class="bi bi-chevron-left"></i>
+                </button>
+            </div>
+            <nav>
+                <a class="pv-nav-link @(currentController == "Home" ? "active" : "")" asp-controller="Home" asp-action="Index" title="Dashboard">
+                    <i class="bi bi-speedometer2"></i> <span>Dashboard</span>
+                </a>
+                <a class="pv-nav-link @(currentController == "Players" ? "active" : "")" asp-controller="Players" asp-action="Index" title="Players">
+                    <i class="bi bi-people-fill"></i> <span>Players</span>
+                </a>
+                <a class="pv-nav-link @(currentController == "Events" ? "active" : "")" asp-controller="Events" asp-action="Index" title="Events">
+                    <i class="bi bi-calendar-event-fill"></i> <span>Events</span>
+                </a>
+                <a class="pv-nav-link @(currentController == "Matches" ? "active" : "")" asp-controller="Matches" asp-action="Index" title="Matches">
+                    <i class="bi bi-trophy-fill"></i> <span>Matches</span>
+                </a>
+                <a class="pv-nav-link @(currentController == "Attendance" ? "active" : "")" asp-controller="Attendance" asp-action="Index" title="Attendance">
+                    <i class="bi bi-bar-chart-fill"></i> <span>Attendance</span>
+                </a>
+                <a class="pv-nav-link @(currentController == "Announcements" ? "active" : "")" asp-controller="Announcements" asp-action="Index" title="News">
+                    <i class="bi bi-megaphone-fill"></i> <span>News</span>
+                </a>
+                <a class="pv-nav-link @(currentController == "Reports" ? "active" : "")" asp-controller="Reports" asp-action="Index" title="Reports">
+                    <i class="bi bi-file-earmark-text-fill"></i> <span>Reports</span>
+                </a>
+                <a class="pv-nav-link @(currentController == "Coaches" ? "active" : "")" asp-controller="Coaches" asp-action="Index" title="Coaches">
+                    <i class="bi bi-person-badge-fill"></i> <span>Coaches</span>
+                </a>
+                <a class="pv-nav-link @(currentController == "Settings" ? "active" : "")" asp-controller="Settings" asp-action="Profile" title="Settings">
+                    <i class="bi bi-gear-fill"></i> <span>Settings</span>
+                </a>
+            </nav>
+            <div class="user-box">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    @if (profile != null && !string.IsNullOrEmpty(profile.AvatarPath))
+                    {
+                        <img src="@profile.AvatarPath" class="pv-avatar" style="object-fit:cover;" alt="Avatar" title="@(profile?.FullName ?? "Admin User")" />
+                    }
+                    else
+                    {
+                        <div class="pv-avatar" title="@(profile?.FullName ?? "Admin User")">@initials</div>
+                    }
+                    <div class="user-info-text">
+                        <p class="text-white small mb-0 fw-semibold">@(profile?.FullName ?? "Admin User")</p>
+                        <p class="mb-0" style="color:var(--pv-gold); font-size:0.75rem;">@(profile?.Email ?? User.Identity.Name)</p>
+                    </div>
+                </div>
+                <form asp-controller="Account" asp-action="Logout" method="post">
+                    <button type="submit" class="btn btn-sm w-100 text-white text-start px-3" style="background:transparent;" title="Logout">
+                        <i class="bi bi-box-arrow-right"></i> <span>Logout</span>
+                    </button>
+                </form>
+            </div>
+        </aside>
+
+        <main class="pv-content">
+            <div class="d-flex align-items-center justify-content-between mb-3 d-lg-none">
+                <button id="sidebarToggle" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-list"></i> Menu
+                </button>
+            </div>
+
+            @if (TempData["Success"] != null)
+            {
+                <div class="alert alert-success alert-auto-dismiss alert-dismissible fade show" role="alert">
+                    <i class="bi bi-check-circle-fill me-1"></i> @TempData["Success"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-circle-fill me-1"></i> @TempData["Error"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
+            @RenderBody()
+        </main>
+    }
+    else
+    {
+        @RenderBody()
+    }
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

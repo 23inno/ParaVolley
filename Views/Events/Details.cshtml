@@ -1,0 +1,35 @@
+@model Event
+@{
+    ViewData["Title"] = "Event Details";
+}
+
+<div class="topbar">
+    <h2 class="page-title">Event Details</h2>
+    <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
+</div>
+
+<div class="pv-card" style="max-width:600px;">
+    <h4 class="fw-bold mb-3">@Model.Title</h4>
+    <p class="text-muted">@Model.Description</p>
+    <dl class="row mb-0">
+        <dt class="col-sm-4 text-muted">Type</dt>
+        <dd class="col-sm-8">@Model.Type</dd>
+
+        <dt class="col-sm-4 text-muted">Status</dt>
+        <dd class="col-sm-8">@Model.Status</dd>
+
+        <dt class="col-sm-4 text-muted">Date &amp; Time</dt>
+        <dd class="col-sm-8">@Model.Date.ToString("MMM d, yyyy") &middot; @Model.Time</dd>
+
+        <dt class="col-sm-4 text-muted">Location</dt>
+        <dd class="col-sm-8">@Model.Location</dd>
+
+        <dt class="col-sm-4 text-muted">Participants</dt>
+        <dd class="col-sm-8">@Model.Participants</dd>
+    </dl>
+
+    <div class="mt-4 pt-3 border-top d-flex gap-2">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-pv"><i class="bi bi-pencil"></i> Edit</a>
+        <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-outline-danger"><i class="bi bi-trash"></i> Delete</a>
+    </div>
+</div>

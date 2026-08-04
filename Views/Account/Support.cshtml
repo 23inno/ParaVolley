@@ -1,0 +1,47 @@
+@using SportsManagementMVC.Data
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext Db
+@{
+    ViewData["Title"] = "Support";
+    Layout = "_Layout";
+    var isAuthed = User.Identity != null && User.Identity.IsAuthenticated;
+    var profile = await Db.UserProfiles.FirstOrDefaultAsync();
+    var adminEmail = profile?.Email ?? "admin@paravolley.com";
+    var adminPhone = profile?.Phone ?? "+27 13 000 0000";
+}
+
+<div class="@(isAuthed ? "" : "login-shell")">
+    <div class="pv-card mx-auto" style="max-width:640px; @(isAuthed ? "" : "background:#fff;")">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+            <h2 class="fw-bold mb-0">Support</h2>
+            @if (!isAuthed)
+            {
+                <a asp-action="Login" class="btn btn-outline-secondary btn-sm">Back to Sign In</a>
+            }
+        </div>
+        <p class="text-muted">Need a hand with the Sports Management System? Here's how to get help.</p>
+
+        <div class="d-flex align-items-center gap-3 border rounded-3 p-3 mb-3">
+            <div class="icon-box icon-box-green" style="width:44px;height:44px;flex-shrink:0;"><i class="bi bi-envelope-fill"></i></div>
+            <div>
+                <div class="fw-semibold">Email your administrator</div>
+                <a href="mailto:@adminEmail">@adminEmail</a>
+            </div>
+        </div>
+
+        <div class="d-flex align-items-center gap-3 border rounded-3 p-3 mb-4">
+            <div class="icon-box icon-box-gold" style="width:44px;height:44px;flex-shrink:0;"><i class="bi bi-telephone-fill"></i></div>
+            <div>
+                <div class="fw-semibold">Call the office</div>
+                <span>@adminPhone</span>
+            </div>
+        </div>
+
+        <h5 class="fw-bold">Common issues</h5>
+        <ul class="mb-0">
+            <li>Forgot your password? Use <a asp-action="ForgotPassword">Forgot Password</a> on the sign-in page.</li>
+            <li>Can't access a page? Your account role (Admin/Coach) may not have permission - ask an Admin to check Settings &gt; Roles &amp; Users.</li>
+            <li>Not receiving announcement emails? Confirm your address under News &amp; Announcements &gt; Stay Connected.</li>
+        </ul>
+    </div>
+</div>

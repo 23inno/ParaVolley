@@ -1,0 +1,45 @@
+@model Report
+@{
+    ViewData["Title"] = "Report Details";
+    var typePillClass = Model.Type switch
+    {
+        ReportType.Performance => "rt-performance",
+        ReportType.Attendance => "rt-attendance",
+        ReportType.Tournament => "rt-tournament",
+        ReportType.Training => "rt-training",
+        ReportType.Financial => "rt-financial",
+        _ => "rt-analysis"
+    };
+}
+
+<div class="topbar">
+    <h2 class="page-title">Report Details</h2>
+    <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
+</div>
+
+<div class="pv-card" style="max-width:560px;">
+    <h4 class="fw-bold mb-3">@Model.Title</h4>
+
+    <div class="d-flex gap-2 mb-3">
+        <span class="report-type-pill @typePillClass">@Model.Type</span>
+        <span class="report-status-pill @(Model.Status == ReportStatus.Published ? "published" : "draft")">@Model.Status</span>
+    </div>
+
+    <dl class="row mb-0">
+        <dt class="col-sm-4 text-muted">Date</dt>
+        <dd class="col-sm-8">@Model.Date.ToString("d MMM yyyy")</dd>
+
+        <dt class="col-sm-4 text-muted">File Size</dt>
+        <dd class="col-sm-8">@Model.SizeLabel</dd>
+
+        <dt class="col-sm-4 text-muted">Attached File</dt>
+        <dd class="col-sm-8">@(Model.FileName ?? "None (auto-generated summary)")</dd>
+    </dl>
+
+    <div class="mt-4 pt-3 border-top d-flex gap-2">
+        <a asp-action="Download" asp-route-id="@Model.Id" class="btn btn-pv"><i class="bi bi-download"></i> Download</a>
+        <form asp-action="Delete" asp-route-id="@Model.Id" method="post" onsubmit="return confirm('Delete this report?');">
+            <button type="submit" class="btn btn-outline-danger"><i class="bi bi-trash"></i> Delete</button>
+        </form>
+    </div>
+</div>

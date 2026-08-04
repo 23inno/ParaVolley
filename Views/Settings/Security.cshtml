@@ -1,0 +1,94 @@
+@model UserProfile
+@{
+    ViewData["Title"] = "Security";
+}
+
+<h2 class="settings-page-title">Security</h2>
+<p class="settings-page-subtitle mb-3">Keep your account secure with strong authentication settings.</p>
+
+<div class="settings-layout">
+    <partial name="_SettingsNav" />
+
+    <div>
+        <div class="settings-content-card mb-3">
+            <div class="settings-section-header">
+                <h5>Change Password</h5>
+                <p>Use a strong, unique password to keep your account secure.</p>
+            </div>
+            <div class="settings-section-body pt-4 pb-4">
+                <form asp-action="ChangePassword" method="post">
+                    <div class="settings-row">
+                        <div class="settings-row-label">Current Password</div>
+                        <div class="settings-row-control position-relative">
+                            <input type="password" name="currentPassword" class="form-control pe-5" placeholder="Enter current password" id="pwCurrent" />
+                            <button type="button" class="btn btn-sm position-absolute top-50 end-0 translate-middle-y me-1 border-0 text-muted toggle-pw" data-target="pwCurrent"><i class="bi bi-eye"></i></button>
+                        </div>
+                    </div>
+                    <div class="settings-row">
+                        <div class="settings-row-label">New Password</div>
+                        <div class="settings-row-control position-relative">
+                            <input type="password" name="newPassword" class="form-control pe-5" placeholder="At least 8 characters" id="pwNew" />
+                            <button type="button" class="btn btn-sm position-absolute top-50 end-0 translate-middle-y me-1 border-0 text-muted toggle-pw" data-target="pwNew"><i class="bi bi-eye"></i></button>
+                        </div>
+                    </div>
+                    <div class="settings-row">
+                        <div class="settings-row-label">Confirm Password</div>
+                        <div class="settings-row-control position-relative">
+                            <input type="password" name="confirmPassword" class="form-control pe-5" placeholder="Repeat new password" id="pwConfirm" />
+                            <button type="button" class="btn btn-sm position-absolute top-50 end-0 translate-middle-y me-1 border-0 text-muted toggle-pw" data-target="pwConfirm"><i class="bi bi-eye"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="text-end pt-3">
+                        <button type="submit" class="btn btn-pv"><i class="bi bi-save"></i> Update Password</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="settings-content-card">
+            <div class="settings-section-header">
+                <h5>Security Options</h5>
+                <p>Manage additional security settings for your account.</p>
+            </div>
+            <div class="settings-section-body pt-3 pb-3">
+                <div class="settings-row">
+                    <div>
+                        <div class="fw-semibold">Two-Factor Authentication</div>
+                        <div class="text-muted small">Add an extra layer of security via SMS or authenticator app</div>
+                    </div>
+                    <div class="ms-auto">
+                        <div class="form-check form-switch m-0">
+                            <input class="form-check-input settings-toggle" type="checkbox" role="switch" id="twoFactorToggle" @(Model.TwoFactorEnabled ? "checked" : "")>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.querySelectorAll('.toggle-pw').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var input = document.getElementById(btn.getAttribute('data-target'));
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    btn.innerHTML = '<i class="bi bi-eye-slash"></i>';
+                } else {
+                    input.type = 'password';
+                    btn.innerHTML = '<i class="bi bi-eye"></i>';
+                }
+            });
+        });
+
+        document.getElementById('twoFactorToggle').addEventListener('change', function () {
+            fetch('@Url.Action("ToggleTwoFactor")', {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' }
+            });
+        });
+    </script>
+    <form style="display:none;">@Html.AntiForgeryToken()</form>
+}

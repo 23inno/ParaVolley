@@ -1,0 +1,53 @@
+@model Coach
+@{
+    ViewData["Title"] = "Assign Team";
+}
+
+<div class="topbar">
+    <h2 class="page-title">Assign Team</h2>
+    <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
+</div>
+
+<div class="pv-card" style="max-width:520px;">
+    <div class="d-flex align-items-center gap-3 mb-4 pb-3 border-bottom">
+        <div class="coach-avatar" style="width:52px;height:52px;font-size:1.1rem;">
+            @(string.Concat(Model.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(n => n[0])).ToUpper())
+        </div>
+        <div>
+            <h5 class="fw-bold mb-0">@Model.Name</h5>
+            <div class="text-muted small">@Model.Specialty</div>
+        </div>
+    </div>
+
+    <form asp-action="AssignTeam" method="post">
+        <input type="hidden" name="id" value="@Model.Id" />
+
+        <div class="mb-2">
+            <label class="form-label fw-semibold">Current Team</label>
+            <p class="mb-3">
+                @if (!string.IsNullOrWhiteSpace(Model.AssignedTeam))
+                {
+                    <span class="team-pill">@Model.AssignedTeam</span>
+                }
+                else
+                {
+                    <span class="text-muted">Unassigned</span>
+                }
+            </p>
+        </div>
+
+        <div class="mb-4">
+            <label for="assignedTeam" class="form-label fw-semibold">Assign to Team</label>
+            <select name="assignedTeam" id="assignedTeam" class="form-select">
+                <option value="">Unassigned</option>
+                <option value="Team A" selected="@(Model.AssignedTeam == "Team A")">Team A</option>
+                <option value="Team B" selected="@(Model.AssignedTeam == "Team B")">Team B</option>
+                <option value="Team C" selected="@(Model.AssignedTeam == "Team C")">Team C</option>
+                <option value="Team D" selected="@(Model.AssignedTeam == "Team D")">Team D</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-pv"><i class="bi bi-check-lg"></i> Save Assignment</button>
+        <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+    </form>
+</div>

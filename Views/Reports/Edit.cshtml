@@ -1,0 +1,68 @@
+@model Report
+@{
+    ViewData["Title"] = "Edit Report";
+}
+
+<div class="topbar">
+    <h2 class="page-title">Edit Report</h2>
+    <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
+</div>
+
+<div class="pv-card" style="max-width:600px;">
+    <form asp-action="Edit" method="post" enctype="multipart/form-data">
+        <input type="hidden" asp-for="Id" />
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+        <div class="mb-3">
+            <label asp-for="Title" class="form-label fw-semibold">Report Title *</label>
+            <input asp-for="Title" class="form-control" />
+            <span asp-validation-for="Title" class="text-danger small"></span>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label asp-for="Type" class="form-label fw-semibold">Report Type</label>
+                <select asp-for="Type" class="form-select">
+                    <option value="Performance">Performance</option>
+                    <option value="Attendance">Attendance</option>
+                    <option value="Tournament">Tournament</option>
+                    <option value="Training">Training</option>
+                    <option value="Financial">Financial</option>
+                    <option value="Analysis">Analysis</option>
+                </select>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label asp-for="Status" class="form-label fw-semibold"></label>
+                <select asp-for="Status" class="form-select">
+                    <option value="Draft">Draft</option>
+                    <option value="Published">Published</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <label asp-for="Date" class="form-label fw-semibold"></label>
+            <input asp-for="Date" class="form-control" type="date" />
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label fw-semibold">Replace Attachment (optional)</label>
+            @if (!string.IsNullOrEmpty(Model.FileName))
+            {
+                <p class="text-muted small">Current file: <strong>@Model.FileName</strong> (@Model.SizeLabel)</p>
+                <div class="form-check mb-2">
+                    <input type="checkbox" name="removeAttachment" value="true" class="form-check-input" id="removeAttachment" />
+                    <label class="form-check-label small" for="removeAttachment">Remove current attachment</label>
+                </div>
+            }
+            <input type="file" name="file" class="form-control" />
+        </div>
+
+        <button type="submit" class="btn btn-pv"><i class="bi bi-check-lg"></i> Save Changes</button>
+        <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

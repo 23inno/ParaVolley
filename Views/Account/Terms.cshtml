@@ -1,0 +1,33 @@
+@{
+    ViewData["Title"] = "Terms of Service";
+    Layout = "_Layout";
+    var isAuthed = User.Identity != null && User.Identity.IsAuthenticated;
+}
+
+<div class="@(isAuthed ? "" : "login-shell")">
+    <div class="pv-card mx-auto" style="max-width:760px; @(isAuthed ? "" : "background:#fff;")">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+            <h2 class="fw-bold mb-0">Terms of Service</h2>
+            @if (!isAuthed)
+            {
+                <a asp-action="Login" class="btn btn-outline-secondary btn-sm">Back to Sign In</a>
+            }
+        </div>
+        <p class="text-muted small">Last updated: July 2026</p>
+
+        <h5 class="fw-bold mt-4">Acceptable use</h5>
+        <p>This system is provided for ParaVolley Mpumalanga staff to manage players, coaches, matches, events, attendance, and communications. Access is limited to authorized accounts, and credentials must not be shared.</p>
+
+        <h5 class="fw-bold mt-4">Account responsibility</h5>
+        <p>You're responsible for keeping your password secure and for activity that happens under your account. Report any suspected unauthorized access to your administrator immediately.</p>
+
+        <h5 class="fw-bold mt-4">Data accuracy</h5>
+        <p>Staff entering player, coach, or match data are responsible for its accuracy. The organisation reserves the right to correct or remove inaccurate records.</p>
+
+        <h5 class="fw-bold mt-4">Availability</h5>
+        <p>This system is provided as-is for internal club administration. While we aim for reliable access, availability isn't guaranteed and scheduled maintenance may occur without notice.</p>
+
+        <h5 class="fw-bold mt-4">Changes</h5>
+        <p class="mb-0">These terms may be updated from time to time. Continued use of the system after a change constitutes acceptance of the updated terms.</p>
+    </div>
+</div>

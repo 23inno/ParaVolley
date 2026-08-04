@@ -1,0 +1,25 @@
+@model Announcement
+
+<div class="modal-header">
+    <h5 class="modal-title fw-bold">Announcement</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+<div class="modal-body">
+    <div class="d-flex justify-content-between align-items-start mb-2">
+        <span class="badge bg-secondary-subtle text-dark">@Model.Category</span>
+        @if (Model.IsPinned)
+        {
+            <span class="badge badge-pinned"><i class="bi bi-pin-angle-fill"></i> Pinned</span>
+        }
+    </div>
+    <h4 class="fw-bold">@Model.Title</h4>
+    <div class="text-muted small mb-3">
+        By @Model.Author &middot; @Model.Date.ToString("MMMM d, yyyy") &middot; <i class="bi bi-eye"></i> @Model.Views views
+    </div>
+    <p style="white-space: pre-line;">@Model.Content</p>
+</div>
+<div class="modal-footer">
+    <a asp-controller="Announcements" asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-pv js-modal-trigger"><i class="bi bi-pencil"></i> Edit</a>
+    <a asp-controller="Announcements" asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-outline-danger js-modal-trigger"><i class="bi bi-trash"></i> Delete</a>
+    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+</div>

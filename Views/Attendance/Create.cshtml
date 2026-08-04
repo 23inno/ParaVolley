@@ -1,0 +1,45 @@
+@model Attendance
+@{
+    ViewData["Title"] = "Record Attendance";
+}
+
+<div class="topbar">
+    <h2 class="page-title">Record Attendance</h2>
+    <a asp-action="Records" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
+</div>
+
+<div class="pv-card" style="max-width:560px;">
+    <form asp-action="Create" method="post">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Player</label>
+            @Html.DropDownList("PlayerId", null, "Select a player", new { @class = "form-select" })
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Event</label>
+            @Html.DropDownList("EventId", null, "Select an event", new { @class = "form-select" })
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Date" class="form-label fw-semibold"></label>
+            <input asp-for="Date" class="form-control" type="date" />
+        </div>
+
+        <div class="mb-4">
+            <label asp-for="Status" class="form-label fw-semibold"></label>
+            <select asp-for="Status" class="form-select">
+                <option value="Present">Present</option>
+                <option value="Absent">Absent</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-pv"><i class="bi bi-check-lg"></i> Save Record</button>
+        <a asp-action="Records" class="btn btn-outline-secondary">Cancel</a>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

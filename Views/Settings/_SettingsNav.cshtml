@@ -1,0 +1,34 @@
+@{
+    var active = ViewBag.ActiveSettingsTab as string ?? "";
+}
+<div class="settings-nav-card">
+    <div class="settings-nav-heading">SETTINGS</div>
+    <a asp-action="Profile" class="settings-nav-link @(active == "Profile" ? "active" : "")">
+        <span class="link-left"><i class="bi bi-person"></i> Profile</span>
+        @if (active == "Profile") { <i class="bi bi-chevron-right"></i> }
+    </a>
+    <a asp-action="Security" class="settings-nav-link @(active == "Security" ? "active" : "")">
+        <span class="link-left"><i class="bi bi-lock"></i> Security</span>
+        @if (active == "Security") { <i class="bi bi-chevron-right"></i> }
+    </a>
+    <a asp-action="Notifications" class="settings-nav-link @(active == "Notifications" ? "active" : "")">
+        <span class="link-left"><i class="bi bi-bell"></i> Notifications</span>
+        @if (active == "Notifications") { <i class="bi bi-chevron-right"></i> }
+    </a>
+    <a asp-action="RolesUsers" class="settings-nav-link @(active == "RolesUsers" ? "active" : "")">
+        <span class="link-left"><i class="bi bi-people"></i> Roles &amp; Users</span>
+        @if (active == "RolesUsers") { <i class="bi bi-chevron-right"></i> }
+    </a>
+    <a asp-action="SystemConfig" class="settings-nav-link @(active == "System" ? "active" : "")">
+        <span class="link-left"><i class="bi bi-hdd-stack"></i> System</span>
+        @if (active == "System") { <i class="bi bi-chevron-right"></i> }
+    </a>
+    <a asp-action="Appearance" class="settings-nav-link @(active == "Appearance" ? "active" : "")">
+        <span class="link-left"><i class="bi bi-palette"></i> Appearance</span>
+        @if (active == "Appearance") { <i class="bi bi-chevron-right"></i> }
+    </a>
+    <a asp-action="BackupData" class="settings-nav-link @(active == "BackupData" ? "active" : "")">
+        <span class="link-left"><i class="bi bi-shield-check"></i> Backup &amp; Data</span>
+        @if (active == "BackupData") { <i class="bi bi-chevron-right"></i> }
+    </a>
+</div>

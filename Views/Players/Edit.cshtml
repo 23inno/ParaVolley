@@ -1,0 +1,92 @@
+@model Player
+@{
+    ViewData["Title"] = "Edit Player";
+}
+
+<div class="topbar">
+    <h2 class="page-title">Edit Player</h2>
+    <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
+</div>
+
+<div class="pv-card" style="max-width:640px;">
+    <form asp-action="Edit" method="post">
+        <input type="hidden" asp-for="Id" />
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+        <div class="mb-3">
+            <label asp-for="Name" class="form-label fw-semibold"></label>
+            <input asp-for="Name" class="form-control" />
+            <span asp-validation-for="Name" class="text-danger small"></span>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label asp-for="Position" class="form-label fw-semibold"></label>
+                <select asp-for="Position" class="form-select">
+                    <option value="Outside Hitter">Outside Hitter</option>
+                    <option value="Setter">Setter</option>
+                    <option value="Middle Blocker">Middle Blocker</option>
+                    <option value="Libero">Libero</option>
+                    <option value="Opposite Hitter">Opposite Hitter</option>
+                </select>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label asp-for="Team" class="form-label fw-semibold"></label>
+                <select asp-for="Team" class="form-select">
+                    <option value="Team A">Team A</option>
+                    <option value="Team B">Team B</option>
+                    <option value="Team C">Team C</option>
+                    <option value="Team D">Team D</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <label asp-for="Age" class="form-label fw-semibold"></label>
+                <input asp-for="Age" class="form-control" type="number" />
+                <span asp-validation-for="Age" class="text-danger small"></span>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label asp-for="Matches" class="form-label fw-semibold"></label>
+                <input asp-for="Matches" class="form-control" type="number" />
+            </div>
+            <div class="col-md-4 mb-3">
+                <label asp-for="Status" class="form-label fw-semibold"></label>
+                <select asp-for="Status" class="form-select">
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Email" class="form-label fw-semibold"></label>
+            <input asp-for="Email" class="form-control" />
+            <span asp-validation-for="Email" class="text-danger small"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Phone" class="form-label fw-semibold"></label>
+            <input asp-for="Phone" class="form-control" />
+        </div>
+
+        <div class="mb-4">
+            <label asp-for="Disability" class="form-label fw-semibold"></label>
+            <select asp-for="Disability" class="form-select">
+                <option value="Wheelchair">Wheelchair</option>
+                <option value="Limb Difference">Limb Difference</option>
+                <option value="Visual Impairment">Visual Impairment</option>
+                <option value="Hearing Impairment">Hearing Impairment</option>
+                <option value="Other">Other</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-pv"><i class="bi bi-check-lg"></i> Save Changes</button>
+        <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

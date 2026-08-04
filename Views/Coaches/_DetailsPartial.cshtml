@@ -1,0 +1,50 @@
+@model Coach
+
+<div class="modal-header">
+    <h5 class="modal-title fw-bold">Coach Profile</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+<div class="modal-body">
+    <div class="d-flex align-items-center gap-3 mb-4 pb-3 border-bottom">
+        @if (!string.IsNullOrEmpty(Model.AvatarPath))
+        {
+            <img src="@Model.AvatarPath" alt="@Model.Name" class="coach-avatar" style="width:64px;height:64px;font-size:1.25rem;object-fit:cover;" />
+        }
+        else
+        {
+            <div class="coach-avatar" style="width:64px;height:64px;font-size:1.25rem;">
+                @(string.Concat(Model.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(n => n[0])).ToUpper())
+            </div>
+        }
+        <div>
+            <h4 class="fw-bold mb-0">@Model.Name</h4>
+            <span class="status-pill @(Model.Status == CoachStatus.Active ? "active" : "inactive")">@Model.Status</span>
+        </div>
+    </div>
+
+    <dl class="row mb-0">
+        <dt class="col-sm-4 text-muted">Specialty</dt>
+        <dd class="col-sm-8">@Model.Specialty</dd>
+
+        <dt class="col-sm-4 text-muted">Assigned Team</dt>
+        <dd class="col-sm-8">@(Model.AssignedTeam ?? "—")</dd>
+
+        <dt class="col-sm-4 text-muted">Experience</dt>
+        <dd class="col-sm-8">@Model.Experience</dd>
+
+        <dt class="col-sm-4 text-muted">Certifications</dt>
+        <dd class="col-sm-8">@Model.Certifications</dd>
+
+        <dt class="col-sm-4 text-muted">Email</dt>
+        <dd class="col-sm-8">@Model.Email</dd>
+
+        <dt class="col-sm-4 text-muted">Phone</dt>
+        <dd class="col-sm-8">@Model.Phone</dd>
+    </dl>
+</div>
+<div class="modal-footer">
+    <a asp-action="AssignTeam" asp-route-id="@Model.Id" class="btn btn-outline-secondary js-modal-trigger"><i class="bi bi-person-fill-add"></i> Assign Team</a>
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-pv js-modal-trigger"><i class="bi bi-pencil"></i> Edit</a>
+    <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-outline-danger js-modal-trigger"><i class="bi bi-trash"></i> Delete</a>
+    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+</div>

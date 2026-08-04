@@ -1,0 +1,427 @@
+@model AttendanceDashboardViewModel
+@{
+    ViewData["Title"] = "Attendance Management";
+    var hasActiveFilters = !string.IsNullOrWhiteSpace((string?)ViewBag.SelectedTeam)
+        || !string.IsNullOrWhiteSpace((string?)ViewBag.SelectedStatus);
+}
+
+<div class="row g-3 mb-3">
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-top">
+                <span class="stat-title">Total Attendance</span>
+                <div class="icon-box icon-box-green"><i class="bi bi-people-fill"></i></div>
+            </div>
+            <div class="value">@Model.TotalAttendance</div>
+            <div class="change">+8.5% from last month</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-top">
+                <span class="stat-title">Attendance Rate</span>
+                <div class="icon-box icon-box-gold"><i class="bi bi-graph-up-arrow"></i></div>
+            </div>
+            <div class="value">@Model.AttendanceRate%</div>
+            <div class="change">+3% improvement</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-top">
+                <span class="stat-title">Active Sessions</span>
+                <div class="icon-box icon-box-blue"><i class="bi bi-calendar-event-fill"></i></div>
+            </div>
+            <div class="value">@Model.ActiveSessions</div>
+            <div class="change">This month</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-top">
+                <span class="stat-title">Top Performer</span>
+                <div class="icon-box icon-box-purple"><i class="bi bi-award-fill"></i></div>
+            </div>
+            <div class="value" style="font-size:1.5rem;">@Model.TopPerformerName</div>
+            <div class="change">@Model.TopPerformerRate% attendance</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-8">
+        <div class="pv-card h-100" style="position:relative;">
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <h5 class="chart-section-title mb-0">Attendance Trends</h5>
+                <div class="toggle-group" id="trendToggle">
+                    <button type="button" class="toggle-btn" data-range="week">Week</button>
+                    <button type="button" class="toggle-btn active" data-range="month">Month</button>
+                    <button type="button" class="toggle-btn" data-range="year">Year</button>
+                </div>
+            </div>
+            <div style="position:relative; height:300px;">
+                <canvas id="trendsChart"></canvas>
+                <div id="trendsTooltip" class="chart-tooltip">
+                    <div class="tt-month" id="tt-trend-label"></div>
+                    <div class="tt-row tt-active">Actual : <span id="tt-trend-actual"></span></div>
+                    <div class="tt-row tt-new">Target : <span id="tt-trend-target"></span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="pv-card h-100" style="position:relative;">
+            <h5 class="chart-section-title mb-3">Participation Split</h5>
+            <div style="position:relative; height:200px;">
+                <canvas id="splitChart"></canvas>
+                <div id="splitTooltip" class="chart-tooltip">
+                    <div class="tt-month" id="tt-split-label"></div>
+                    <div class="tt-row" id="tt-split-value"></div>
+                </div>
+            </div>
+            <div class="mt-3">
+                @{
+                    var splitColors = new[] { "#0B6E4F", "#FFC72C", "#adb5bd" };
+                    var i = 0;
+                }
+                @foreach (var s in Model.ParticipationSplit)
+                {
+                    <div class="legend-row">
+                        <span class="legend-label"><span class="legend-dot" style="background-color:@splitColors[i % 3];"></span>@s.Label</span>
+                        <span class="legend-value">@s.Count</span>
+                    </div>
+                    i++;
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-6">
+        <div class="pv-card h-100" style="position:relative;">
+            <h5 class="chart-section-title mb-3">Team Comparison</h5>
+            <div style="position:relative; height:280px;">
+                <canvas id="teamChart"></canvas>
+                <div id="teamTooltip" class="chart-tooltip">
+                    <div class="tt-month" id="tt-team-label"></div>
+                    <div class="tt-row tt-active">Present : <span id="tt-team-present"></span></div>
+                    <div class="tt-row" style="color:#b02a37; font-weight:600;">Absent : <span id="tt-team-absent"></span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="pv-card h-100">
+            <h5 class="chart-section-title mb-3">Most Active Players</h5>
+            @foreach (var p in Model.MostActivePlayers)
+            {
+                <div class="ranked-player-item">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rank-badge rank-@p.Rank">@p.Rank</div>
+                        <div>
+                            <div class="ranked-player-name">@p.Name</div>
+                            <div class="ranked-player-sub">@p.Sessions sessions</div>
+                        </div>
+                    </div>
+                    <div class="ranked-player-rate">@p.Rate%</div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="pm-header-card mb-3">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+        <div>
+            <h2 class="chart-section-title mb-0">Session Records</h2>
+        </div>
+
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <div class="search-input-wrap m-0">
+                <i class="bi bi-search"></i>
+                <input type="text" id="liveSessionSearch" class="form-control" placeholder="Search sessions..." autocomplete="off" />
+            </div>
+
+            <button type="button" id="filterToggleBtn" class="btn btn-filter-toggle @(hasActiveFilters ? "active" : "")">
+                <i class="bi bi-funnel"></i> Filter
+            </button>
+
+            <a asp-action="Export" class="btn btn-pm-add-gold"><i class="bi bi-download"></i> Export CSV</a>
+
+            <button type="button" onclick="window.print()" class="btn btn-pdf-outline"><i class="bi bi-file-earmark-text"></i> PDF</button>
+        </div>
+    </div>
+
+    <div id="filterPanel" class="filter-panel @(hasActiveFilters ? "" : "d-none")">
+        <form method="get" id="filterForm">
+            <div class="row g-3 align-items-end">
+                <div class="col-sm-6 col-lg-3">
+                    <label class="d-block">Team</label>
+                    <select name="team" class="form-select" onchange="document.getElementById('filterForm').submit()">
+                        <option value="">All Teams</option>
+                        @foreach (var t in Model.Teams)
+                        {
+                            <option value="@t" selected="@(ViewBag.SelectedTeam == t)">@t</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-sm-6 col-lg-3">
+                    <label class="d-block">Status</label>
+                    <select name="status" class="form-select" onchange="document.getElementById('filterForm').submit()">
+                        <option value="">All Status</option>
+                        <option value="Excellent" selected="@(ViewBag.SelectedStatus == "Excellent")">Excellent</option>
+                        <option value="Good" selected="@(ViewBag.SelectedStatus == "Good")">Good</option>
+                    </select>
+                </div>
+                <div class="col-sm-6 col-lg-3">
+                    <a asp-action="Index" class="filter-reset">Reset</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="pm-table-card" id="sessionTableCard">
+    <div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Session</th>
+                    <th>Team</th>
+                    <th>Present</th>
+                    <th>Absent</th>
+                    <th>Rate</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="sessionTableBody">
+                @foreach (var r in Model.SessionRecords)
+                {
+                    <tr class="session-row" data-session="@r.Session.ToLower()" data-team="@r.Team.ToLower()">
+                        <td class="text-muted">@r.Date.ToString("d MMM yyyy")</td>
+                        <td class="fw-semibold text-dark">@r.Session</td>
+                        <td><span class="team-pill">@r.Team</span></td>
+                        <td>@r.Present</td>
+                        <td>@r.Absent</td>
+                        <td>
+                            <div class="rate-progress-wrap">
+                                <div class="rate-progress-track">
+                                    <div class="rate-progress-fill" style="width:@r.Rate%;"></div>
+                                </div>
+                                <span class="small fw-semibold">@r.Rate%</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="@(r.Status == "Excellent" ? "status-badge-excellent" : "status-badge-good")">@r.Status</span>
+                        </td>
+                    </tr>
+                }
+                <tr id="noSessionResults" class="@(Model.SessionRecords.Any() ? "d-none" : "")">
+                    <td colspan="7" class="text-center text-muted py-4">No sessions found.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style media="print">
+    .pv-sidebar, .topbar, .pm-header-card, .alert { display: none !important; }
+    .pv-content { margin-left: 0 !important; }
+    .row.g-3.mb-3 { display: none !important; }
+</style>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script>
+        (function () {
+            // ---- filter panel toggle ----
+            var toggleBtn = document.getElementById('filterToggleBtn');
+            var panel = document.getElementById('filterPanel');
+            toggleBtn.addEventListener('click', function () {
+                panel.classList.toggle('d-none');
+                toggleBtn.classList.toggle('active');
+            });
+
+            // ---- instant client-side session search (by session name or team) ----
+            // No form submission / page reload here on purpose, so the page
+            // never scrolls or loses focus while typing.
+            var searchInput = document.getElementById('liveSessionSearch');
+            var rows = Array.from(document.querySelectorAll('.session-row'));
+            var noResultsRow = document.getElementById('noSessionResults');
+
+            searchInput.addEventListener('input', function () {
+                var query = searchInput.value.trim().toLowerCase();
+                var visible = 0;
+
+                rows.forEach(function (row) {
+                    var session = row.getAttribute('data-session') || '';
+                    var team = row.getAttribute('data-team') || '';
+                    var matches = query === '' || session.indexOf(query) !== -1 || team.indexOf(query) !== -1;
+                    row.style.display = matches ? '' : 'none';
+                    if (matches) visible++;
+                });
+
+                noResultsRow.classList.toggle('d-none', visible !== 0);
+            });
+        })();
+
+        // ---- data from the server ----
+        var trendData = {
+            week: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TrendsWeek, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase })),
+            month: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TrendsMonth, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase })),
+            year: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TrendsYear, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }))
+        };
+        var splitData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ParticipationSplit, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }));
+        var teamData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TeamComparison, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }));
+
+        // ================= Attendance Trends (bar) =================
+        var trendsCtx = document.getElementById('trendsChart').getContext('2d');
+        var trendsTooltipEl = document.getElementById('trendsTooltip');
+
+        function buildTrendChart(range) {
+            var d = trendData[range];
+            return new Chart(trendsCtx, {
+                type: 'bar',
+                data: {
+                    labels: d.map(x => x.label),
+                    datasets: [
+                        { label: 'Actual', data: d.map(x => x.actual), backgroundColor: '#0B6E4F', borderRadius: 4, maxBarThickness: 34 },
+                        { label: 'Target', data: d.map(x => x.target), backgroundColor: '#FFC72C', borderRadius: 4, maxBarThickness: 34 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, padding: 20 } },
+                        tooltip: {
+                            enabled: false,
+                            external: function (context) {
+                                var tt = context.tooltip;
+                                if (!tt || tt.opacity === 0) { trendsTooltipEl.style.opacity = 0; return; }
+                                var idx = tt.dataPoints && tt.dataPoints.length ? tt.dataPoints[0].dataIndex : 0;
+                                var row = trendData[currentRange][idx];
+                                document.getElementById('tt-trend-label').textContent = row.label;
+                                document.getElementById('tt-trend-actual').textContent = row.actual;
+                                document.getElementById('tt-trend-target').textContent = row.target;
+
+                                var canvasRect = context.chart.canvas.getBoundingClientRect();
+                                var containerRect = context.chart.canvas.parentNode.getBoundingClientRect();
+                                trendsTooltipEl.style.left = (tt.caretX + (canvasRect.left - containerRect.left) + 12) + 'px';
+                                trendsTooltipEl.style.top = (tt.caretY + (canvasRect.top - containerRect.top) - 10) + 'px';
+                                trendsTooltipEl.style.opacity = 1;
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { beginAtZero: true, grid: { color: '#f1f1f1' } }
+                    }
+                }
+            });
+        }
+
+        var currentRange = 'month';
+        var trendsChart = buildTrendChart(currentRange);
+
+        document.querySelectorAll('#trendToggle .toggle-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                document.querySelectorAll('#trendToggle .toggle-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentRange = btn.getAttribute('data-range');
+                trendsChart.destroy();
+                trendsChart = buildTrendChart(currentRange);
+            });
+        });
+
+        // ================= Participation Split (pie) =================
+        var splitCtx = document.getElementById('splitChart').getContext('2d');
+        var splitTooltipEl = document.getElementById('splitTooltip');
+        var splitColors = ['#0B6E4F', '#FFC72C', '#adb5bd'];
+        var splitTotal = splitData.reduce((sum, s) => sum + s.count, 0);
+
+        new Chart(splitCtx, {
+            type: 'pie',
+            data: {
+                labels: splitData.map(s => s.label),
+                datasets: [{ data: splitData.map(s => s.count), backgroundColor: splitColors, borderWidth: 2, borderColor: '#fff' }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        enabled: false,
+                        external: function (context) {
+                            var tt = context.tooltip;
+                            if (!tt || tt.opacity === 0) { splitTooltipEl.style.opacity = 0; return; }
+                            var idx = tt.dataPoints && tt.dataPoints.length ? tt.dataPoints[0].dataIndex : 0;
+                            var row = splitData[idx];
+                            var pct = splitTotal === 0 ? 0 : Math.round((row.count / splitTotal) * 100);
+                            document.getElementById('tt-split-label').textContent = row.label;
+                            document.getElementById('tt-split-value').textContent = row.count + ' players (' + pct + '%)';
+
+                            var canvasRect = context.chart.canvas.getBoundingClientRect();
+                            var containerRect = context.chart.canvas.parentNode.getBoundingClientRect();
+                            splitTooltipEl.style.left = (tt.caretX + (canvasRect.left - containerRect.left) + 12) + 'px';
+                            splitTooltipEl.style.top = (tt.caretY + (canvasRect.top - containerRect.top) - 10) + 'px';
+                            splitTooltipEl.style.opacity = 1;
+                        }
+                    }
+                }
+            }
+        });
+
+        // ================= Team Comparison (horizontal bar) =================
+        var teamCtx = document.getElementById('teamChart').getContext('2d');
+        var teamTooltipEl = document.getElementById('teamTooltip');
+
+        new Chart(teamCtx, {
+            type: 'bar',
+            data: {
+                labels: teamData.map(t => t.team),
+                datasets: [
+                    { label: 'Present', data: teamData.map(t => t.present), backgroundColor: '#0B6E4F', borderRadius: 4, maxBarThickness: 22 },
+                    { label: 'Absent', data: teamData.map(t => t.absent), backgroundColor: '#e0384d', borderRadius: 4, maxBarThickness: 22 }
+                ]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, padding: 20 } },
+                    tooltip: {
+                        enabled: false,
+                        external: function (context) {
+                            var tt = context.tooltip;
+                            if (!tt || tt.opacity === 0) { teamTooltipEl.style.opacity = 0; return; }
+                            var idx = tt.dataPoints && tt.dataPoints.length ? tt.dataPoints[0].dataIndex : 0;
+                            var row = teamData[idx];
+                            document.getElementById('tt-team-label').textContent = row.team;
+                            document.getElementById('tt-team-present').textContent = row.present;
+                            document.getElementById('tt-team-absent').textContent = row.absent;
+
+                            var canvasRect = context.chart.canvas.getBoundingClientRect();
+                            var containerRect = context.chart.canvas.parentNode.getBoundingClientRect();
+                            teamTooltipEl.style.left = (tt.caretX + (canvasRect.left - containerRect.left) + 12) + 'px';
+                            teamTooltipEl.style.top = (tt.caretY + (canvasRect.top - containerRect.top) - 10) + 'px';
+                            teamTooltipEl.style.opacity = 1;
+                        }
+                    }
+                },
+                scales: {
+                    x: { beginAtZero: true, grid: { color: '#f1f1f1' } },
+                    y: { grid: { display: false } }
+                }
+            }
+        });
+    </script>
+}

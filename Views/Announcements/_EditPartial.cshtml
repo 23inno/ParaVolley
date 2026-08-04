@@ -1,0 +1,60 @@
+@model Announcement
+
+<div class="modal-header">
+    <h5 class="modal-title fw-bold">Edit Announcement</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+<form asp-action="Edit" method="post" class="js-ajax-form">
+    <div class="modal-body">
+        <input type="hidden" asp-for="Id" />
+        <input type="hidden" asp-for="Views" />
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+        <div class="mb-3">
+            <label asp-for="Title" class="form-label fw-semibold"></label>
+            <input asp-for="Title" class="form-control" />
+            <span asp-validation-for="Title" class="text-danger small"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Excerpt" class="form-label fw-semibold"></label>
+            <input asp-for="Excerpt" class="form-control" />
+            <span asp-validation-for="Excerpt" class="text-danger small"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Content" class="form-label fw-semibold"></label>
+            <textarea asp-for="Content" class="form-control" rows="4"></textarea>
+            <span asp-validation-for="Content" class="text-danger small"></span>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <label asp-for="Author" class="form-label fw-semibold"></label>
+                <input asp-for="Author" class="form-control" />
+            </div>
+            <div class="col-md-4 mb-3">
+                <label asp-for="Date" class="form-label fw-semibold"></label>
+                <input asp-for="Date" class="form-control" type="date" />
+            </div>
+            <div class="col-md-4 mb-3">
+                <label asp-for="Category" class="form-label fw-semibold"></label>
+                <select asp-for="Category" class="form-select">
+                    <option value="News">News</option>
+                    <option value="Event">Event</option>
+                    <option value="Announcement">Announcement</option>
+                    <option value="Update">Update</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-check mb-0">
+            <input asp-for="IsPinned" class="form-check-input" />
+            <label asp-for="IsPinned" class="form-check-label"></label>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="submit" class="btn btn-pv"><i class="bi bi-check-lg"></i> Save Changes</button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+    </div>
+</form>

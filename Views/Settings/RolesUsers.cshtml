@@ -1,0 +1,99 @@
+@model List<SystemUser>
+@{
+    ViewData["Title"] = "Roles & Users";
+}
+
+<h2 class="settings-page-title">Roles &amp; Users</h2>
+<p class="settings-page-subtitle mb-3">Manage who has access and what permissions they hold.</p>
+
+<div class="settings-layout">
+    <partial name="_SettingsNav" />
+
+    <div class="settings-content-card">
+        <div class="settings-section-header d-flex justify-content-between align-items-start">
+            <div>
+                <h5>System Users</h5>
+                <p>Manage admin and coach access to the platform.</p>
+            </div>
+            <button type="button" class="btn btn-pv flex-shrink-0" data-bs-toggle="modal" data-bs-target="#inviteUserModal">
+                <i class="bi bi-plus-lg"></i> Invite User
+            </button>
+        </div>
+
+        <div class="settings-section-body pt-3 pb-3">
+            <div class="table-responsive">
+                <table class="table pv-table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var u in Model)
+                        {
+                            var initials = string.Concat(u.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(n => n[0])).ToUpper();
+                            if (initials.Length > 2) { initials = initials.Substring(0, 2); }
+
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="coach-avatar" style="width:34px;height:34px;font-size:0.78rem;">@initials</div>
+                                        <span class="fw-semibold">@u.Name</span>
+                                    </div>
+                                </td>
+                                <td>@u.Email</td>
+                                <td><span class="role-pill @(u.Role == SystemUserRole.Admin ? "role-admin" : "role-coach")">@u.Role</span></td>
+                                <td><span class="status-pill @(u.IsActive ? "active" : "inactive")">@(u.IsActive ? "Active" : "Inactive")</span></td>
+                                <td class="text-end">
+                                    <form asp-action="ToggleUserActive" asp-route-id="@u.Id" method="post">
+                                        <button type="submit" class="btn btn-sm @(u.IsActive ? "btn-outline-danger" : "btn-outline-secondary")">
+                                            @(u.IsActive ? "Deactivate" : "Activate")
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="inviteUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="InviteUser" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title">Invite User</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Full Name</label>
+                        <input type="text" name="name" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Email Address</label>
+                        <input type="email" name="email" class="form-control" required />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label fw-semibold">Role</label>
+                        <select name="role" class="form-select">
+                            <option value="Coach">Coach</option>
+                            <option value="Admin">Admin</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-pv">Send Invite</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,67 @@
+@model Event
+
+<div class="modal-header">
+    <h5 class="modal-title fw-bold">Add Event</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+<form asp-action="Create" method="post" class="js-ajax-form">
+    <div class="modal-body">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+        <div class="mb-3">
+            <label asp-for="Title" class="form-label fw-semibold"></label>
+            <input asp-for="Title" class="form-control" />
+            <span asp-validation-for="Title" class="text-danger small"></span>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label asp-for="Date" class="form-label fw-semibold"></label>
+                <input asp-for="Date" class="form-control" type="date" />
+            </div>
+            <div class="col-md-6 mb-3">
+                <label asp-for="Time" class="form-label fw-semibold"></label>
+                <input asp-for="Time" class="form-control" placeholder="e.g. 14:00" />
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Location" class="form-label fw-semibold"></label>
+            <input asp-for="Location" class="form-control" />
+        </div>
+
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <label asp-for="Type" class="form-label fw-semibold"></label>
+                <select asp-for="Type" class="form-select">
+                    <option value="Tournament">Tournament</option>
+                    <option value="Practice">Practice</option>
+                    <option value="Match">Match</option>
+                    <option value="Workshop">Workshop</option>
+                </select>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label asp-for="Status" class="form-label fw-semibold"></label>
+                <select asp-for="Status" class="form-select">
+                    <option value="Upcoming">Upcoming</option>
+                    <option value="InProgress">In Progress</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Cancelled">Cancelled</option>
+                </select>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label asp-for="Participants" class="form-label fw-semibold"></label>
+                <input asp-for="Participants" class="form-control" type="number" value="0" />
+            </div>
+        </div>
+
+        <div class="mb-0">
+            <label asp-for="Description" class="form-label fw-semibold"></label>
+            <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="submit" class="btn btn-pv"><i class="bi bi-check-lg"></i> Save Event</button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+    </div>
+</form>

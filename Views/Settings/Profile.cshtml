@@ -1,0 +1,111 @@
+@model UserProfile
+@{
+    ViewData["Title"] = "Profile";
+}
+
+<h2 class="settings-page-title">Profile</h2>
+<p class="settings-page-subtitle mb-3">Manage your personal information and account details.</p>
+
+<div class="settings-layout">
+    <partial name="_SettingsNav" />
+
+    <div class="settings-content-card">
+        <div class="settings-section-header">
+            <h5>Profile Information</h5>
+            <p>Update your personal details and contact information.</p>
+        </div>
+
+        <div class="settings-section-body pt-4">
+            <div class="d-flex align-items-center gap-3 mb-4">
+                <div class="avatar-upload-preview" id="avatarPreview">
+                    @if (!string.IsNullOrEmpty(Model.AvatarPath))
+                    {
+                        <img src="@Model.AvatarPath" alt="Avatar" id="avatarImg" />
+                    }
+                    else
+                    {
+                        <span id="avatarInitials">@(string.Concat(Model.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(n => n[0])).ToUpper())</span>
+                    }
+                </div>
+                <div>
+                    <div class="fw-bold">Profile Photo</div>
+                    <div class="text-muted small mb-2">JPG, PNG or WebP &middot; max 2 MB</div>
+                    <div class="d-flex gap-2">
+                        <form asp-action="UploadPhoto" method="post" enctype="multipart/form-data" id="uploadPhotoForm">
+                            <label for="photoInput" class="btn btn-outline-secondary btn-sm mb-0" style="cursor:pointer;">
+                                <i class="bi bi-upload"></i> Upload Photo
+                            </label>
+                            <input type="file" name="photo" id="photoInput" accept=".jpg,.jpeg,.png,.webp" class="d-none" />
+                        </form>
+                        @if (!string.IsNullOrEmpty(Model.AvatarPath))
+                        {
+                            <form asp-action="RemovePhoto" method="post">
+                                <button type="submit" class="btn btn-outline-danger btn-sm">Remove</button>
+                            </form>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <form asp-action="Profile" method="post">
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                <div class="settings-row">
+                    <div class="settings-row-label">Full Name</div>
+                    <div class="settings-row-control">
+                        <input asp-for="FullName" class="form-control" />
+                        <span asp-validation-for="FullName" class="text-danger small"></span>
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <div class="settings-row-label">Email Address</div>
+                    <div class="settings-row-control">
+                        <input asp-for="Email" class="form-control" />
+                        <span asp-validation-for="Email" class="text-danger small"></span>
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <div class="settings-row-label">Phone Number</div>
+                    <div class="settings-row-control">
+                        <input asp-for="Phone" class="form-control" />
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <div class="settings-row-label">Role</div>
+                    <div class="settings-row-control">
+                        <input value="@Model.Role" class="form-control" disabled style="background:#f8f9fa;" />
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <div class="settings-row-label">Bio</div>
+                    <div class="settings-row-control">
+                        <textarea asp-for="Bio" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+
+                <div class="text-end pb-2">
+                    <button type="submit" class="btn btn-pv"><i class="bi bi-check-lg"></i> Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        var photoInput = document.getElementById('photoInput');
+        photoInput.addEventListener('change', function () {
+            if (photoInput.files && photoInput.files[0]) {
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    var preview = document.getElementById('avatarPreview');
+                    preview.innerHTML = '<img src="' + e.target.result + '" alt="Avatar" />';
+                };
+                reader.readAsDataURL(photoInput.files[0]);
+                // Auto-submit the upload form once a file is chosen
+                document.getElementById('uploadPhotoForm').submit();
+            }
+        });
+    </script>
+}

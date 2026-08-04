@@ -1,0 +1,104 @@
+@model Report
+
+<div class="modal-header">
+    <h5 class="modal-title fw-bold">Generate Report</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+<form asp-action="Create" method="post" enctype="multipart/form-data" class="js-ajax-form">
+    <div class="modal-body">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+        <div class="mb-3">
+            <label asp-for="Title" class="form-label fw-semibold">Report Title *</label>
+            <input asp-for="Title" class="form-control" placeholder="e.g. Monthly Performance Report" />
+            <span asp-validation-for="Title" class="text-danger small"></span>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label asp-for="Type" class="form-label fw-semibold">Report Type</label>
+                <select asp-for="Type" class="form-select">
+                    <option value="Performance">Performance</option>
+                    <option value="Attendance">Attendance</option>
+                    <option value="Tournament">Tournament</option>
+                    <option value="Training">Training</option>
+                    <option value="Financial">Financial</option>
+                    <option value="Analysis">Analysis</option>
+                </select>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label asp-for="Status" class="form-label fw-semibold"></label>
+                <select asp-for="Status" class="form-select">
+                    <option value="Draft">Draft</option>
+                    <option value="Published">Published</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <label asp-for="Date" class="form-label fw-semibold"></label>
+            <input asp-for="Date" class="form-control" type="date" />
+        </div>
+
+        <div class="mb-0">
+            <label class="form-label fw-semibold">Attach File (optional)</label>
+            <label for="fileInput" class="file-dropzone d-block" id="dropzone">
+                <i class="bi bi-cloud-arrow-up-fill"></i>
+                <span id="dropzoneText">Click to choose a file, or drag and drop it here</span>
+                <div class="small text-muted mt-1">PDF, Word, Excel, CSV or image files</div>
+                <div class="file-name" id="fileNameLabel"></div>
+            </label>
+            <input type="file" name="file" id="fileInput" class="d-none" />
+            <div class="form-text">If no file is attached, a placeholder report will be generated instead.</div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="submit" class="btn btn-pv"><i class="bi bi-check-lg"></i> Generate</button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+    </div>
+</form>
+
+<script>
+    (function () {
+        var dropzone = document.getElementById('dropzone');
+        var fileInput = document.getElementById('fileInput');
+        var fileNameLabel = document.getElementById('fileNameLabel');
+        var dropzoneText = document.getElementById('dropzoneText');
+
+        function showFileName(file) {
+            if (file) {
+                fileNameLabel.textContent = file.name + ' (' + (file.size / 1024).toFixed(0) + ' KB)';
+                dropzoneText.textContent = 'File ready to upload:';
+            } else {
+                fileNameLabel.textContent = '';
+                dropzoneText.textContent = 'Click to choose a file, or drag and drop it here';
+            }
+        }
+
+        fileInput.addEventListener('change', function () {
+            showFileName(fileInput.files[0]);
+        });
+
+        ['dragover', 'dragenter'].forEach(function (evt) {
+            dropzone.addEventListener(evt, function (e) {
+                e.preventDefault();
+                dropzone.classList.add('dragover');
+            });
+        });
+
+        ['dragleave', 'dragend'].forEach(function (evt) {
+            dropzone.addEventListener(evt, function () {
+                dropzone.classList.remove('dragover');
+            });
+        });
+
+        dropzone.addEventListener('drop', function (e) {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                showFileName(fileInput.files[0]);
+            }
+        });
+    })();
+</script>

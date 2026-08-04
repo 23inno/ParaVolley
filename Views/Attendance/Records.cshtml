@@ -1,0 +1,63 @@
+@model IEnumerable<Attendance>
+@{
+    ViewData["Title"] = "Attendance Records";
+}
+
+<div class="topbar">
+    <div>
+        <h2 class="page-title">Attendance Records</h2>
+        <p class="text-muted mb-0">Individual player check-ins by event.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back to Dashboard</a>
+        <a asp-action="Create" class="btn btn-pv"><i class="bi bi-plus-lg"></i> Record Attendance</a>
+    </div>
+</div>
+
+<div class="pv-card mb-3">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-md-8">
+            <label class="form-label small">Filter by Event</label>
+            @Html.DropDownList("eventId", (SelectList)ViewBag.Events, "All Events", new { @class = "form-select" })
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-outline-secondary w-100"><i class="bi bi-filter"></i> Filter</button>
+        </div>
+    </form>
+</div>
+
+<div class="pv-card">
+    <div class="table-responsive">
+        <table class="table pv-table align-middle">
+            <thead>
+                <tr>
+                    <th>Player</th>
+                    <th>Event</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var a in Model)
+                {
+                    <tr>
+                        <td>@a.Player?.Name</td>
+                        <td>@a.Event?.Title</td>
+                        <td>@a.Date.ToString("MMM d, yyyy")</td>
+                        <td>
+                            <span class="badge @(a.Status == AttendanceStatus.Present ? "badge-active" : "badge-cancelled")">@a.Status</span>
+                        </td>
+                        <td class="text-end">
+                            <a asp-action="Delete" asp-route-id="@a.Id" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></a>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Any())
+                {
+                    <tr><td colspan="5" class="text-center text-muted py-4">No attendance records found.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

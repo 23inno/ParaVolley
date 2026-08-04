@@ -1,0 +1,134 @@
+@model LoginViewModel
+@using SportsManagementMVC.Data
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext Db
+@{
+    ViewData["Title"] = "Login";
+    Layout = "_Layout";
+
+    var org = await Db.OrganisationSettings.FirstOrDefaultAsync() ?? new OrganisationSettings();
+    var adminProfile = await Db.UserProfiles.FirstOrDefaultAsync();
+    var orgWords = org.OrganisationName.Split(' ', 2);
+    var orgFirstWord = orgWords.Length > 0 ? orgWords[0] : "ParaVolley";
+    var orgRest = orgWords.Length > 1 ? orgWords[1] : "";
+    var adminEmail = adminProfile?.Email ?? "admin@paravolley.com";
+}
+
+<div class="login-shell">
+    <div class="login-card">
+        <div class="login-left">
+            @if (!string.IsNullOrEmpty(org.LogoPath))
+            {
+                <div class="login-logo-badge" style="background:#fff; padding:0.4rem;">
+                    <img src="@org.LogoPath" alt="@org.OrganisationName logo" style="width:100%; height:100%; object-fit:contain;" />
+                </div>
+            }
+            else
+            {
+                <div class="login-logo-badge"><i class="bi bi-shield-fill-check"></i></div>
+            }
+            <div class="login-brand-title">@orgFirstWord</div>
+            <div class="login-brand-sub">@orgRest</div>
+            <p class="login-tagline">
+                Empowering athletes, building champions. Your comprehensive sports management system for excellence in volleyball.
+            </p>
+
+            <ul class="login-feature-list">
+                <li>Player &amp; Coach Management</li>
+                <li>Match Scheduling &amp; Results</li>
+                <li>Attendance &amp; Analytics</li>
+                <li>News &amp; Announcements</li>
+            </ul>
+
+            <div class="login-copyright">&copy; @DateTime.Now.Year @org.OrganisationName. All rights reserved.</div>
+        </div>
+
+        <div class="login-right">
+            <div class="login-welcome-title">Welcome Back</div>
+            <p class="login-welcome-sub">Sign in to access your dashboard</p>
+
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+            <form asp-controller="Account" asp-action="Login" method="post">
+                <input type="hidden" asp-for="ReturnUrl" />
+
+                <label asp-for="Email" class="login-field-label"></label>
+                <div class="login-input-wrap">
+                    <i class="bi bi-envelope field-icon"></i>
+                    <input asp-for="Email" class="form-control" placeholder="admin@paravolley.com" autocomplete="username" />
+                </div>
+                <span asp-validation-for="Email" class="text-danger small"></span>
+
+                <label asp-for="Password" class="login-field-label"></label>
+                <div class="login-input-wrap">
+                    <i class="bi bi-lock field-icon"></i>
+                    <input asp-for="Password" id="loginPassword" class="form-control" placeholder="Enter your password" autocomplete="current-password" />
+                    <button type="button" class="toggle-eye" id="togglePasswordBtn"><i class="bi bi-eye"></i></button>
+                </div>
+                <span asp-validation-for="Password" class="text-danger small"></span>
+
+                <div class="login-remember-row mt-2">
+                    <div class="form-check">
+                        <input asp-for="RememberMe" class="form-check-input" />
+                        <label asp-for="RememberMe" class="form-check-label small"></label>
+                    </div>
+                    <a asp-action="ForgotPassword" class="login-forgot-link">Forgot Password?</a>
+                </div>
+
+                <button type="submit" class="btn-sign-in">Sign In <i class="bi bi-arrow-right"></i></button>
+            </form>
+
+            <button type="button" class="login-divider border-0 bg-transparent w-100 p-0" style="cursor:pointer;" data-bs-toggle="modal" data-bs-target="#needHelpModal">Need help?</button>
+
+            <p class="login-help-text mb-1">Contact your system administrator for access</p>
+            <p class="login-help-text mb-0"><a href="mailto:@adminEmail">@adminEmail</a></p>
+
+            <div class="login-footer-links">
+                <a asp-action="Privacy">Privacy Policy</a> &nbsp;&middot;&nbsp;
+                <a asp-action="Terms">Terms of Service</a> &nbsp;&middot;&nbsp;
+                <a asp-action="Support">Support</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="needHelpModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">How to Sign In</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <ol class="mb-3">
+                    <li class="mb-2">Enter the <strong>email address</strong> for your account in the Email Address field.</li>
+                    <li class="mb-2">Enter your <strong>password</strong>. Click the eye icon to reveal it and check for typos.</li>
+                    <li class="mb-2">Check <strong>Remember me</strong> if this is your own device - you'll stay signed in for 30 days without logging in again.</li>
+                    <li class="mb-2">Click <strong>Sign In</strong>.</li>
+                </ol>
+                <p class="mb-2">Forgotten your password? Use the <a asp-action="ForgotPassword" data-bs-dismiss="modal">Forgot Password</a> link to reset it by email.</p>
+                <p class="mb-0">Still stuck? Reach out via the <a asp-action="Support" data-bs-dismiss="modal">Support</a> page or email your administrator directly.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-pv" data-bs-dismiss="modal">Got it</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.getElementById('togglePasswordBtn').addEventListener('click', function () {
+            var input = document.getElementById('loginPassword');
+            var icon = this.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('bi-eye', 'bi-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('bi-eye-slash', 'bi-eye');
+            }
+        });
+    </script>
+}

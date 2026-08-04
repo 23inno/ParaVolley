@@ -1,0 +1,30 @@
+@model Attendance
+@{
+    ViewData["Title"] = "Delete Attendance Record";
+}
+
+<div class="topbar">
+    <h2 class="page-title">Delete Attendance Record</h2>
+    <a asp-action="Records" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
+</div>
+
+<div class="pv-card" style="max-width:560px;">
+    <div class="alert alert-warning"><i class="bi bi-exclamation-triangle-fill"></i> Are you sure you want to delete this attendance record?</div>
+
+    <dl class="row mb-4">
+        <dt class="col-sm-4 text-muted">Player</dt>
+        <dd class="col-sm-8">@Model.Player?.Name</dd>
+        <dt class="col-sm-4 text-muted">Event</dt>
+        <dd class="col-sm-8">@Model.Event?.Title</dd>
+        <dt class="col-sm-4 text-muted">Date</dt>
+        <dd class="col-sm-8">@Model.Date.ToString("MMM d, yyyy")</dd>
+        <dt class="col-sm-4 text-muted">Status</dt>
+        <dd class="col-sm-8">@Model.Status</dd>
+    </dl>
+
+    <form asp-action="Delete" method="post">
+        <input type="hidden" asp-for="Id" />
+        <button type="submit" class="btn btn-danger"><i class="bi bi-trash"></i> Delete</button>
+        <a asp-action="Records" class="btn btn-outline-secondary">Cancel</a>
+    </form>
+</div>

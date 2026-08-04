@@ -1,0 +1,305 @@
+@model IEnumerable<Match>
+@{
+    ViewData["Title"] = "Matches";
+    var totalCount = (int)ViewBag.TotalCount;
+    var filteredCount = Model.Count();
+    var hasActiveFilters = !string.IsNullOrWhiteSpace((string?)ViewBag.SelectedTournament)
+        || !string.IsNullOrWhiteSpace((string?)ViewBag.SelectedStatus);
+}
+
+<div class="row g-3 mb-3">
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-top">
+                <span class="stat-title">Upcoming</span>
+                <div class="icon-box icon-box-green"><i class="bi bi-calendar-event-fill"></i></div>
+            </div>
+            <div class="value">@ViewBag.UpcomingCount</div>
+            <div class="change">@ViewBag.UpcomingCount scheduled</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-top">
+                <span class="stat-title">Completed</span>
+                <div class="icon-box icon-box-gold"><i class="bi bi-check-circle-fill"></i></div>
+            </div>
+            <div class="value">@ViewBag.CompletedCount</div>
+            <div class="change">This season</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-top">
+                <span class="stat-title">Tournaments</span>
+                <div class="icon-box icon-box-blue"><i class="bi bi-trophy-fill"></i></div>
+            </div>
+            <div class="value">@ViewBag.TournamentsCount</div>
+            <div class="change">Active</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-top">
+                <span class="stat-title">In Progress</span>
+                <div class="icon-box icon-box-purple"><i class="bi bi-clock-fill"></i></div>
+            </div>
+            <div class="value">@ViewBag.InProgressCount</div>
+            <div class="change">Live now</div>
+        </div>
+    </div>
+</div>
+
+<div class="pm-header-card mb-3">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+        <div>
+            <h2 class="pm-title">Match Management</h2>
+            <p class="pm-subtitle"><span id="visibleCount">@filteredCount</span> of @totalCount matches</p>
+        </div>
+
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <div class="search-input-wrap m-0">
+                <i class="bi bi-search"></i>
+                <input type="text" id="liveSearchInput" class="form-control" placeholder="Search by match ID or team..." autocomplete="off" />
+            </div>
+
+            <button type="button" id="filterToggleBtn" class="btn btn-filter-toggle @(hasActiveFilters ? "active" : "")">
+                <i class="bi bi-funnel"></i> Filter
+            </button>
+
+            <a asp-action="Export" id="exportLink" class="btn btn-pm-outline" asp-route-tournament="@ViewBag.SelectedTournament" asp-route-status="@ViewBag.SelectedStatus">
+                <i class="bi bi-download"></i> Export
+            </a>
+
+            <a asp-action="Create" class="btn btn-pm-add-gold js-modal-trigger"><i class="bi bi-plus-lg"></i> Create Match</a>
+        </div>
+    </div>
+
+    <div id="filterPanel" class="filter-panel @(hasActiveFilters ? "" : "d-none")">
+        <form method="get" id="filterForm">
+            <div class="row g-3 align-items-end">
+                <div class="col-sm-6 col-lg-4">
+                    <label class="d-block">Tournament</label>
+                    <select name="tournament" class="form-select" onchange="document.getElementById('filterForm').submit()">
+                        <option value="">All Tournaments</option>
+                        @foreach (var t in (List<string>)ViewBag.Tournaments)
+                        {
+                            <option value="@t" selected="@(ViewBag.SelectedTournament == t)">@t</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-sm-6 col-lg-4">
+                    <label class="d-block">Status</label>
+                    <select name="status" class="form-select" onchange="document.getElementById('filterForm').submit()">
+                        <option value="">All Status</option>
+                        <option value="Scheduled" selected="@(ViewBag.SelectedStatus == "Scheduled")">Scheduled</option>
+                        <option value="InProgress" selected="@(ViewBag.SelectedStatus == "InProgress")">In Progress</option>
+                        <option value="Completed" selected="@(ViewBag.SelectedStatus == "Completed")">Completed</option>
+                        <option value="Cancelled" selected="@(ViewBag.SelectedStatus == "Cancelled")">Cancelled</option>
+                    </select>
+                </div>
+                <div class="col-sm-6 col-lg-4">
+                    <a asp-action="Index" class="filter-reset">Reset</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="pm-table-card">
+    <div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Teams</th>
+                    <th>Score</th>
+                    <th>Date &amp; Time</th>
+                    <th>Venue</th>
+                    <th>Tournament</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="matchTableBody">
+                @foreach (var m in Model)
+                {
+                    var statusClass = m.Status switch
+                    {
+                        MatchStatus.Scheduled => "scheduled",
+                        MatchStatus.InProgress => "inprogress",
+                        MatchStatus.Completed => "completed",
+                        _ => "cancelled"
+                    };
+                    var statusIcon = m.Status switch
+                    {
+                        MatchStatus.Scheduled => "bi-clock",
+                        MatchStatus.InProgress => "bi-trophy-fill",
+                        MatchStatus.Completed => "bi-check-circle-fill",
+                        _ => "bi-x-circle-fill"
+                    };
+                    var statusLabel = m.Status == MatchStatus.InProgress ? "In Progress" : m.Status.ToString();
+                    var matchIdLabel = $"M{m.Id:000}";
+
+                    <tr class="match-row" data-matchid="@matchIdLabel.ToLower()" data-teama="@m.TeamA.ToLower()" data-teamb="@m.TeamB.ToLower()">
+                        <td><span class="mm-id">@matchIdLabel</span></td>
+                        <td>
+                            <div class="mm-team-primary">@m.TeamA</div>
+                            <div class="mm-team-secondary">vs @m.TeamB</div>
+                        </td>
+                        <td>
+                            @if (m.ScoreA.HasValue && m.ScoreB.HasValue)
+                            {
+                                <span class="mm-score">@m.ScoreA &ndash; @m.ScoreB</span>
+                            }
+                            else
+                            {
+                                <span class="mm-score empty">&mdash;</span>
+                            }
+                        </td>
+                        <td>
+                            <div class="mm-cell-icon-row">
+                                <i class="bi bi-calendar3"></i>
+                                <div>
+                                    <div>@m.Date.ToString("d MMM yyyy")</div>
+                                    <div class="mm-cell-sub">@m.Time</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="mm-cell-icon-row"><i class="bi bi-geo-alt"></i> <span>@m.Venue</span></div>
+                        </td>
+                        <td>@m.Tournament</td>
+                        <td>
+                            <span class="status-pill-icon @statusClass"><i class="bi @statusIcon"></i> @statusLabel</span>
+                        </td>
+                        <td class="text-end">
+                            <a asp-action="Details" asp-route-id="@m.Id" class="pm-action-icon view js-modal-trigger" title="View"><i class="bi bi-eye"></i></a>
+                            <a asp-action="Edit" asp-route-id="@m.Id" class="pm-action-icon edit js-modal-trigger" title="Edit"><i class="bi bi-pencil-square"></i></a>
+                            <a asp-action="Delete" asp-route-id="@m.Id" class="pm-action-icon delete js-modal-trigger" title="Delete"><i class="bi bi-trash"></i></a>
+                        </td>
+                    </tr>
+                }
+                <tr id="noMatchResults" class="@(Model.Any() ? "d-none" : "")">
+                    <td colspan="8" class="text-center text-muted py-4">No matches found.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Shared modal used for Create / View / Edit / Delete - content is loaded via AJAX -->
+<div class="modal fade" id="matchModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="matchModalContent">
+            <div class="modal-body text-center py-5">
+                <div class="spinner-border text-success" role="status"><span class="visually-hidden">Loading...</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var toggleBtn = document.getElementById('filterToggleBtn');
+            var panel = document.getElementById('filterPanel');
+            toggleBtn.addEventListener('click', function () {
+                panel.classList.toggle('d-none');
+                toggleBtn.classList.toggle('active');
+            });
+
+            // ===== Instant, prefix-based client-side search (Match ID OR either team) =====
+            var searchInput = document.getElementById('liveSearchInput');
+            var rows = Array.from(document.querySelectorAll('.match-row'));
+            var visibleCountEl = document.getElementById('visibleCount');
+            var noResultsRow = document.getElementById('noMatchResults');
+
+            function applySearch() {
+                var query = searchInput.value.trim().toLowerCase();
+                var visible = 0;
+
+                rows.forEach(function (row) {
+                    var matchId = row.getAttribute('data-matchid') || '';
+                    var teamA = row.getAttribute('data-teama') || '';
+                    var teamB = row.getAttribute('data-teamb') || '';
+                    var matches = query === '' ||
+                        matchId.startsWith(query) ||
+                        teamA.startsWith(query) ||
+                        teamB.startsWith(query);
+                    row.style.display = matches ? '' : 'none';
+                    if (matches) visible++;
+                });
+
+                visibleCountEl.textContent = visible;
+                noResultsRow.classList.toggle('d-none', visible !== 0);
+            }
+
+            searchInput.addEventListener('input', applySearch);
+
+            var exportLink = document.getElementById('exportLink');
+            var exportBaseHref = exportLink.getAttribute('href');
+            searchInput.addEventListener('input', function () {
+                var url = new URL(exportBaseHref, window.location.origin);
+                if (searchInput.value.trim()) {
+                    url.searchParams.set('search', searchInput.value.trim());
+                } else {
+                    url.searchParams.delete('search');
+                }
+                exportLink.setAttribute('href', url.pathname + url.search);
+            });
+
+            // ===== Create / View / Edit / Delete as an in-page modal card =====
+            var modalEl = document.getElementById('matchModal');
+            var modalContent = document.getElementById('matchModalContent');
+            var bsModal = new bootstrap.Modal(modalEl);
+
+            function loadIntoModal(url) {
+                modalContent.innerHTML = '<div class="modal-body text-center py-5"><div class="spinner-border text-success" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+                bsModal.show();
+                fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(function (res) { return res.text(); })
+                    .then(function (html) { modalContent.innerHTML = html; })
+                    .catch(function () {
+                        modalContent.innerHTML = '<div class="modal-body"><div class="alert alert-danger mb-0">Could not load that match. Please try again.</div></div>';
+                    });
+            }
+
+            document.addEventListener('click', function (e) {
+                var link = e.target.closest('.js-modal-trigger');
+                if (link) {
+                    e.preventDefault();
+                    loadIntoModal(link.getAttribute('href'));
+                }
+            });
+
+            document.addEventListener('submit', function (e) {
+                var form = e.target.closest('.js-ajax-form');
+                if (!form || !modalContent.contains(form)) return;
+
+                e.preventDefault();
+                var formData = new FormData(form);
+
+                fetch(form.getAttribute('action') || window.location.href, {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    body: formData
+                }).then(function (res) {
+                    var contentType = res.headers.get('content-type') || '';
+                    if (contentType.indexOf('application/json') !== -1) {
+                        return res.json().then(function (data) {
+                            if (data.success) {
+                                bsModal.hide();
+                                window.location.reload();
+                            }
+                        });
+                    } else {
+                        return res.text().then(function (html) { modalContent.innerHTML = html; });
+                    }
+                }).catch(function () {
+                    modalContent.innerHTML = '<div class="modal-body"><div class="alert alert-danger mb-0">Something went wrong saving. Please try again.</div></div>';
+                });
+            });
+        })();
+    </script>
+}

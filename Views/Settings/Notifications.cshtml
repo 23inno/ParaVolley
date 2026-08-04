@@ -1,0 +1,88 @@
+@model List<NotificationPreference>
+@{
+    ViewData["Title"] = "Notifications";
+}
+
+<h2 class="settings-page-title">Notifications</h2>
+<p class="settings-page-subtitle mb-3">Choose which alerts and notifications you receive.</p>
+
+<div class="settings-layout">
+    <partial name="_SettingsNav" />
+
+    <div class="settings-content-card">
+        <div class="settings-section-header">
+            <h5>Notification Preferences</h5>
+            <p>Control how and when you receive system notifications.</p>
+        </div>
+
+        <div class="settings-section-body pt-3 pb-3">
+            <form style="display:none;">@Html.AntiForgeryToken()</form>
+            <div class="table-responsive">
+                <table class="table notif-table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Event</th>
+                            <th>Email</th>
+                            <th>SMS</th>
+                            <th>Push</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var pref in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="notif-event-label">@pref.EventLabel</div>
+                                    <div class="notif-event-desc">@pref.EventDescription</div>
+                                </td>
+                                <td>
+                                    <div class="form-check form-switch d-flex justify-content-center m-0">
+                                        <input class="form-check-input settings-toggle notif-toggle" type="checkbox" role="switch"
+                                               data-id="@pref.Id" data-channel="email" @(pref.EmailEnabled ? "checked" : "")>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="form-check form-switch d-flex justify-content-center m-0">
+                                        <input class="form-check-input settings-toggle notif-toggle" type="checkbox" role="switch"
+                                               data-id="@pref.Id" data-channel="sms" @(pref.SmsEnabled ? "checked" : "")>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="form-check form-switch d-flex justify-content-center m-0">
+                                        <input class="form-check-input settings-toggle notif-toggle" type="checkbox" role="switch"
+                                               data-id="@pref.Id" data-channel="push" @(pref.PushEnabled ? "checked" : "")>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        var csrfToken = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+
+        document.querySelectorAll('.notif-toggle').forEach(function (toggle) {
+            toggle.addEventListener('change', function () {
+                var id = toggle.getAttribute('data-id');
+                var channel = toggle.getAttribute('data-channel');
+
+                fetch('@Url.Action("ToggleNotification")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRF-TOKEN': csrfToken
+                    },
+                    body: 'id=' + encodeURIComponent(id) + '&channel=' + encodeURIComponent(channel)
+                }).catch(function () {
+                    // revert on failure
+                    toggle.checked = !toggle.checked;
+                });
+            });
+        });
+    </script>
+}

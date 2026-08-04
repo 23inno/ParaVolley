@@ -1,0 +1,163 @@
+@model AppearanceSettings
+@{
+    ViewData["Title"] = "Appearance";
+    var presetColors = new[] { "#0B6E4F", "#2563EB", "#7C3AED", "#DC2626", "#C2410C", "#0EA5E9", "#16A34A" };
+}
+
+<h2 class="settings-page-title">Appearance</h2>
+<p class="settings-page-subtitle mb-3">Personalise your dashboard experience.</p>
+
+<div class="settings-layout">
+    <partial name="_SettingsNav" />
+
+    <div class="settings-content-card">
+        <div class="settings-section-header">
+            <h5>Appearance</h5>
+            <p>Customise the look and feel of your dashboard.</p>
+        </div>
+
+        <div class="settings-section-body pt-4 pb-4">
+            <form asp-action="Appearance" method="post" id="appearanceForm">
+                <input type="hidden" name="theme" id="themeInput" value="@Model.Theme" />
+                <input type="hidden" name="accentColor" id="accentColorInput" value="@Model.AccentColor" />
+                <input type="hidden" name="density" id="densityInput" value="@Model.Density" />
+
+                <label class="fw-semibold mb-2 d-block">Theme</label>
+                <div class="d-flex gap-3 mb-4" id="themeOptions">
+                    <div class="theme-option-card @(Model.Theme == AppTheme.Light ? "selected" : "")" data-theme="Light">
+                        <div class="theme-swatch swatch-light"></div>
+                        <div>Light</div>
+                        <i class="bi bi-check-lg theme-check" style="color:var(--pv-green); @(Model.Theme == AppTheme.Light ? "" : "visibility:hidden;")"></i>
+                    </div>
+                    <div class="theme-option-card @(Model.Theme == AppTheme.Dark ? "selected" : "")" data-theme="Dark">
+                        <div class="theme-swatch swatch-dark"></div>
+                        <div>Dark</div>
+                        <i class="bi bi-check-lg theme-check" style="color:var(--pv-green); @(Model.Theme == AppTheme.Dark ? "" : "visibility:hidden;")"></i>
+                    </div>
+                    <div class="theme-option-card @(Model.Theme == AppTheme.System ? "selected" : "")" data-theme="System">
+                        <div class="theme-swatch swatch-system"></div>
+                        <div>System</div>
+                        <i class="bi bi-check-lg theme-check" style="color:var(--pv-green); @(Model.Theme == AppTheme.System ? "" : "visibility:hidden;")"></i>
+                    </div>
+                </div>
+
+                <label class="fw-semibold mb-2 d-block">Accent Colour</label>
+                <div class="d-flex align-items-center gap-2 mb-4 flex-wrap" id="accentOptions">
+                    @foreach (var c in presetColors)
+                    {
+                        <span class="accent-swatch @(string.Equals(c, Model.AccentColor, StringComparison.OrdinalIgnoreCase) ? "selected" : "")"
+                              style="background-color:@c; color:@c;" data-color="@c"></span>
+                    }
+                    <span class="text-muted small ms-2" id="accentHexLabel">@Model.AccentColor</span>
+                </div>
+
+                <label class="fw-semibold mb-2 d-block">Layout Density</label>
+                <div class="d-flex gap-2 mb-4" id="densityOptions" style="max-width:480px;">
+                    <div class="density-option @(Model.Density == LayoutDensity.Compact ? "selected" : "")" data-density="Compact">Compact</div>
+                    <div class="density-option @(Model.Density == LayoutDensity.Comfortable ? "selected" : "")" data-density="Comfortable">Comfortable</div>
+                    <div class="density-option @(Model.Density == LayoutDensity.Spacious ? "selected" : "")" data-density="Spacious">Spacious</div>
+                </div>
+
+                <label class="fw-semibold mb-2 d-block">Preview</label>
+                <div class="appearance-preview-frame mb-4" id="previewFrame">
+                    <div class="preview-sidebar" id="previewSidebar">
+                        <div class="preview-brand" id="previewBrand">Dash...</div>
+                        <div class="preview-link">Players</div>
+                        <div class="preview-link">Events</div>
+                        <div class="preview-link">Matches</div>
+                    </div>
+                    <div class="preview-main" id="previewMain">
+                        <div class="preview-bar" style="width:60%;"></div>
+                        <div class="preview-bar" style="width:90%;"></div>
+                        <div class="preview-bar" style="width:75%;"></div>
+                        <div class="preview-bar" style="width:85%;"></div>
+                    </div>
+                </div>
+
+                <div class="text-end">
+                    <button type="submit" class="btn btn-pv"><i class="bi bi-check-lg"></i> Apply Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var themeInput = document.getElementById('themeInput');
+            var accentColorInput = document.getElementById('accentColorInput');
+            var densityInput = document.getElementById('densityInput');
+
+            var previewFrame = document.getElementById('previewFrame');
+            var previewSidebar = document.getElementById('previewSidebar');
+            var previewBrand = document.getElementById('previewBrand');
+            var previewMain = document.getElementById('previewMain');
+
+            function updatePreview() {
+                var theme = themeInput.value;
+                var color = accentColorInput.value;
+                var density = densityInput.value;
+
+                // Sidebar always uses the accent colour as its background
+                previewSidebar.style.backgroundColor = color;
+                previewBrand.style.backgroundColor = 'rgba(255,255,255,0.15)';
+                previewBrand.style.color = '#fff';
+
+                // Theme controls the main content area
+                if (theme === 'Dark') {
+                    previewMain.style.backgroundColor = '#1a1d2b';
+                } else if (theme === 'System') {
+                    previewMain.style.background = 'linear-gradient(135deg, #ffffff 0%, #1a1d2b 100%)';
+                } else {
+                    previewMain.style.backgroundColor = '#ffffff';
+                }
+
+                // Density controls padding/spacing
+                var pad = density === 'Compact' ? '0.6rem' : (density === 'Spacious' ? '2rem' : '1rem');
+                var gap = density === 'Compact' ? '0.35rem' : (density === 'Spacious' ? '1rem' : '0.6rem');
+                previewMain.style.padding = pad;
+                previewSidebar.style.padding = pad;
+                Array.from(previewMain.querySelectorAll('.preview-bar')).forEach(function (bar) {
+                    bar.style.marginBottom = gap;
+                    bar.style.height = density === 'Compact' ? '7px' : (density === 'Spacious' ? '14px' : '10px');
+                });
+            }
+
+            document.querySelectorAll('#themeOptions .theme-option-card').forEach(function (card) {
+                card.addEventListener('click', function () {
+                    document.querySelectorAll('#themeOptions .theme-option-card').forEach(function (c) {
+                        c.classList.remove('selected');
+                        c.querySelector('.theme-check').style.visibility = 'hidden';
+                    });
+                    card.classList.add('selected');
+                    card.querySelector('.theme-check').style.visibility = 'visible';
+                    themeInput.value = card.getAttribute('data-theme');
+                    updatePreview();
+                });
+            });
+
+            document.querySelectorAll('#accentOptions .accent-swatch').forEach(function (swatch) {
+                swatch.addEventListener('click', function () {
+                    document.querySelectorAll('#accentOptions .accent-swatch').forEach(function (s) { s.classList.remove('selected'); });
+                    swatch.classList.add('selected');
+                    var color = swatch.getAttribute('data-color');
+                    accentColorInput.value = color;
+                    document.getElementById('accentHexLabel').textContent = color;
+                    updatePreview();
+                });
+            });
+
+            document.querySelectorAll('#densityOptions .density-option').forEach(function (opt) {
+                opt.addEventListener('click', function () {
+                    document.querySelectorAll('#densityOptions .density-option').forEach(function (o) { o.classList.remove('selected'); });
+                    opt.classList.add('selected');
+                    densityInput.value = opt.getAttribute('data-density');
+                    updatePreview();
+                });
+            });
+
+            updatePreview();
+        })();
+    </script>
+}

@@ -1,0 +1,68 @@
+@model Announcement
+@{
+    ViewData["Title"] = "Edit Announcement";
+}
+
+<div class="topbar">
+    <h2 class="page-title">Edit Announcement</h2>
+    <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
+</div>
+
+<div class="pv-card" style="max-width:700px;">
+    <form asp-action="Edit" method="post">
+        <input type="hidden" asp-for="Id" />
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+        <div class="mb-3">
+            <label asp-for="Title" class="form-label fw-semibold"></label>
+            <input asp-for="Title" class="form-control" />
+            <span asp-validation-for="Title" class="text-danger small"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Excerpt" class="form-label fw-semibold"></label>
+            <input asp-for="Excerpt" class="form-control" placeholder="Short summary shown on the list" />
+            <span asp-validation-for="Excerpt" class="text-danger small"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Content" class="form-label fw-semibold"></label>
+            <textarea asp-for="Content" class="form-control" rows="5"></textarea>
+            <span asp-validation-for="Content" class="text-danger small"></span>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <label asp-for="Author" class="form-label fw-semibold"></label>
+                <input asp-for="Author" class="form-control" />
+            </div>
+            <div class="col-md-4 mb-3">
+                <label asp-for="Date" class="form-label fw-semibold"></label>
+                <input asp-for="Date" class="form-control" type="date" />
+            </div>
+            <div class="col-md-4 mb-3">
+                <label asp-for="Category" class="form-label fw-semibold"></label>
+                <select asp-for="Category" class="form-select">
+                    <option value="News">News</option>
+                    <option value="Event">Event</option>
+                    <option value="Announcement">Announcement</option>
+                    <option value="Update">Update</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-check mb-4">
+            <input asp-for="IsPinned" class="form-check-input" />
+            <label asp-for="IsPinned" class="form-check-label"></label>
+        </div>
+
+        <input type="hidden" asp-for="Views" />
+
+        <button type="submit" class="btn btn-pv"><i class="bi bi-check-lg"></i> Save Changes</button>
+        <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

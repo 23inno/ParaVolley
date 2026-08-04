@@ -1,0 +1,217 @@
+@model IEnumerable<Announcement>
+@{
+    ViewData["Title"] = "News & Announcements";
+    var selectedCategory = (string?)ViewBag.SelectedCategory;
+    var sponsors = (List<Sponsor>)ViewBag.Sponsors;
+    var recentUpdates = (List<RecentUpdateItem>)ViewBag.RecentUpdates;
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+    <div>
+        <h2 class="news-page-title">News &amp; Announcements</h2>
+        <p class="news-subtitle">Share updates and communicate with your community</p>
+    </div>
+    <a asp-action="Create" class="btn btn-pm-add-gold js-modal-trigger"><i class="bi bi-plus-lg"></i> Create Announcement</a>
+</div>
+
+<div class="d-flex flex-wrap align-items-center gap-2 mb-4">
+    <form method="get" id="searchForm" class="search-input-wrap m-0" style="flex:1; min-width:240px;">
+        <input type="hidden" name="category" value="@selectedCategory" />
+        <i class="bi bi-search"></i>
+        <input type="text" name="search" value="@ViewBag.Search" class="form-control" placeholder="Search announcements..." style="width:100%;" />
+    </form>
+
+    <a asp-action="Index" asp-route-search="@ViewBag.Search" class="category-pill-filter @(string.IsNullOrEmpty(selectedCategory) ? "active" : "")">All</a>
+    <a asp-action="Index" asp-route-search="@ViewBag.Search" asp-route-category="Event" class="category-pill-filter @(selectedCategory == "Event" ? "active" : "")">Event</a>
+    <a asp-action="Index" asp-route-search="@ViewBag.Search" asp-route-category="Announcement" class="category-pill-filter @(selectedCategory == "Announcement" ? "active" : "")">Announcement</a>
+    <a asp-action="Index" asp-route-search="@ViewBag.Search" asp-route-category="News" class="category-pill-filter @(selectedCategory == "News" ? "active" : "")">News</a>
+    <a asp-action="Index" asp-route-search="@ViewBag.Search" asp-route-category="Update" class="category-pill-filter @(selectedCategory == "Update" ? "active" : "")">Update</a>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        @foreach (var a in Model)
+        {
+            var catClass = a.Category switch
+            {
+                AnnouncementCategory.Event => "news-cat-event",
+                AnnouncementCategory.Announcement => "news-cat-announcement",
+                AnnouncementCategory.News => "news-cat-news",
+                _ => "news-cat-update"
+            };
+
+            <div class="news-card">
+                <div class="news-card-top">
+                    <div class="d-flex align-items-center">
+                        @if (a.IsPinned)
+                        {
+                            <i class="bi bi-pin-fill news-pin-indicator"></i>
+                        }
+                        <span class="news-cat-pill @catClass">@a.Category</span>
+                    </div>
+                    <div class="news-card-actions">
+                        <form asp-action="TogglePin" asp-route-id="@a.Id" asp-route-search="@ViewBag.Search" asp-route-category="@selectedCategory" method="post">
+                            <button type="submit" class="pin-btn @(a.IsPinned ? "pinned" : "")" title="@(a.IsPinned ? "Unpin" : "Pin")">
+                                <i class="bi @(a.IsPinned ? "bi-pin-angle-fill" : "bi-pin-angle")"></i>
+                            </button>
+                        </form>
+                        <a asp-action="Edit" asp-route-id="@a.Id" class="pm-action-icon edit js-modal-trigger" title="Edit"><i class="bi bi-pencil-square"></i></a>
+                        <a asp-action="Delete" asp-route-id="@a.Id" class="pm-action-icon delete js-modal-trigger" title="Delete"><i class="bi bi-trash"></i></a>
+                    </div>
+                </div>
+
+                <div class="news-card-title">@a.Title</div>
+                <div class="news-card-excerpt">@a.Excerpt</div>
+
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 news-card-meta">
+                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                        <span><i class="bi bi-person"></i>@a.Author</span>
+                        <span><i class="bi bi-calendar3"></i>@a.Date.ToString("d MMM yyyy")</span>
+                        <span><i class="bi bi-eye"></i>@a.Views views</span>
+                    </div>
+                    <a asp-action="Details" asp-route-id="@a.Id" class="btn-read-more js-modal-trigger">Read More</a>
+                </div>
+            </div>
+        }
+        @if (!Model.Any())
+        {
+            <div class="pv-card text-center text-muted py-4">No announcements found.</div>
+        }
+    </div>
+
+    <div class="col-lg-4">
+        <div class="sidebar-widget">
+            <div class="sidebar-widget-title"><i class="bi bi-megaphone-fill"></i> Recent Updates</div>
+            @foreach (var u in recentUpdates)
+            {
+                <a href="@u.Url" class="update-item update-item-link @(u.IsModal ? "js-modal-trigger" : "")">
+                    <div class="update-item-title">@u.Title</div>
+                    <div class="update-item-bottom">
+                        <span class="update-item-date">@u.Date.ToString("d MMM")</span>
+                        <span class="update-item-tag">@u.Tag</span>
+                    </div>
+                </a>
+            }
+            @if (!recentUpdates.Any())
+            {
+                <p class="text-muted small mb-0">Nothing to show yet.</p>
+            }
+        </div>
+
+        <div class="sidebar-widget">
+            <div class="sidebar-widget-title"><i class="bi bi-award-fill"></i> Our Sponsors</div>
+            @foreach (var s in sponsors)
+            {
+                var tierClass = s.Tier switch
+                {
+                    SponsorTier.Gold => "tier-gold",
+                    SponsorTier.Silver => "tier-silver",
+                    _ => "tier-bronze"
+                };
+                <div class="sponsor-box @tierClass">
+                    <a asp-controller="Sponsors" asp-action="Details" asp-route-id="@s.Id" class="sponsor-box-link js-modal-trigger">
+                        <div class="sponsor-name">@s.Name</div>
+                        <div class="sponsor-tier-label">@s.Tier Sponsor</div>
+                    </a>
+                    <form asp-controller="Sponsors" asp-action="Delete" asp-route-id="@s.Id" method="post" onsubmit="return confirm('Remove this sponsor?');">
+                        <button type="submit" class="sponsor-heart-btn" title="Remove sponsor"><i class="bi bi-heart-fill"></i></button>
+                    </form>
+                </div>
+            }
+            @if (!sponsors.Any())
+            {
+                <p class="text-muted small">No sponsors yet.</p>
+            }
+            <a asp-controller="Sponsors" asp-action="Create" class="btn-add-sponsor js-modal-trigger"><i class="bi bi-plus-lg"></i> Add a New Sponsor</a>
+        </div>
+
+        <div class="stay-connected-card">
+            <h5>Stay Connected</h5>
+            <p>Subscribe for the latest updates and announcements.</p>
+            <form asp-action="Subscribe" method="post">
+                <input type="email" name="email" placeholder="Enter your email" required />
+                <button type="submit" class="btn-subscribe">Subscribe</button>
+            </form>
+            <p class="mb-0 mt-2" style="color:rgba(255,255,255,0.75); font-size:0.78rem;">
+                <i class="bi bi-people-fill"></i> @ViewBag.SubscriberCount subscriber@(((int)ViewBag.SubscriberCount) == 1 ? "" : "s")
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Shared modal used for Create / View / Edit / Delete, and Recent Update previews -->
+<div class="modal fade" id="announcementModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="announcementModalContent">
+            <div class="modal-body text-center py-5">
+                <div class="spinner-border text-success" role="status"><span class="visually-hidden">Loading...</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        var searchInput = document.querySelector('#searchForm input[name="search"]');
+        var searchTimer;
+        searchInput.addEventListener('input', function () {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(function () {
+                document.getElementById('searchForm').submit();
+            }, 500);
+        });
+
+        (function () {
+            var modalEl = document.getElementById('announcementModal');
+            var modalContent = document.getElementById('announcementModalContent');
+            var bsModal = new bootstrap.Modal(modalEl);
+
+            function loadIntoModal(url) {
+                modalContent.innerHTML = '<div class="modal-body text-center py-5"><div class="spinner-border text-success" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+                bsModal.show();
+                fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(function (res) { return res.text(); })
+                    .then(function (html) { modalContent.innerHTML = html; })
+                    .catch(function () {
+                        modalContent.innerHTML = '<div class="modal-body"><div class="alert alert-danger mb-0">Could not load that item. Please try again.</div></div>';
+                    });
+            }
+
+            document.addEventListener('click', function (e) {
+                var link = e.target.closest('.js-modal-trigger');
+                if (link) {
+                    e.preventDefault();
+                    loadIntoModal(link.getAttribute('href'));
+                }
+            });
+
+            document.addEventListener('submit', function (e) {
+                var form = e.target.closest('.js-ajax-form');
+                if (!form || !modalContent.contains(form)) return;
+
+                e.preventDefault();
+                var formData = new FormData(form);
+
+                fetch(form.getAttribute('action') || window.location.href, {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    body: formData
+                }).then(function (res) {
+                    var contentType = res.headers.get('content-type') || '';
+                    if (contentType.indexOf('application/json') !== -1) {
+                        return res.json().then(function (data) {
+                            if (data.success) {
+                                bsModal.hide();
+                                window.location.reload();
+                            }
+                        });
+                    } else {
+                        return res.text().then(function (html) { modalContent.innerHTML = html; });
+                    }
+                }).catch(function () {
+                    modalContent.innerHTML = '<div class="modal-body"><div class="alert alert-danger mb-0">Something went wrong saving. Please try again.</div></div>';
+                });
+            });
+        })();
+    </script>
+}

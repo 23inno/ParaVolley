@@ -1,0 +1,37 @@
+@model Sponsor
+@{
+    ViewData["Title"] = "Add Sponsor";
+}
+
+<div class="topbar">
+    <h2 class="page-title">Add a New Sponsor</h2>
+    <a asp-controller="Announcements" asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
+</div>
+
+<div class="pv-card" style="max-width:520px;">
+    <form asp-action="Create" method="post">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+        <div class="mb-3">
+            <label asp-for="Name" class="form-label fw-semibold"></label>
+            <input asp-for="Name" class="form-control" placeholder="Sponsor or business name" />
+            <span asp-validation-for="Name" class="text-danger small"></span>
+        </div>
+
+        <div class="mb-4">
+            <label asp-for="Tier" class="form-label fw-semibold"></label>
+            <select asp-for="Tier" class="form-select">
+                <option value="Gold">Gold Sponsor</option>
+                <option value="Silver">Silver Sponsor</option>
+                <option value="Bronze">Bronze Sponsor</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-pv"><i class="bi bi-check-lg"></i> Save Sponsor</button>
+        <a asp-controller="Announcements" asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

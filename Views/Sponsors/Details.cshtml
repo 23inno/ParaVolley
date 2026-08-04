@@ -1,0 +1,31 @@
+@model Sponsor
+@{
+    ViewData["Title"] = "Sponsor Details";
+    var tierClass = Model.Tier switch
+    {
+        SponsorTier.Gold => "tier-gold",
+        SponsorTier.Silver => "tier-silver",
+        _ => "tier-bronze"
+    };
+}
+
+<div class="topbar">
+    <h2 class="page-title">Sponsor Details</h2>
+    <a asp-controller="Announcements" asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
+</div>
+
+<div class="pv-card" style="max-width:520px;">
+    <div class="sponsor-box @tierClass" style="margin-bottom:0;">
+        <div>
+            <div class="sponsor-name" style="font-size:1.2rem;">@Model.Name</div>
+            <div class="sponsor-tier-label">@Model.Tier Sponsor</div>
+        </div>
+    </div>
+
+    <div class="mt-4 pt-3 border-top d-flex gap-2">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-pv"><i class="bi bi-pencil"></i> Edit</a>
+        <form asp-action="Delete" asp-route-id="@Model.Id" method="post" onsubmit="return confirm('Remove this sponsor?');">
+            <button type="submit" class="btn btn-outline-danger"><i class="bi bi-trash"></i> Remove</button>
+        </form>
+    </div>
+</div>

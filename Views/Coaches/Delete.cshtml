@@ -1,0 +1,28 @@
+@model Coach
+@{
+    ViewData["Title"] = "Delete Coach";
+}
+
+<div class="topbar">
+    <h2 class="page-title">Delete Coach</h2>
+    <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
+</div>
+
+<div class="pv-card" style="max-width:560px;">
+    <div class="alert alert-warning"><i class="bi bi-exclamation-triangle-fill"></i> Are you sure you want to delete this coach? This cannot be undone.</div>
+
+    <dl class="row mb-4">
+        <dt class="col-sm-4 text-muted">Name</dt>
+        <dd class="col-sm-8">@Model.Name</dd>
+        <dt class="col-sm-4 text-muted">Specialty</dt>
+        <dd class="col-sm-8">@Model.Specialty</dd>
+        <dt class="col-sm-4 text-muted">Assigned Team</dt>
+        <dd class="col-sm-8">@(Model.AssignedTeam ?? "—")</dd>
+    </dl>
+
+    <form asp-action="Delete" method="post">
+        <input type="hidden" asp-for="Id" />
+        <button type="submit" class="btn btn-danger"><i class="bi bi-trash"></i> Delete</button>
+        <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+    </form>
+</div>

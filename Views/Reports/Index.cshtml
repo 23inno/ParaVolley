@@ -1,0 +1,332 @@
+@model ReportsViewModel
+@{
+    ViewData["Title"] = "Reports";
+    var hasActiveFilters = !string.IsNullOrWhiteSpace((string?)ViewBag.SelectedType)
+        || !string.IsNullOrWhiteSpace((string?)ViewBag.SelectedStatus);
+}
+
+<div class="row g-3 mb-3">
+    <div class="col-sm-6 col-lg-4">
+        <div class="stat-card">
+            <div class="stat-top">
+                <span class="stat-title">Total Reports</span>
+                <div class="icon-box icon-box-pale"><i class="bi bi-file-earmark-text-fill"></i></div>
+            </div>
+            <div class="value">@Model.TotalReportsCount</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-4">
+        <div class="stat-card">
+            <div class="stat-top">
+                <span class="stat-title">Published</span>
+                <div class="icon-box icon-box-pale-green"><i class="bi bi-check-square-fill"></i></div>
+            </div>
+            <div class="value">@Model.PublishedCount</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-4">
+        <div class="stat-card">
+            <div class="stat-top">
+                <span class="stat-title">Drafts</span>
+                <div class="icon-box icon-box-pale-peach"><i class="bi bi-pencil-fill"></i></div>
+            </div>
+            <div class="value">@Model.DraftCount</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-sm-6 col-lg-4">
+        <div class="stat-card-icon-left">
+            <div class="icon-box icon-box-pale-green"><i class="bi bi-graph-up-arrow"></i></div>
+            <div>
+                <div class="sc-label">Weekly Average</div>
+                <div class="sc-value">@Model.WeeklyAverage</div>
+                <div class="sc-desc">Consistent improvement over 4 weeks</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-4">
+        <div class="stat-card-icon-left">
+            <div class="icon-box icon-box-pale-peach"><i class="bi bi-calendar-event-fill"></i></div>
+            <div>
+                <div class="sc-label">Sessions This Month</div>
+                <div class="sc-value">@Model.SessionsThisMonth</div>
+                <div class="sc-desc">+12 sessions vs last month</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-4">
+        <div class="stat-card-icon-left">
+            <div class="icon-box icon-box-pale-blue"><i class="bi bi-file-earmark-check-fill"></i></div>
+            <div>
+                <div class="sc-label">Perfect Attendance</div>
+                <div class="sc-value">@Model.PerfectAttendanceCount</div>
+                <div class="sc-desc">Players with 100% this month</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="pm-header-card mb-3">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+        <div>
+            <h2 class="pm-title">Reports Library</h2>
+            <p class="pm-subtitle">@Model.Reports.Count of @Model.TotalReportsCount reports</p>
+        </div>
+
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <form method="get" id="searchForm" class="search-input-wrap m-0">
+                <input type="hidden" name="type" value="@ViewBag.SelectedType" />
+                <input type="hidden" name="status" value="@ViewBag.SelectedStatus" />
+                <i class="bi bi-search"></i>
+                <input type="text" name="search" value="@ViewBag.Search" class="form-control" placeholder="Search reports..." />
+            </form>
+
+            <button type="button" id="filterToggleBtn" class="btn btn-filter-toggle @(hasActiveFilters ? "active" : "")">
+                <i class="bi bi-funnel"></i> Filter
+            </button>
+
+            <a asp-action="Create" class="btn btn-pv js-modal-trigger" style="border-radius:999px;"><i class="bi bi-plus-lg"></i> Generate Report</a>
+        </div>
+    </div>
+
+    <div id="filterPanel" class="filter-panel @(hasActiveFilters ? "" : "d-none")">
+        <form method="get" id="filterForm">
+            <input type="hidden" name="search" value="@ViewBag.Search" />
+            <div class="row g-3 align-items-end">
+                <div class="col-sm-6 col-lg-3">
+                    <label class="d-block">Type</label>
+                    <select name="type" class="form-select" onchange="document.getElementById('filterForm').submit()">
+                        <option value="">All Types</option>
+                        <option value="Performance" selected="@(ViewBag.SelectedType == "Performance")">Performance</option>
+                        <option value="Attendance" selected="@(ViewBag.SelectedType == "Attendance")">Attendance</option>
+                        <option value="Tournament" selected="@(ViewBag.SelectedType == "Tournament")">Tournament</option>
+                        <option value="Training" selected="@(ViewBag.SelectedType == "Training")">Training</option>
+                        <option value="Financial" selected="@(ViewBag.SelectedType == "Financial")">Financial</option>
+                        <option value="Analysis" selected="@(ViewBag.SelectedType == "Analysis")">Analysis</option>
+                    </select>
+                </div>
+                <div class="col-sm-6 col-lg-3">
+                    <label class="d-block">Status</label>
+                    <select name="status" class="form-select" onchange="document.getElementById('filterForm').submit()">
+                        <option value="">All Status</option>
+                        <option value="Published" selected="@(ViewBag.SelectedStatus == "Published")">Published</option>
+                        <option value="Draft" selected="@(ViewBag.SelectedStatus == "Draft")">Draft</option>
+                    </select>
+                </div>
+                <div class="col-sm-6 col-lg-3">
+                    <a asp-action="Index" class="filter-reset">Reset</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="pv-card mb-4">
+    @{
+        var typeIcons = new Dictionary<ReportType, string>
+        {
+            [ReportType.Performance] = "bi-bar-chart-fill",
+            [ReportType.Attendance] = "bi-people-fill",
+            [ReportType.Tournament] = "bi-trophy-fill",
+            [ReportType.Training] = "bi-award-fill",
+            [ReportType.Financial] = "bi-cash-coin",
+            [ReportType.Analysis] = "bi-search",
+        };
+        var typePillClasses = new Dictionary<ReportType, string>
+        {
+            [ReportType.Performance] = "rt-performance",
+            [ReportType.Attendance] = "rt-attendance",
+            [ReportType.Tournament] = "rt-tournament",
+            [ReportType.Training] = "rt-training",
+            [ReportType.Financial] = "rt-financial",
+            [ReportType.Analysis] = "rt-analysis",
+        };
+    }
+    @foreach (var r in Model.Reports)
+    {
+        <div class="report-row">
+            <div class="report-icon-box"><i class="bi @typeIcons[r.Type]"></i></div>
+            <div class="report-row-main">
+                <div class="report-title">@r.Title</div>
+                <div class="report-meta-row">
+                    <span class="meta-date"><i class="bi bi-calendar3"></i>@r.Date.ToString("d MMM yyyy")</span>
+                    <span class="meta-size">@r.SizeLabel</span>
+                    <span class="report-type-pill @typePillClasses[r.Type]">@r.Type</span>
+                    <span class="report-status-pill @(r.Status == ReportStatus.Published ? "published" : "draft")">@r.Status</span>
+                </div>
+            </div>
+            <div class="report-row-actions">
+                <a asp-action="Details" asp-route-id="@r.Id" class="pm-action-icon view js-modal-trigger" title="View"><i class="bi bi-eye"></i></a>
+                <a asp-action="Edit" asp-route-id="@r.Id" class="pm-action-icon edit js-modal-trigger" title="Edit"><i class="bi bi-pencil-square"></i></a>
+                <a asp-action="Download" asp-route-id="@r.Id" class="pm-action-icon assign" title="Download"><i class="bi bi-download"></i></a>
+                <a asp-action="Delete" asp-route-id="@r.Id" class="pm-action-icon delete js-modal-trigger" title="Delete"><i class="bi bi-trash"></i></a>
+            </div>
+        </div>
+    }
+    @if (!Model.Reports.Any())
+    {
+        <div class="text-center text-muted py-4">
+            <i class="bi bi-file-earmark-text" style="font-size:2rem; opacity:0.4;"></i>
+            <p class="mt-2 mb-0">No reports match your filters.</p>
+        </div>
+    }
+</div>
+
+<h4 class="fw-bold mb-3">Analytics Overview</h4>
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="pv-card h-100">
+            <h5 class="fw-bold mb-3">Players by Team</h5>
+            <table class="table pv-table">
+                <thead><tr><th>Team</th><th>Total</th><th>Active</th></tr></thead>
+                <tbody>
+                    @foreach (var t in Model.TeamBreakdowns)
+                    {
+                        <tr>
+                            <td>@t.Team</td>
+                            <td>@t.PlayerCount</td>
+                            <td>@t.ActiveCount</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="pv-card h-100">
+            <h5 class="fw-bold mb-3">Events by Type</h5>
+            <table class="table pv-table">
+                <thead><tr><th>Type</th><th>Count</th></tr></thead>
+                <tbody>
+                    @foreach (var e in Model.EventTypeBreakdowns)
+                    {
+                        <tr>
+                            <td>@e.Type</td>
+                            <td>@e.Count</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="pv-card">
+            <h5 class="fw-bold mb-3">Attendance by Event</h5>
+            <table class="table pv-table">
+                <thead><tr><th>Event</th><th>Date</th><th>Present</th><th>Absent</th><th>Attendance Rate</th></tr></thead>
+                <tbody>
+                    @foreach (var a in Model.AttendanceSummaries)
+                    {
+                        <tr>
+                            <td>@a.EventTitle</td>
+                            <td>@a.Date.ToString("MMM d, yyyy")</td>
+                            <td>@a.PresentCount</td>
+                            <td>@a.AbsentCount</td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="progress flex-grow-1" style="height:8px; max-width:120px;">
+                                        <div class="progress-bar" style="width:@a.AttendanceRate%; background-color: var(--pv-green);"></div>
+                                    </div>
+                                    <span class="small text-muted">@a.AttendanceRate%</span>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.AttendanceSummaries.Any())
+                    {
+                        <tr><td colspan="5" class="text-center text-muted py-3">No attendance data recorded yet.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Shared modal used for Generate Report / View / Edit / Delete -->
+<div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="reportModalContent">
+            <div class="modal-body text-center py-5">
+                <div class="spinner-border text-success" role="status"><span class="visually-hidden">Loading...</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var toggleBtn = document.getElementById('filterToggleBtn');
+            var panel = document.getElementById('filterPanel');
+            toggleBtn.addEventListener('click', function () {
+                panel.classList.toggle('d-none');
+                toggleBtn.classList.toggle('active');
+            });
+
+            var searchInput = document.querySelector('#searchForm input[name="search"]');
+            var searchTimer;
+            searchInput.addEventListener('input', function () {
+                clearTimeout(searchTimer);
+                searchTimer = setTimeout(function () {
+                    document.getElementById('searchForm').submit();
+                }, 500);
+            });
+
+            // ===== Generate / View / Edit / Delete as an in-page modal card =====
+            var modalEl = document.getElementById('reportModal');
+            var modalContent = document.getElementById('reportModalContent');
+            var bsModal = new bootstrap.Modal(modalEl);
+
+            function loadIntoModal(url) {
+                modalContent.innerHTML = '<div class="modal-body text-center py-5"><div class="spinner-border text-success" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+                bsModal.show();
+                fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(function (res) { return res.text(); })
+                    .then(function (html) { modalContent.innerHTML = html; })
+                    .catch(function () {
+                        modalContent.innerHTML = '<div class="modal-body"><div class="alert alert-danger mb-0">Could not load that report. Please try again.</div></div>';
+                    });
+            }
+
+            document.addEventListener('click', function (e) {
+                var link = e.target.closest('.js-modal-trigger');
+                if (link) {
+                    e.preventDefault();
+                    loadIntoModal(link.getAttribute('href'));
+                }
+            });
+
+            document.addEventListener('submit', function (e) {
+                var form = e.target.closest('.js-ajax-form');
+                if (!form || !modalContent.contains(form)) return;
+
+                e.preventDefault();
+                var formData = new FormData(form);
+
+                fetch(form.getAttribute('action') || window.location.href, {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    body: formData
+                }).then(function (res) {
+                    var contentType = res.headers.get('content-type') || '';
+                    if (contentType.indexOf('application/json') !== -1) {
+                        return res.json().then(function (data) {
+                            if (data.success) {
+                                bsModal.hide();
+                                window.location.reload();
+                            }
+                        });
+                    } else {
+                        return res.text().then(function (html) { modalContent.innerHTML = html; });
+                    }
+                }).catch(function () {
+                    modalContent.innerHTML = '<div class="modal-body"><div class="alert alert-danger mb-0">Something went wrong saving. Please try again.</div></div>';
+                });
+            });
+        })();
+    </script>
+}

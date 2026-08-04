@@ -1,0 +1,140 @@
+@model OrganisationSettings
+@{
+    ViewData["Title"] = "System";
+}
+
+<h2 class="settings-page-title">System</h2>
+<p class="settings-page-subtitle mb-3">Organisation-wide configuration options.</p>
+
+<div class="settings-layout">
+    <partial name="_SettingsNav" />
+
+    <div class="settings-content-card">
+        <div class="settings-section-header">
+            <h5>System Configuration</h5>
+            <p>Configure organisation-wide settings that apply to all users.</p>
+        </div>
+
+        <div class="settings-section-body pt-4">
+            <form asp-action="SystemConfig" method="post" enctype="multipart/form-data">
+                <input type="hidden" asp-for="Id" />
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                <div class="settings-row">
+                    <div class="settings-row-label">Company Logo</div>
+                    <div class="settings-row-control">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="avatar-upload-preview" id="logoPreview" style="border-radius:0.75rem; background:#f8f9fa;">
+                                @if (!string.IsNullOrEmpty(Model.LogoPath))
+                                {
+                                    <img src="@Model.LogoPath" alt="Logo" id="logoImg" style="object-fit:contain;" />
+                                }
+                                else
+                                {
+                                    <i class="bi bi-image text-muted" style="font-size:1.5rem;"></i>
+                                }
+                            </div>
+                            <div>
+                                <label for="logoInput" class="btn btn-outline-secondary btn-sm mb-0" style="cursor:pointer;">
+                                    <i class="bi bi-upload"></i> Upload Logo
+                                </label>
+                                @if (!string.IsNullOrEmpty(Model.LogoPath))
+                                {
+                                    <button type="button" id="removeLogoBtn" class="btn btn-outline-danger btn-sm">Remove</button>
+                                }
+                                <div class="text-muted small mt-1">Shown on the login page. JPG, PNG, WebP or SVG.</div>
+                            </div>
+                        </div>
+                        <input type="file" name="logo" id="logoInput" accept=".jpg,.jpeg,.png,.webp,.svg" class="d-none" />
+                        <input type="hidden" name="removeLogo" id="removeLogoInput" value="false" />
+                    </div>
+                </div>
+
+                <div class="settings-row">
+                    <div class="settings-row-label">Organisation Name</div>
+                    <div class="settings-row-control">
+                        <input asp-for="OrganisationName" class="form-control" />
+                        <span asp-validation-for="OrganisationName" class="text-danger small"></span>
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <div class="settings-row-label">Timezone</div>
+                    <div class="settings-row-control">
+                        <select asp-for="Timezone" class="form-select">
+                            <option value="Africa/Johannesburg (SAST, UTC+2)">Africa/Johannesburg (SAST, UTC+2)</option>
+                            <option value="UTC">UTC</option>
+                            <option value="Europe/London (GMT)">Europe/London (GMT)</option>
+                            <option value="America/New_York (EST)">America/New_York (EST)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <div class="settings-row-label">Active Season</div>
+                    <div class="settings-row-control">
+                        <select asp-for="ActiveSeason" class="form-select">
+                            <option value="2024">2024</option>
+                            <option value="2025">2025</option>
+                            <option value="2026">2026</option>
+                            <option value="2027">2027</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <div class="settings-row-label">Min. Attendance (%)</div>
+                    <div class="settings-row-control d-flex align-items-center gap-3">
+                        <input type="range" asp-for="MinAttendancePercent" min="0" max="100" class="form-range flex-grow-1"
+                               oninput="document.getElementById('minAttendanceVal').textContent = this.value + '%'" />
+                        <span id="minAttendanceVal" class="fw-bold" style="color:var(--pv-green); min-width:3.5rem;">@Model.MinAttendancePercent%</span>
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <div class="settings-row-label">Language</div>
+                    <div class="settings-row-control">
+                        <select asp-for="Language" class="form-select">
+                            <option value="English">English</option>
+                            <option value="Afrikaans">Afrikaans</option>
+                            <option value="isiZulu">isiZulu</option>
+                            <option value="Sesotho">Sesotho</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="text-end pt-3 pb-2">
+                    <button type="submit" class="btn btn-pv"><i class="bi bi-save"></i> Save Configuration</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            var logoInput = document.getElementById('logoInput');
+            var logoPreview = document.getElementById('logoPreview');
+            var removeBtn = document.getElementById('removeLogoBtn');
+            var removeInput = document.getElementById('removeLogoInput');
+
+            logoInput.addEventListener('change', function () {
+                if (logoInput.files && logoInput.files[0]) {
+                    removeInput.value = 'false';
+                    var reader = new FileReader();
+                    reader.onload = function (e) {
+                        logoPreview.innerHTML = '<img src="' + e.target.result + '" alt="Logo" style="object-fit:contain;" />';
+                    };
+                    reader.readAsDataURL(logoInput.files[0]);
+                }
+            });
+
+            if (removeBtn) {
+                removeBtn.addEventListener('click', function () {
+                    removeInput.value = 'true';
+                    logoInput.value = '';
+                    logoPreview.innerHTML = '<i class="bi bi-image text-muted" style="font-size:1.5rem;"></i>';
+                    removeBtn.remove();
+                });
+            }
+        })();
+    </script>
+}
