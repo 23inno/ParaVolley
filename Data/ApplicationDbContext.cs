@@ -25,5 +25,42 @@ namespace SportsManagementMVC.Data
         public DbSet<AppearanceSettings> AppearanceSettings => Set<AppearanceSettings>();
         public DbSet<BackupRecord> BackupRecords => Set<BackupRecord>();
         public DbSet<Subscriber> Subscribers => Set<Subscriber>();
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<Announcement>()
+                .Property(x => x.Date)
+                .HasColumnType("date");
+
+            modelBuilder.Entity<Attendance>()
+                .Property(x => x.Date)
+                .HasColumnType("date");
+
+            modelBuilder.Entity<Event>()
+                .Property(x => x.Date)
+                .HasColumnType("date");
+
+            modelBuilder.Entity<Match>()
+                .Property(x => x.Date)
+                .HasColumnType("date");
+
+            modelBuilder.Entity<Report>()
+                .Property(x => x.Date)
+                .HasColumnType("date");
+
+            modelBuilder.Entity<UserProfile>()
+                .Property(x => x.ResetTokenExpiry)
+                .HasColumnType("timestamp without time zone");
+
+            modelBuilder.Entity<BackupRecord>()
+                .Property(x => x.CreatedAt)
+                .HasColumnType("timestamp without time zone");
+
+            modelBuilder.Entity<Subscriber>()
+                .Property(x => x.SubscribedAt)
+                .HasColumnType("timestamp without time zone");
+        }
     }
 }
