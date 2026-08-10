@@ -5,8 +5,9 @@ namespace SportsManagementMVC.Data
 {
     public class ApplicationDbContext : DbContext
     {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-            : base(options)
+        public ApplicationDbContext(
+            DbContextOptions<ApplicationDbContext> options
+        ) : base(options)
         {
         }
 
@@ -19,16 +20,30 @@ namespace SportsManagementMVC.Data
         public DbSet<Sponsor> Sponsors => Set<Sponsor>();
         public DbSet<Report> Reports => Set<Report>();
         public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
-        public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
+        public DbSet<NotificationPreference> NotificationPreferences =>
+            Set<NotificationPreference>();
         public DbSet<SystemUser> SystemUsers => Set<SystemUser>();
-        public DbSet<OrganisationSettings> OrganisationSettings => Set<OrganisationSettings>();
-        public DbSet<AppearanceSettings> AppearanceSettings => Set<AppearanceSettings>();
+        public DbSet<OrganisationSettings> OrganisationSettings =>
+            Set<OrganisationSettings>();
+        public DbSet<AppearanceSettings> AppearanceSettings =>
+            Set<AppearanceSettings>();
         public DbSet<BackupRecord> BackupRecords => Set<BackupRecord>();
         public DbSet<Subscriber> Subscribers => Set<Subscriber>();
+        public DbSet<AppUser> AppUsers => Set<AppUser>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<AppUser>()
+                .HasIndex(user => user.Email)
+                .IsUnique();
+
+            modelBuilder.Entity<AppUser>()
+                .HasOne(user => user.Player)
+                .WithOne()
+                .HasForeignKey<AppUser>(user => user.PlayerId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Announcement>()
                 .Property(x => x.Date)
