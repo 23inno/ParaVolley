@@ -43,7 +43,7 @@ builder.Services.AddScoped<EmailService>();
 
 builder.Services.AddScoped<
     IPasswordHasher<AppUser>,
-    Microsoft.AspNetCore.Identity.PasswordHasher<AppUser>>();
+    PasswordHasher<AppUser>>();
 
 builder.Services
     .AddAuthentication(options =>
@@ -93,8 +93,12 @@ using (var scope = app.Services.CreateScope())
     var context = scope.ServiceProvider
         .GetRequiredService<ApplicationDbContext>();
 
+    var appUserPasswordHasher = scope.ServiceProvider
+        .GetRequiredService<IPasswordHasher<AppUser>>();
+
     context.Database.Migrate();
     DbInitializer.Seed(context);
+    AppUserSeeder.Seed(context, appUserPasswordHasher);
 }
 
 if (!app.Environment.IsDevelopment())
