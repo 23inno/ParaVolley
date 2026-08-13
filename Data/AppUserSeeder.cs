@@ -1,43 +1,63 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
 using SportsManagementMVC.Models;
 
 namespace SportsManagementMVC.Data
 {
     public static class AppUserSeeder
     {
+        private const string PlayerEmail = "john.doe@email.com";
+
         public static void Seed(
             ApplicationDbContext context,
-            IPasswordHasher<AppUser> passwordHasher)
+            IPasswordHasher<AppUser> passwordHasher,
+            IConfiguration configuration)
         {
-            const string playerEmail = "john.doe@email.com";
+            var playerPassword =
+                configuration["SeedUsers:PlayerPassword"];
 
-            if (context.AppUsers.Any(user => user.Email == playerEmail))
-            {
-                return;
-            }
-
-            var player = context.Players
-                .SingleOrDefault(player => player.Email == playerEmail);
-
-            if (player == null)
+            if (string.IsNullOrWhiteSpace(playerPassword))
             {
                 throw new InvalidOperationException(
-                    "The test player could not be found.");
+                    "The player password is missing from User Secrets.");
             }
 
-            var user = new AppUser
+            var player = context.Players.FirstOrDefault(
+                player => player.Email == PlayerEmail);
+
+            if (player is null)
             {
-                Email = playerEmail,
-                Role = AppUserRole.Player,
-                IsActive = true,
-                PlayerId = player.Id
-            };
+                throw new InvalidOperationException(
+                    $"No player record exists for {PlayerEmail}.");
+            }
 
-            user.PasswordHash = passwordHasher.HashPassword(
-                user,
-                "Player123!");
+            var user = context.AppUsers.FirstOrDefault(
+                user => user.Email == PlayerEmail);
 
-            context.AppUsers.Add(user);
+            if (user is null)
+            {
+                user = new AppUser
+                {
+                    Email = PlayerEmail,
+                    Role = AppUserRole.Player,
+                    IsActive = true,
+                    PlayerId = player.Id
+                };
+
+                context.AppUsers.Add(user);
+            }
+            else
+            {
+                user.Role = AppUserRole.Player;
+                user.IsActive = true;
+                user.PlayerId = player.Id;
+            }
+
+            user.PasswordHash =
+                passwordHasher.HashPassword(
+                    user,
+                    playerPassword);
+
             context.SaveChanges();
         }
     }
