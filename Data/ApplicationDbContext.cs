@@ -17,6 +17,8 @@ namespace SportsManagementMVC.Data
         public DbSet<Match> Matches => Set<Match>();
         public DbSet<Announcement> Announcements => Set<Announcement>();
         public DbSet<Attendance> Attendances => Set<Attendance>();
+        public DbSet<EventRegistration> EventRegistrations =>
+            Set<EventRegistration>();
         public DbSet<Sponsor> Sponsors => Set<Sponsor>();
         public DbSet<Report> Reports => Set<Report>();
         public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
@@ -44,6 +46,30 @@ namespace SportsManagementMVC.Data
                 .WithOne()
                 .HasForeignKey<AppUser>(user => user.PlayerId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<EventRegistration>()
+                .HasIndex(registration => new
+                {
+                    registration.PlayerId,
+                    registration.EventId
+                })
+                .IsUnique();
+
+            modelBuilder.Entity<EventRegistration>()
+                .HasOne(registration => registration.Player)
+                .WithMany(player => player.EventRegistrations)
+                .HasForeignKey(registration => registration.PlayerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<EventRegistration>()
+                .HasOne(registration => registration.Event)
+                .WithMany(eventItem => eventItem.Registrations)
+                .HasForeignKey(registration => registration.EventId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<EventRegistration>()
+                .Property(registration => registration.RegisteredAtUtc)
+                .HasColumnType("timestamp with time zone");
 
             modelBuilder.Entity<Announcement>()
                 .Property(x => x.Date)

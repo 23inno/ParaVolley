@@ -49,5 +49,7 @@ namespace SportsManagementMVC.Models
 
         // Navigation
         public ICollection<Attendance>? AttendanceRecords { get; set; }
+        public ICollection<EventRegistration> Registrations { get; set; } =
+    new List<EventRegistration>();
     }
 }
