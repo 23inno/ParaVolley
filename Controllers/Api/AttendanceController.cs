@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SportsManagementMVC.Data;
 using SportsManagementMVC.Dtos;
+using SportsManagementMVC.Models;
+using AttendanceEntity = SportsManagementMVC.Models.Attendance;
 
 namespace SportsManagementMVC.Controllers.Api
 {
@@ -69,8 +71,96 @@ namespace SportsManagementMVC.Controllers.Api
             return Ok(response);
         }
 
+        [HttpPost]
+        [Authorize(Roles = "Admin,Coach")]
+        public async Task<ActionResult<AttendanceDto>> RecordAttendance(
+            RecordAttendanceRequest request)
+        {
+            if (!Enum.TryParse<AttendanceStatus>(
+                    request.Status,
+                    ignoreCase: true,
+                    out var attendanceStatus) ||
+                !Enum.IsDefined(
+                    typeof(AttendanceStatus),
+                    attendanceStatus))
+            {
+                return BadRequest(new
+                {
+                    message =
+                        "Status must be either Present or Absent."
+                });
+            }
+
+            var player = await _db.Players
+                .AsNoTracking()
+                .FirstOrDefaultAsync(playerItem =>
+                    playerItem.Id == request.PlayerId);
+
+            if (player == null)
+            {
+                return NotFound(new
+                {
+                    message = "The player could not be found."
+                });
+            }
+
+            var eventItem = await _db.Events
+                .AsNoTracking()
+                .FirstOrDefaultAsync(item =>
+                    item.Id == request.EventId);
+
+            if (eventItem == null)
+            {
+                return NotFound(new
+                {
+                    message = "The event could not be found."
+                });
+            }
+
+            if (eventItem.Status == EventStatus.Cancelled)
+            {
+                return Conflict(new
+                {
+                    message =
+                        "Attendance cannot be recorded for a cancelled event."
+                });
+            }
+
+            var attendanceExists = await _db.Attendances
+                .AnyAsync(attendance =>
+                    attendance.PlayerId == request.PlayerId &&
+                    attendance.EventId == request.EventId);
+
+            if (attendanceExists)
+            {
+                return Conflict(new
+                {
+                    message =
+                        "Attendance has already been recorded for this player and event."
+                });
+            }
+
+            var attendanceRecord = new AttendanceEntity
+            {
+                PlayerId = request.PlayerId,
+                EventId = request.EventId,
+                Date = eventItem.Date.Date,
+                Status = attendanceStatus
+            };
+
+            _db.Attendances.Add(attendanceRecord);
+            await _db.SaveChangesAsync();
+
+            attendanceRecord.Player = player;
+            attendanceRecord.Event = eventItem;
+
+            return StatusCode(
+                StatusCodes.Status201Created,
+                MapToDto(attendanceRecord));
+        }
+
         private static AttendanceDto MapToDto(
-            Models.Attendance attendance)
+            AttendanceEntity attendance)
         {
             return new AttendanceDto
             {
