@@ -146,7 +146,54 @@ namespace SportsManagementMVC.Controllers.Api
                 StatusCodes.Status201Created,
                 response);
         }
+        [HttpGet("/api/player/registrations")]
+public async Task<ActionResult<IReadOnlyList<EventRegistrationDto>>>
+    GetMyRegistrations()
+{
+    var playerIdValue = User.FindFirstValue("playerId");
 
+    if (!int.TryParse(playerIdValue, out var playerId))
+    {
+        return Unauthorized(new
+        {
+            message =
+                "The access token does not contain a valid player account."
+        });
+    }
+
+    var playerExists = await _db.Players
+        .AsNoTracking()
+        .AnyAsync(player => player.Id == playerId);
+
+    if (!playerExists)
+    {
+        return NotFound(new
+        {
+            message = "The player profile could not be found."
+        });
+    }
+
+    var registrations = await _db.EventRegistrations
+        .AsNoTracking()
+        .Include(registration => registration.Event)
+        .Where(registration =>
+            registration.PlayerId == playerId)
+        .OrderBy(registration =>
+            registration.Event.Date)
+        .ThenBy(registration =>
+            registration.Event.Time)
+        .ThenBy(registration => registration.Id)
+        .ToListAsync();
+
+    var response = registrations
+        .Select(registration =>
+            MapToDto(
+                registration,
+                registration.Event))
+        .ToList();
+
+    return Ok(response);
+}
         private static EventRegistrationDto MapToDto(
             EventRegistration registration,
             Event eventItem)
