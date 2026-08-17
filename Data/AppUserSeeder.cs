@@ -12,6 +12,9 @@ namespace SportsManagementMVC.Data
         private const string CoachEmail =
             "john.smith@paravolley.com";
 
+        private const string AdminEmail =
+            "admin@paravolley.com";
+
         public static void Seed(
             ApplicationDbContext context,
             IPasswordHasher<AppUser> passwordHasher,
@@ -23,6 +26,11 @@ namespace SportsManagementMVC.Data
                 configuration);
 
             SeedCoach(
+                context,
+                passwordHasher,
+                configuration);
+
+            SeedAdmin(
                 context,
                 passwordHasher,
                 configuration);
@@ -112,6 +120,43 @@ namespace SportsManagementMVC.Data
                 passwordHasher.HashPassword(
                     user,
                     coachPassword);
+        }
+
+        private static void SeedAdmin(
+            ApplicationDbContext context,
+            IPasswordHasher<AppUser> passwordHasher,
+            IConfiguration configuration)
+        {
+            var adminPassword =
+                configuration["SeedUsers:AdminPassword"];
+
+            if (string.IsNullOrWhiteSpace(adminPassword))
+            {
+                throw new InvalidOperationException(
+                    "The admin password is missing from User Secrets.");
+            }
+
+            var user = context.AppUsers.FirstOrDefault(
+                userItem =>
+                    userItem.Email == AdminEmail);
+
+            if (user is null)
+            {
+                user = new AppUser
+                {
+                    Email = AdminEmail
+                };
+
+                context.AppUsers.Add(user);
+            }
+
+            user.Role = AppUserRole.Admin;
+            user.IsActive = true;
+            user.PlayerId = null;
+            user.PasswordHash =
+                passwordHasher.HashPassword(
+                    user,
+                    adminPassword);
         }
     }
 }
