@@ -6,9 +6,31 @@ namespace SportsManagementMVC.Data
 {
     public static class AppUserSeeder
     {
-        private const string PlayerEmail = "john.doe@email.com";
+        private const string PlayerEmail =
+            "john.doe@email.com";
+
+        private const string CoachEmail =
+            "john.smith@paravolley.com";
 
         public static void Seed(
+            ApplicationDbContext context,
+            IPasswordHasher<AppUser> passwordHasher,
+            IConfiguration configuration)
+        {
+            SeedPlayer(
+                context,
+                passwordHasher,
+                configuration);
+
+            SeedCoach(
+                context,
+                passwordHasher,
+                configuration);
+
+            context.SaveChanges();
+        }
+
+        private static void SeedPlayer(
             ApplicationDbContext context,
             IPasswordHasher<AppUser> passwordHasher,
             IConfiguration configuration)
@@ -23,7 +45,8 @@ namespace SportsManagementMVC.Data
             }
 
             var player = context.Players.FirstOrDefault(
-                player => player.Email == PlayerEmail);
+                playerItem =>
+                    playerItem.Email == PlayerEmail);
 
             if (player is null)
             {
@@ -32,33 +55,63 @@ namespace SportsManagementMVC.Data
             }
 
             var user = context.AppUsers.FirstOrDefault(
-                user => user.Email == PlayerEmail);
+                userItem =>
+                    userItem.Email == PlayerEmail);
 
             if (user is null)
             {
                 user = new AppUser
                 {
-                    Email = PlayerEmail,
-                    Role = AppUserRole.Player,
-                    IsActive = true,
-                    PlayerId = player.Id
+                    Email = PlayerEmail
                 };
 
                 context.AppUsers.Add(user);
             }
-            else
-            {
-                user.Role = AppUserRole.Player;
-                user.IsActive = true;
-                user.PlayerId = player.Id;
-            }
 
+            user.Role = AppUserRole.Player;
+            user.IsActive = true;
+            user.PlayerId = player.Id;
             user.PasswordHash =
                 passwordHasher.HashPassword(
                     user,
                     playerPassword);
+        }
 
-            context.SaveChanges();
+        private static void SeedCoach(
+            ApplicationDbContext context,
+            IPasswordHasher<AppUser> passwordHasher,
+            IConfiguration configuration)
+        {
+            var coachPassword =
+                configuration["SeedUsers:CoachPassword"];
+
+            if (string.IsNullOrWhiteSpace(coachPassword))
+            {
+                throw new InvalidOperationException(
+                    "The coach password is missing from User Secrets.");
+            }
+
+            var user = context.AppUsers.FirstOrDefault(
+                userItem =>
+                    userItem.Email == CoachEmail);
+
+            if (user is null)
+            {
+                user = new AppUser
+                {
+                    Email = CoachEmail
+                };
+
+                context.AppUsers.Add(user);
+            }
+
+            user.Role = AppUserRole.Coach;
+            user.IsActive = true;
+            user.PlayerId = null;
+            user.PasswordHash =
+                passwordHasher.HashPassword(
+                    user,
+                    coachPassword);
         }
     }
 }
