@@ -1,0 +1,24 @@
+# =========================================================
+# ParaVolley Code Ownership
+# =========================================================
+
+# BACKEND
+# Backend changes are controlled by Thapelo and Lerato.
+
+/Controllers/Api/    @23inno @Lerato-ui
+/Data/               @23inno @Lerato-ui
+/Dtos/               @23inno @Lerato-ui
+/Migrations/         @23inno @Lerato-ui
+/Models/              @23inno @Lerato-ui
+
+# WEBSITE FRONTEND
+# Tumelo will be added once their GitHub username is available.
+
+/Views/               @23inno @Lerato-ui @KKhunou
+/wwwroot/             @23inno @Lerato-ui @KKhunou
+
+# MOBILE APPLICATION
+# Everyone may contribute to mobile.
+# Tumelo will be added once their GitHub username is available.
+
+/mobile/              @23inno @Lerato-ui @KKhunou
