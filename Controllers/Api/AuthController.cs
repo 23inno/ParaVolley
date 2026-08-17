@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using SportsManagementMVC.Data;
+using SportsManagementMVC.Dtos;
 using SportsManagementMVC.Models;
 using SportsManagementMVC.Models.Api;
 
@@ -83,6 +84,98 @@ namespace SportsManagementMVC.Controllers.Api
                     PlayerName = user.Player?.Name
                 }
             });
+        }
+
+        [AllowAnonymous]
+        [HttpPost("register/player")]
+        public async Task<IActionResult> RegisterPlayer(
+            RegisterPlayerRequest request)
+        {
+            var normalizedEmail = request.Email
+                .Trim()
+                .ToLowerInvariant();
+
+            var accountExists = await _context.AppUsers
+                .AnyAsync(user =>
+                    user.Email.ToLower() == normalizedEmail);
+
+            if (accountExists)
+            {
+                return Conflict(new
+                {
+                    message =
+                        "An account already exists with this email address."
+                });
+            }
+
+            var playerExists = await _context.Players
+                .AnyAsync(player =>
+                    player.Email.ToLower() == normalizedEmail);
+
+            if (playerExists)
+            {
+                return Conflict(new
+                {
+                    message =
+                        "A player already exists with this email address."
+                });
+            }
+
+            await using var transaction =
+                await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                var player = new Player
+                {
+                    Name = request.Name.Trim(),
+                    Position = request.Position.Trim(),
+                    Team = request.Team.Trim(),
+                    Status = PlayerStatus.Inactive,
+                    Age = request.Age,
+                    Matches = 0,
+                    Email = normalizedEmail,
+                    Phone = request.Phone.Trim(),
+                    Disability = request.Disability.Trim()
+                };
+
+                _context.Players.Add(player);
+
+                await _context.SaveChangesAsync();
+
+                var appUser = new AppUser
+                {
+                    Email = normalizedEmail,
+                    Role = AppUserRole.Player,
+                    IsActive = false,
+                    PlayerId = player.Id
+                };
+
+                appUser.PasswordHash =
+                    _passwordHasher.HashPassword(
+                        appUser,
+                        request.Password);
+
+                _context.AppUsers.Add(appUser);
+
+                await _context.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+
+                return StatusCode(
+                    StatusCodes.Status201Created,
+                    new
+                    {
+                        message =
+                            "Registration submitted successfully. An administrator must approve the account before login.",
+                        playerId = player.Id
+                    });
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
 
         private string CreateToken(
