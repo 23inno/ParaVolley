@@ -19,6 +19,8 @@ namespace SportsManagementMVC.Data
         public DbSet<Attendance> Attendances => Set<Attendance>();
         public DbSet<EventRegistration> EventRegistrations =>
             Set<EventRegistration>();
+        public DbSet<QrAttendanceSession> QrAttendanceSessions =>
+            Set<QrAttendanceSession>();
         public DbSet<Sponsor> Sponsors => Set<Sponsor>();
         public DbSet<Report> Reports => Set<Report>();
         public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
@@ -78,6 +80,30 @@ namespace SportsManagementMVC.Data
                     attendance.EventId
                 })
                 .IsUnique();
+
+            modelBuilder.Entity<QrAttendanceSession>()
+                .HasIndex(session => session.TokenHash)
+                .IsUnique();
+
+            modelBuilder.Entity<QrAttendanceSession>()
+                .HasOne(session => session.Event)
+                .WithMany()
+                .HasForeignKey(session => session.EventId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<QrAttendanceSession>()
+                .HasOne(session => session.CreatedByAppUser)
+                .WithMany()
+                .HasForeignKey(session => session.CreatedByAppUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<QrAttendanceSession>()
+                .Property(session => session.CreatedAtUtc)
+                .HasColumnType("timestamp with time zone");
+
+            modelBuilder.Entity<QrAttendanceSession>()
+                .Property(session => session.ExpiresAtUtc)
+                .HasColumnType("timestamp with time zone");
 
             modelBuilder.Entity<Announcement>()
                 .Property(x => x.Date)
