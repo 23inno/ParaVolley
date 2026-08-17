@@ -89,3 +89,151 @@ with zero setup. If your assignment requires a persistent database instead:
    ```
 
 Let me know if you'd like help doing this migration.
+
+
+---
+
+# ParaVolley Team Development Guide
+
+ParaVolley is a group project consisting of a web application, backend/API, and Android mobile application.
+
+To protect the working project while allowing every group member to contribute, all team members must follow the Git and GitHub workflow described below.
+
+## Team Members and Responsibilities
+
+### Thapelo
+Responsibilities:
+- Backend development
+- REST API development
+- Database integration
+- Android/API integration
+- Mobile application development
+- Website development when required
+- Reviewing backend changes
+
+### Lerato
+Role: Project Manager and Lead Backend Developer
+
+Responsibilities:
+- Backend development
+- REST API development
+- Backend review
+- Project coordination
+- Mobile application contributions
+- Website contributions
+- Access across the project
+
+### Kamohelo (Zani)
+Responsibilities:
+- Website frontend development
+- UI/UX development
+- Mobile application development
+- Mobile frontend features
+- General frontend improvements
+
+### Tumelo (Zuki)
+Responsibilities:
+- Website frontend development
+- UI/UX development
+- Mobile application development
+- Mobile frontend features
+- Reviewing and understanding the overall project
+
+---
+
+# Project Areas
+
+## Backend
+
+The backend includes areas such as:
+
+- `Controllers/Api/`
+- `Data/`
+- `Dtos/`
+- `Models/`
+- `Migrations/`
+
+Primary backend developers:
+
+- Thapelo
+- Lerato
+
+Backend changes should normally be handled by Thapelo and Lerato.
+
+If another team member believes a backend change is required, the change should first be discussed with Thapelo or Lerato.
+
+This helps prevent frontend or mobile changes from accidentally breaking the API, authentication, database, or existing integrations.
+
+---
+
+## Website
+
+Important website/frontend areas include:
+
+- `Views/`
+- `wwwroot/`
+
+Website development may be performed by:
+
+- Thapelo
+- Lerato
+- Kamohelo
+- Tumelo
+
+Kamohelo and Tumelo will primarily focus on frontend and UI/UX work.
+
+---
+
+## Android Mobile Application
+
+The Android project is located in:
+
+`mobile/`
+
+All team members may contribute to the mobile application:
+
+- Thapelo
+- Lerato
+- Kamohelo
+- Tumelo
+
+This includes:
+
+- UI improvements
+- New screens
+- Navigation
+- Dashboard features
+- Event features
+- Match features
+- Attendance features
+- QR features
+- API integration
+- Bug fixes
+
+Mobile developers should avoid changing backend code while implementing mobile features unless the backend change has been discussed with Thapelo or Lerato.
+
+---
+
+# Git and GitHub Workflow
+
+## Important Rule
+
+Do not develop directly on the shared `mobile-api` branch.
+
+`mobile-api` is the project's main integration branch.
+
+Each developer should create a separate branch for the feature they are working on.
+
+The normal workflow is:
+
+`mobile-api -> feature branch -> changes -> commit -> push -> Pull Request -> review -> merge`
+
+---
+
+## Before Starting Work
+
+Always get the latest version of the project first:
+
+```bash
+git checkout mobile-api
+git pull origin mobile-api
