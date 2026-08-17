@@ -110,9 +110,10 @@ namespace SportsManagementMVC.Controllers.Api
 
                 await _db.SaveChangesAsync();
 
-                return Ok(MapToDto(
-                    existingRegistration,
-                    eventItem));
+                return Ok(
+                    MapToDto(
+                        existingRegistration,
+                        eventItem));
             }
 
             var registration = new EventRegistration
@@ -138,62 +139,127 @@ namespace SportsManagementMVC.Controllers.Api
                 });
             }
 
-            var response = MapToDto(
-                registration,
-                eventItem);
-
             return StatusCode(
                 StatusCodes.Status201Created,
-                response);
+                MapToDto(
+                    registration,
+                    eventItem));
         }
+
+        [HttpPost("{eventId:int:min(1)}/cancel-registration")]
+        public async Task<ActionResult<EventRegistrationDto>>
+            CancelRegistration(int eventId)
+        {
+            var playerIdValue = User.FindFirstValue("playerId");
+
+            if (!int.TryParse(playerIdValue, out var playerId))
+            {
+                return Unauthorized(new
+                {
+                    message =
+                        "The access token does not contain a valid player account."
+                });
+            }
+
+            var registration = await _db.EventRegistrations
+                .Include(item => item.Event)
+                .FirstOrDefaultAsync(item =>
+                    item.PlayerId == playerId &&
+                    item.EventId == eventId);
+
+            if (registration == null)
+            {
+                return NotFound(new
+                {
+                    message =
+                        "No registration exists for this event."
+                });
+            }
+
+            if (registration.Status ==
+                EventRegistrationStatus.Cancelled)
+            {
+                return Conflict(new
+                {
+                    message =
+                        "This event registration is already cancelled."
+                });
+            }
+
+            if (registration.Event.Status !=
+                EventStatus.Upcoming)
+            {
+                return Conflict(new
+                {
+                    message =
+                        "Registration can only be cancelled for upcoming events."
+                });
+            }
+
+            registration.Status =
+                EventRegistrationStatus.Cancelled;
+
+            await _db.SaveChangesAsync();
+
+            return Ok(
+                MapToDto(
+                    registration,
+                    registration.Event));
+        }
+
         [HttpGet("/api/player/registrations")]
-public async Task<ActionResult<IReadOnlyList<EventRegistrationDto>>>
-    GetMyRegistrations()
-{
-    var playerIdValue = User.FindFirstValue("playerId");
-
-    if (!int.TryParse(playerIdValue, out var playerId))
-    {
-        return Unauthorized(new
+        public async Task<ActionResult<
+            IReadOnlyList<EventRegistrationDto>>>
+            GetMyRegistrations()
         {
-            message =
-                "The access token does not contain a valid player account."
-        });
-    }
+            var playerIdValue = User.FindFirstValue("playerId");
 
-    var playerExists = await _db.Players
-        .AsNoTracking()
-        .AnyAsync(player => player.Id == playerId);
+            if (!int.TryParse(playerIdValue, out var playerId))
+            {
+                return Unauthorized(new
+                {
+                    message =
+                        "The access token does not contain a valid player account."
+                });
+            }
 
-    if (!playerExists)
-    {
-        return NotFound(new
-        {
-            message = "The player profile could not be found."
-        });
-    }
+            var playerExists = await _db.Players
+                .AsNoTracking()
+                .AnyAsync(player =>
+                    player.Id == playerId);
 
-    var registrations = await _db.EventRegistrations
-        .AsNoTracking()
-        .Include(registration => registration.Event)
-        .Where(registration =>
-            registration.PlayerId == playerId)
-        .OrderBy(registration =>
-            registration.Event.Date)
-        .ThenBy(registration =>
-            registration.Event.Time)
-        .ThenBy(registration => registration.Id)
-        .ToListAsync();
+            if (!playerExists)
+            {
+                return NotFound(new
+                {
+                    message =
+                        "The player profile could not be found."
+                });
+            }
 
-    var response = registrations
-        .Select(registration =>
-            MapToDto(
-                registration,
-                registration.Event))
-        .ToList();
+            var registrations = await _db.EventRegistrations
+                .AsNoTracking()
+                .Include(registration => registration.Event)
+                .Where(registration =>
+                    registration.PlayerId == playerId)
+                .OrderBy(registration =>
+                    registration.Event.Date)
+                .ThenBy(registration =>
+                    registration.Event.Time)
+                .ThenBy(registration =>
+                    registration.Id)
+                .ToListAsync();
 
-    return Ok(response);
-}
+            var response = registrations
+                .Select(registration =>
+                    MapToDto(
+                        registration,
+                        registration.Event))
+                .ToList();
+
+            return Ok(response);
+        }
+
         private static EventRegistrationDto MapToDto(
             EventRegistration registration,
             Event eventItem)
