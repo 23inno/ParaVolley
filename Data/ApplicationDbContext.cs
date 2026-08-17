@@ -71,6 +71,14 @@ namespace SportsManagementMVC.Data
                 .Property(registration => registration.RegisteredAtUtc)
                 .HasColumnType("timestamp with time zone");
 
+            modelBuilder.Entity<Attendance>()
+                .HasIndex(attendance => new
+                {
+                    attendance.PlayerId,
+                    attendance.EventId
+                })
+                .IsUnique();
+
             modelBuilder.Entity<Announcement>()
                 .Property(x => x.Date)
                 .HasColumnType("date");
