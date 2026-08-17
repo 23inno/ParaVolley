@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using SportsManagementMVC.Data;
 using SportsManagementMVC.Dtos;
 using SportsManagementMVC.Models;
@@ -133,11 +134,7 @@ namespace SportsManagementMVC.Controllers.Api
 
             if (attendanceExists)
             {
-                return Conflict(new
-                {
-                    message =
-                        "Attendance has already been recorded for this player and event."
-                });
+                return DuplicateAttendanceConflict();
             }
 
             var attendanceRecord = new AttendanceEntity
@@ -149,7 +146,19 @@ namespace SportsManagementMVC.Controllers.Api
             };
 
             _db.Attendances.Add(attendanceRecord);
-            await _db.SaveChangesAsync();
+
+            try
+            {
+                await _db.SaveChangesAsync();
+            }
+            catch (DbUpdateException exception)
+                when (exception.InnerException is PostgresException
+                {
+                    SqlState: PostgresErrorCodes.UniqueViolation
+                })
+            {
+                return DuplicateAttendanceConflict();
+            }
 
             attendanceRecord.Player = player;
             attendanceRecord.Event = eventItem;
@@ -157,6 +166,15 @@ namespace SportsManagementMVC.Controllers.Api
             return StatusCode(
                 StatusCodes.Status201Created,
                 MapToDto(attendanceRecord));
+        }
+
+        private ConflictObjectResult DuplicateAttendanceConflict()
+        {
+            return Conflict(new
+            {
+                message =
+                    "Attendance has already been recorded for this player and event."
+            });
         }
 
         private static AttendanceDto MapToDto(
