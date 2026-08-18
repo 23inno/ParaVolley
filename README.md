@@ -131,7 +131,7 @@ Responsibilities:
 - Mobile frontend features
 - General frontend improvements
 
-### Tumelo (Zuki)
+### Tumelo
 Responsibilities:
 - Website frontend development
 - UI/UX development
