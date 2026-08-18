@@ -2,6 +2,7 @@ package com.paravolley.mobile.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -16,19 +17,32 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.paravolley.mobile.components.AppBottomBar
-import com.paravolley.mobile.components.EventCard
-import com.paravolley.mobile.data.FakePlayerRepository
 import com.paravolley.mobile.navigation.Routes
+import com.paravolley.mobile.network.DashboardAnnouncement
+import com.paravolley.mobile.network.DashboardEvent
+import com.paravolley.mobile.network.DashboardMatch
+import com.paravolley.mobile.network.DashboardRepository
+import com.paravolley.mobile.network.PlayerDashboardResponse
+import com.paravolley.mobile.network.SessionManager
 import com.paravolley.mobile.ui.theme.AppColors
 
 @Composable
@@ -36,213 +50,778 @@ fun DashboardScreen(
     onNavigate: (String) -> Unit,
     onOpenNotifications: () -> Unit
 ) {
-    val player = FakePlayerRepository.currentPlayer
+    val context =
+        LocalContext.current
 
-    val upcomingEvents =
-        FakePlayerRepository.events.filter {
-            !it.isPast
+    val dashboardRepository =
+        remember {
+            DashboardRepository(
+                context.applicationContext
+            )
         }
 
-    val notificationPreview =
-        FakePlayerRepository.notifications.take(3)
+    val sessionManager =
+        remember {
+            SessionManager(
+                context.applicationContext
+            )
+        }
+
+    var dashboard by remember {
+        mutableStateOf<PlayerDashboardResponse?>(
+            null
+        )
+    }
+
+    var isLoading by remember {
+        mutableStateOf(true)
+    }
+
+    var errorMessage by remember {
+        mutableStateOf<String?>(null)
+    }
+
+    LaunchedEffect(Unit) {
+        isLoading = true
+        errorMessage = null
+
+        dashboardRepository
+            .getDashboard()
+            .onSuccess { response ->
+                dashboard = response
+                isLoading = false
+            }
+            .onFailure { exception ->
+                errorMessage =
+                    exception.message
+                        ?: "Could not load dashboard."
+
+                isLoading = false
+            }
+    }
 
     Scaffold(
-        containerColor = AppColors.LightBackground,
+        containerColor =
+            AppColors.LightBackground,
         bottomBar = {
             AppBottomBar(
-                selectedRoute = Routes.DASHBOARD,
-                onNavigate = onNavigate
+                selectedRoute =
+                    Routes.DASHBOARD,
+                onNavigate =
+                    onNavigate
             )
         }
     ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier.padding(innerPadding),
-            contentPadding = PaddingValues(
-                bottom = 24.dp
-            )
-        ) {
-            item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(AppColors.DarkGreen)
-                        .padding(22.dp)
+
+        when {
+            isLoading -> {
+                Box(
+                    modifier =
+                        Modifier
+                            .padding(
+                                innerPadding
+                            )
+                            .fillMaxWidth()
+                            .padding(40.dp),
+                    contentAlignment =
+                        Alignment.Center
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement =
-                            Arrangement.SpaceBetween
+                    CircularProgressIndicator()
+                }
+            }
+
+            errorMessage != null -> {
+                Column(
+                    modifier =
+                        Modifier
+                            .padding(
+                                innerPadding
+                            )
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                    horizontalAlignment =
+                        Alignment.CenterHorizontally,
+                    verticalArrangement =
+                        Arrangement.spacedBy(
+                            16.dp
+                        )
+                ) {
+                    Text(
+                        text =
+                            errorMessage
+                                ?: "Could not load dashboard.",
+                        color =
+                            Color.Red
+                    )
+
+                    OutlinedButton(
+                        onClick = {
+                            sessionManager
+                                .clearSession()
+                        }
                     ) {
-                        Column {
-                            Text(
-                                text = "Welcome,",
-                                color = Color.White
-                            )
-
-                            Text(
-                                text = player.firstName,
-                                color = Color.White,
-                                fontSize = 28.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-
-                        Button(
-                            onClick = onOpenNotifications,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = AppColors.Yellow,
-                                contentColor = AppColors.DarkText
-                            )
-                        ) {
-                            Text("2 new")
-                        }
+                        Text(
+                            "Session Error"
+                        )
                     }
                 }
             }
 
-            item {
-                DashboardHeading(
-                    title = "Upcoming Events",
-                    buttonText = "View all",
-                    onButtonClick = {
-                        onNavigate(Routes.EVENTS)
-                    }
+            dashboard != null -> {
+                DashboardContent(
+                    dashboard =
+                        dashboard!!,
+                    innerPadding =
+                        innerPadding,
+                    onNavigate =
+                        onNavigate,
+                    onOpenNotifications =
+                        onOpenNotifications
                 )
             }
+        }
+    }
+}
 
-            item {
-                LazyRow(
-                    contentPadding = PaddingValues(
-                        horizontal = 16.dp
-                    ),
+@Composable
+private fun DashboardContent(
+    dashboard: PlayerDashboardResponse,
+    innerPadding: PaddingValues,
+    onNavigate: (String) -> Unit,
+    onOpenNotifications: () -> Unit
+) {
+    LazyColumn(
+        modifier =
+            Modifier.padding(
+                innerPadding
+            ),
+        contentPadding =
+            PaddingValues(
+                bottom = 24.dp
+            )
+    ) {
+        item {
+            Column(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .background(
+                            AppColors.DarkGreen
+                        )
+                        .padding(22.dp)
+            ) {
+                Row(
+                    modifier =
+                        Modifier.fillMaxWidth(),
                     horizontalArrangement =
-                        Arrangement.spacedBy(12.dp)
+                        Arrangement.SpaceBetween,
+                    verticalAlignment =
+                        Alignment.CenterVertically
                 ) {
-                    items(
-                        upcomingEvents.take(3)
-                    ) { event ->
-                        Column(
-                            modifier =
-                                Modifier.fillParentMaxWidth(
-                                    0.88f
+                    Column {
+                        Text(
+                            text = "Welcome,",
+                            color =
+                                Color.White
+                        )
+
+                        Text(
+                            text =
+                                dashboard
+                                    .player
+                                    .name,
+                            color =
+                                Color.White,
+                            fontSize =
+                                28.sp,
+                            fontWeight =
+                                FontWeight.Bold
+                        )
+
+                        Text(
+                            text =
+                                "${dashboard.player.position} • ${dashboard.player.team}",
+                            color =
+                                Color.White
+                        )
+                    }
+
+                    Button(
+                        onClick =
+                            onOpenNotifications,
+                        colors =
+                            ButtonDefaults
+                                .buttonColors(
+                                    containerColor =
+                                        AppColors.Yellow,
+                                    contentColor =
+                                        AppColors.DarkText
                                 )
-                        ) {
-                            EventCard(
-                                event = event,
-                                buttonText = "View details",
-                                onButtonClick = {
-                                    onNavigate(Routes.EVENTS)
-                                }
-                            )
-                        }
+                    ) {
+                        Text(
+                            "Announcements"
+                        )
                     }
                 }
             }
+        }
 
-            item {
-                Text(
-                    modifier = Modifier.padding(
+        item {
+            DashboardHeading(
+                title =
+                    "Your Summary",
+                buttonText =
+                    "Profile",
+                onButtonClick = {
+                    onNavigate(
+                        Routes.PROFILE
+                    )
+                }
+            )
+        }
+
+        item {
+            SummarySection(
+                dashboard =
+                    dashboard
+            )
+        }
+
+        item {
+            DashboardHeading(
+                title =
+                    "Upcoming Events",
+                buttonText =
+                    "View all",
+                onButtonClick = {
+                    onNavigate(
+                        Routes.EVENTS
+                    )
+                }
+            )
+        }
+
+        item {
+            if (
+                dashboard
+                    .upcomingEvents
+                    .isEmpty()
+            ) {
+                EmptyMessage(
+                    text =
+                        "No upcoming events are available."
+                )
+            } else {
+                LazyRow(
+                    contentPadding =
+                        PaddingValues(
+                            horizontal =
+                                16.dp
+                        ),
+                    horizontalArrangement =
+                        Arrangement.spacedBy(
+                            12.dp
+                        )
+                ) {
+                    items(
+                        dashboard
+                            .upcomingEvents
+                            .take(3)
+                    ) { event ->
+
+                        DashboardEventCard(
+                            modifier =
+                                Modifier
+                                    .fillParentMaxWidth(
+                                        0.88f
+                                    ),
+                            event =
+                                event,
+                            onOpenEvents = {
+                                onNavigate(
+                                    Routes.EVENTS
+                                )
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        item {
+            Text(
+                modifier =
+                    Modifier.padding(
                         start = 16.dp,
                         top = 24.dp,
                         bottom = 12.dp
                     ),
-                    text = "Quick Actions",
-                    color = AppColors.DarkGreen,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 21.sp
-                )
-            }
+                text =
+                    "Quick Actions",
+                color =
+                    AppColors.DarkGreen,
+                fontWeight =
+                    FontWeight.Bold,
+                fontSize =
+                    21.sp
+            )
+        }
 
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    horizontalArrangement =
-                        Arrangement.spacedBy(12.dp)
-                ) {
-                    Button(
-                        modifier = Modifier.weight(1f),
-                        onClick = {
-                            onNavigate(Routes.SCANNER)
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = AppColors.Yellow,
-                            contentColor = AppColors.DarkText
-                        )
-                    ) {
-                        Text("Scan QR")
-                    }
-
-                    Button(
-                        modifier = Modifier.weight(1f),
-                        onClick = {
-                            onNavigate(Routes.EVENTS)
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = AppColors.DarkGreen
-                        )
-                    ) {
-                        Text("View events")
-                    }
-                }
-            }
-
-            item {
-                DashboardHeading(
-                    title = "Notifications",
-                    buttonText = "View all",
-                    onButtonClick = onOpenNotifications
-                )
-            }
-
-            items(notificationPreview) { notification ->
-                Card(
-                    modifier = Modifier
+        item {
+            Row(
+                modifier =
+                    Modifier
                         .fillMaxWidth()
                         .padding(
-                            horizontal = 16.dp,
-                            vertical = 5.dp
+                            horizontal =
+                                16.dp
                         ),
-                    colors = CardDefaults.cardColors(
-                        containerColor =
-                            if (notification.isRead) {
-                                Color.White
-                            } else {
-                                AppColors.UnreadBlue
-                            }
+                horizontalArrangement =
+                    Arrangement.spacedBy(
+                        12.dp
                     )
+            ) {
+                Button(
+                    modifier =
+                        Modifier.weight(
+                            1f
+                        ),
+                    onClick = {
+                        onNavigate(
+                            Routes.SCANNER
+                        )
+                    },
+                    colors =
+                        ButtonDefaults
+                            .buttonColors(
+                                containerColor =
+                                    AppColors.Yellow,
+                                contentColor =
+                                    AppColors.DarkText
+                            )
                 ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Text(
-                            text = notification.title,
-                            color = AppColors.DarkGreen,
-                            fontWeight = FontWeight.Bold
-                        )
+                    Text(
+                        "Scan QR"
+                    )
+                }
 
-                        Spacer(
-                            modifier = Modifier.height(4.dp)
+                Button(
+                    modifier =
+                        Modifier.weight(
+                            1f
+                        ),
+                    onClick = {
+                        onNavigate(
+                            Routes.EVENTS
                         )
-
-                        Text(
-                            text = notification.message
-                        )
-
-                        Spacer(
-                            modifier = Modifier.height(5.dp)
-                        )
-
-                        Text(
-                            text = notification.timeAgo,
-                            color = AppColors.GreyText
-                        )
-                    }
+                    },
+                    colors =
+                        ButtonDefaults
+                            .buttonColors(
+                                containerColor =
+                                    AppColors.DarkGreen
+                            )
+                ) {
+                    Text(
+                        "View Events"
+                    )
                 }
             }
         }
+
+        item {
+            DashboardHeading(
+                title =
+                    "Recent Announcements",
+                buttonText =
+                    "View all",
+                onButtonClick =
+                    onOpenNotifications
+            )
+        }
+
+        if (
+            dashboard
+                .recentAnnouncements
+                .isEmpty()
+        ) {
+            item {
+                EmptyMessage(
+                    text =
+                        "No announcements are available."
+                )
+            }
+        } else {
+            items(
+                dashboard
+                    .recentAnnouncements
+                    .take(3)
+            ) { announcement ->
+                AnnouncementCard(
+                    announcement =
+                        announcement
+                )
+            }
+        }
+
+        item {
+            DashboardHeading(
+                title =
+                    "Recent Matches",
+                buttonText =
+                    "",
+                onButtonClick = {}
+            )
+        }
+
+        if (
+            dashboard
+                .recentMatches
+                .isEmpty()
+        ) {
+            item {
+                EmptyMessage(
+                    text =
+                        "No match information is available."
+                )
+            }
+        } else {
+            items(
+                dashboard
+                    .recentMatches
+                    .take(3)
+            ) { match ->
+                MatchCard(
+                    match =
+                        match
+                )
+            }
+        }
     }
+}
+
+@Composable
+private fun SummarySection(
+    dashboard: PlayerDashboardResponse
+) {
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal =
+                        16.dp
+                ),
+        verticalArrangement =
+            Arrangement.spacedBy(
+                10.dp
+            )
+    ) {
+        SummaryCard(
+            label =
+                "Upcoming Events",
+            value =
+                dashboard
+                    .summary
+                    .upcomingEvents
+                    .toString()
+        )
+
+        SummaryCard(
+            label =
+                "Registered Events",
+            value =
+                dashboard
+                    .summary
+                    .registeredEvents
+                    .toString()
+        )
+
+        SummaryCard(
+            label =
+                "Attendance",
+            value =
+                "${dashboard.summary.presentAttendance}/${dashboard.summary.totalAttendance}"
+        )
+
+        SummaryCard(
+            label =
+                "Attendance Rate",
+            value =
+                "${dashboard.summary.attendanceRate}%"
+        )
+    }
+}
+
+@Composable
+private fun SummaryCard(
+    label: String,
+    value: String
+) {
+    Card(
+        modifier =
+            Modifier.fillMaxWidth(),
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    Color.White
+            )
+    ) {
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+            horizontalArrangement =
+                Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = label,
+                color =
+                    AppColors.GreyText
+            )
+
+            Text(
+                text = value,
+                color =
+                    AppColors.DarkGreen,
+                fontWeight =
+                    FontWeight.Bold
+            )
+        }
+    }
+}
+
+@Composable
+private fun DashboardEventCard(
+    modifier: Modifier = Modifier,
+    event: DashboardEvent,
+    onOpenEvents: () -> Unit
+) {
+    Card(
+        modifier =
+            modifier,
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    Color.White
+            )
+    ) {
+        Column(
+            modifier =
+                Modifier.padding(
+                    16.dp
+                ),
+            verticalArrangement =
+                Arrangement.spacedBy(
+                    6.dp
+                )
+        ) {
+            Text(
+                text =
+                    event.title,
+                color =
+                    AppColors.DarkGreen,
+                fontWeight =
+                    FontWeight.Bold,
+                fontSize =
+                    18.sp
+            )
+
+            Text(
+                text =
+                    "${event.date} • ${event.time}"
+            )
+
+            Text(
+                text =
+                    event.location
+            )
+
+            Text(
+                text =
+                    "${event.type} • ${event.status}",
+                color =
+                    AppColors.GreyText
+            )
+
+            Button(
+                onClick =
+                    onOpenEvents,
+                colors =
+                    ButtonDefaults
+                        .buttonColors(
+                            containerColor =
+                                AppColors.Yellow,
+                            contentColor =
+                                AppColors.DarkText
+                        )
+            ) {
+                Text(
+                    "View Details"
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AnnouncementCard(
+    announcement: DashboardAnnouncement
+) {
+    Card(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal =
+                        16.dp,
+                    vertical =
+                        5.dp
+                ),
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    Color.White
+            )
+    ) {
+        Column(
+            modifier =
+                Modifier.padding(
+                    16.dp
+                )
+        ) {
+            Text(
+                text =
+                    if (
+                        announcement.isPinned
+                    ) {
+                        "Pinned • ${announcement.title}"
+                    } else {
+                        announcement.title
+                    },
+                color =
+                    AppColors.DarkGreen,
+                fontWeight =
+                    FontWeight.Bold
+            )
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        4.dp
+                    )
+            )
+
+            Text(
+                text =
+                    announcement.excerpt
+            )
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        5.dp
+                    )
+            )
+
+            Text(
+                text =
+                    "${announcement.category} • ${announcement.date}",
+                color =
+                    AppColors.GreyText
+            )
+        }
+    }
+}
+
+@Composable
+private fun MatchCard(
+    match: DashboardMatch
+) {
+    Card(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal =
+                        16.dp,
+                    vertical =
+                        5.dp
+                ),
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    Color.White
+            )
+    ) {
+        Column(
+            modifier =
+                Modifier.padding(
+                    16.dp
+                ),
+            verticalArrangement =
+                Arrangement.spacedBy(
+                    5.dp
+                )
+        ) {
+            Text(
+                text =
+                    "${match.teamA} vs ${match.teamB}",
+                color =
+                    AppColors.DarkGreen,
+                fontWeight =
+                    FontWeight.Bold
+            )
+
+            if (
+                match.scoreA != null &&
+                match.scoreB != null
+            ) {
+                Text(
+                    text =
+                        "${match.scoreA} - ${match.scoreB}",
+                    fontWeight =
+                        FontWeight.Bold
+                )
+            }
+
+            Text(
+                text =
+                    "${match.date} • ${match.time}"
+            )
+
+            Text(
+                text =
+                    match.venue
+            )
+
+            Text(
+                text =
+                    "${match.tournament} • ${match.status}",
+                color =
+                    AppColors.GreyText
+            )
+        }
+    }
+}
+
+@Composable
+private fun EmptyMessage(
+    text: String
+) {
+    Text(
+        modifier =
+            Modifier.padding(
+                horizontal =
+                    16.dp,
+                vertical =
+                    8.dp
+            ),
+        text = text,
+        color =
+            AppColors.GreyText
+    )
 }
 
 @Composable
@@ -252,28 +831,45 @@ private fun DashboardHeading(
     onButtonClick: () -> Unit
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(
-                start = 16.dp,
-                end = 8.dp,
-                top = 20.dp,
-                bottom = 8.dp
-            ),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(
+                    start =
+                        16.dp,
+                    end =
+                        8.dp,
+                    top =
+                        20.dp,
+                    bottom =
+                        8.dp
+                ),
         horizontalArrangement =
-            Arrangement.SpaceBetween
+            Arrangement.SpaceBetween,
+        verticalAlignment =
+            Alignment.CenterVertically
     ) {
         Text(
             text = title,
-            color = AppColors.DarkGreen,
-            fontWeight = FontWeight.Bold,
-            fontSize = 21.sp
+            color =
+                AppColors.DarkGreen,
+            fontWeight =
+                FontWeight.Bold,
+            fontSize =
+                21.sp
         )
 
-        TextButton(
-            onClick = onButtonClick
+        if (
+            buttonText.isNotBlank()
         ) {
-            Text(buttonText)
+            TextButton(
+                onClick =
+                    onButtonClick
+            ) {
+                Text(
+                    buttonText
+                )
+            }
         }
     }
 }

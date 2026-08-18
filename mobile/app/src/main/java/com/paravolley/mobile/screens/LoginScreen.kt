@@ -18,24 +18,31 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.paravolley.mobile.network.AuthRepository
+import com.paravolley.mobile.network.SessionManager
 import com.paravolley.mobile.ui.theme.AppColors
+import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
@@ -57,20 +64,48 @@ fun LoginScreen(
         mutableStateOf<String?>(null)
     }
 
+    var isLoading by rememberSaveable {
+        mutableStateOf(false)
+    }
+
+    val context = LocalContext.current
+
+    val authRepository = remember {
+        AuthRepository()
+    }
+
+    val sessionManager = remember {
+        SessionManager(
+            context.applicationContext
+        )
+    }
+
+    val coroutineScope =
+        rememberCoroutineScope()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(AppColors.LightBackground)
+            .background(
+                AppColors.LightBackground
+            )
             .safeDrawingPadding()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(
+                rememberScrollState()
+            )
             .imePadding()
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(AppColors.DarkGreen)
-                .padding(vertical = 36.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .background(
+                    AppColors.DarkGreen
+                )
+                .padding(
+                    vertical = 36.dp
+                ),
+            horizontalAlignment =
+                Alignment.CenterHorizontally
         ) {
             Box(
                 modifier = Modifier
@@ -79,24 +114,30 @@ fun LoginScreen(
                         shape = CircleShape
                     )
                     .padding(18.dp),
-                contentAlignment = Alignment.Center
+                contentAlignment =
+                    Alignment.Center
             ) {
                 Text(
                     text = "PVM",
-                    color = AppColors.DarkGreen,
-                    fontWeight = FontWeight.Bold,
+                    color =
+                        AppColors.DarkGreen,
+                    fontWeight =
+                        FontWeight.Bold,
                     fontSize = 22.sp
                 )
             }
 
             Spacer(
-                modifier = Modifier.height(16.dp)
+                modifier =
+                    Modifier.height(16.dp)
             )
 
             Text(
-                text = "ParaVolley Mpumalanga",
+                text =
+                    "ParaVolley Mpumalanga",
                 color = Color.White,
-                fontWeight = FontWeight.Bold,
+                fontWeight =
+                    FontWeight.Bold,
                 fontSize = 24.sp
             )
         }
@@ -105,36 +146,51 @@ fun LoginScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(20.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = Color.White
-            )
+            colors =
+                CardDefaults.cardColors(
+                    containerColor =
+                        Color.White
+                )
         ) {
             Column(
-                modifier = Modifier.padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                modifier =
+                    Modifier.padding(
+                        20.dp
+                    ),
+                verticalArrangement =
+                    Arrangement.spacedBy(
+                        14.dp
+                    )
             ) {
                 Text(
                     text = "Player Login",
-                    color = AppColors.DarkGreen,
-                    fontWeight = FontWeight.Bold,
+                    color =
+                        AppColors.DarkGreen,
+                    fontWeight =
+                        FontWeight.Bold,
                     fontSize = 22.sp
                 )
 
                 OutlinedTextField(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth(),
                     value = email,
                     onValueChange = {
                         email = it
                         errorMessage = null
                     },
                     label = {
-                        Text("Email or username")
+                        Text("Email")
                     },
-                    singleLine = true
+                    singleLine = true,
+                    enabled = !isLoading
                 )
 
                 OutlinedTextField(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth(),
                     value = password,
                     onValueChange = {
                         password = it
@@ -144,21 +200,30 @@ fun LoginScreen(
                         Text("Password")
                     },
                     singleLine = true,
+                    enabled = !isLoading,
                     visualTransformation =
-                        if (passwordVisible) {
-                            VisualTransformation.None
+                        if (
+                            passwordVisible
+                        ) {
+                            VisualTransformation
+                                .None
                         } else {
                             PasswordVisualTransformation()
                         },
                     trailingIcon = {
                         TextButton(
+                            enabled =
+                                !isLoading,
                             onClick = {
-                                passwordVisible = !passwordVisible
+                                passwordVisible =
+                                    !passwordVisible
                             }
                         ) {
                             Text(
                                 text =
-                                    if (passwordVisible) {
+                                    if (
+                                        passwordVisible
+                                    ) {
                                         "Hide"
                                     } else {
                                         "Show"
@@ -169,13 +234,20 @@ fun LoginScreen(
                 )
 
                 TextButton(
-                    modifier = Modifier.align(Alignment.End),
+                    modifier =
+                        Modifier.align(
+                            Alignment.End
+                        ),
+                    enabled = !isLoading,
                     onClick = {}
                 ) {
-                    Text("Forgot password?")
+                    Text(
+                        "Forgot password?"
+                    )
                 }
 
-                errorMessage?.let { message ->
+                errorMessage?.let {
+                    message ->
                     Text(
                         text = message,
                         color = Color.Red
@@ -183,7 +255,10 @@ fun LoginScreen(
                 }
 
                 Button(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth(),
+                    enabled = !isLoading,
                     onClick = {
                         if (
                             email.isBlank() ||
@@ -191,26 +266,94 @@ fun LoginScreen(
                         ) {
                             errorMessage =
                                 "Enter your email and password."
-                        } else {
-                            onLoginSuccessful()
+
+                            return@Button
+                        }
+
+                        isLoading = true
+                        errorMessage = null
+
+                        coroutineScope.launch {
+                            val result =
+                                authRepository
+                                    .login(
+                                        email =
+                                            email,
+                                        password =
+                                            password
+                                    )
+
+                            result
+                                .onSuccess {
+                                    loginResponse ->
+
+                                    isLoading =
+                                        false
+
+                                    if (
+                                        loginResponse
+                                            .user
+                                            .role
+                                            .equals(
+                                                "Player",
+                                                ignoreCase =
+                                                    true
+                                            )
+                                    ) {
+                                        sessionManager
+                                            .saveLogin(
+                                                loginResponse
+                                            )
+
+                                        onLoginSuccessful()
+                                    } else {
+                                        errorMessage =
+                                            "This mobile app is for player accounts only."
+                                    }
+                                }
+                                .onFailure {
+                                    exception ->
+
+                                    isLoading =
+                                        false
+
+                                    errorMessage =
+                                        exception
+                                            .message
+                                            ?: "Login failed."
+                                }
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = AppColors.Yellow,
-                        contentColor = AppColors.DarkText
-                    )
+                    colors =
+                        ButtonDefaults
+                            .buttonColors(
+                                containerColor =
+                                    AppColors.Yellow,
+                                contentColor =
+                                    AppColors.DarkText
+                            )
                 ) {
-                    Text(
-                        text = "Login",
-                        fontWeight = FontWeight.Bold
-                    )
+                    if (isLoading) {
+                        CircularProgressIndicator()
+                    } else {
+                        Text(
+                            text = "Login",
+                            fontWeight =
+                                FontWeight.Bold
+                        )
+                    }
                 }
 
                 Text(
-                    modifier = Modifier.fillMaxWidth(),
-                    text = "Prototype: use any email and password.",
-                    color = AppColors.GreyText,
-                    textAlign = TextAlign.Center
+                    modifier =
+                        Modifier
+                            .fillMaxWidth(),
+                    text =
+                        "Sign in using your approved ParaVolley player account.",
+                    color =
+                        AppColors.GreyText,
+                    textAlign =
+                        TextAlign.Center
                 )
             }
         }

@@ -15,79 +15,127 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.paravolley.mobile.model.SportsEvent
+import com.paravolley.mobile.network.EventResponse
 import com.paravolley.mobile.ui.theme.AppColors
 
 @Composable
 fun EventCard(
-    event: SportsEvent,
+    event: EventResponse,
+    registrationStatus: String?,
     buttonText: String,
+    buttonEnabled: Boolean,
     onButtonClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp
-        )
+        modifier =
+            Modifier.fillMaxWidth(),
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    Color.White
+            ),
+        elevation =
+            CardDefaults.cardElevation(
+                defaultElevation =
+                    2.dp
+            )
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(7.dp)
+            modifier =
+                Modifier.padding(
+                    16.dp
+                ),
+            verticalArrangement =
+                Arrangement.spacedBy(
+                    7.dp
+                )
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                modifier =
+                    Modifier.fillMaxWidth(),
+                horizontalArrangement =
+                    Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = event.category,
-                    color = AppColors.Green
+                    text =
+                        event.type,
+                    color =
+                        AppColors.Green
                 )
 
                 Text(
-                    text = event.status,
-                    color = AppColors.GreyText
+                    text =
+                        registrationStatus
+                            ?: event.status,
+                    color =
+                        AppColors.GreyText
                 )
             }
 
             Text(
-                text = event.title,
-                color = AppColors.DarkGreen,
-                fontWeight = FontWeight.Bold
+                text =
+                    event.title,
+                color =
+                    AppColors.DarkGreen,
+                fontWeight =
+                    FontWeight.Bold
             )
 
             Text(
-                text = "Date: ${event.date}"
+                text =
+                    "Date: ${event.date}"
             )
 
             Text(
-                text = "Time: ${event.time}"
+                text =
+                    "Time: ${event.time}"
             )
 
             Text(
-                text = "Location: ${event.location}"
+                text =
+                    "Location: ${event.location}"
             )
 
-            event.spotsRemaining?.let { remaining ->
+            Text(
+                text =
+                    "Participants: ${event.participants}",
+                color =
+                    AppColors.GreyText
+            )
+
+            if (
+                event.description
+                    .isNotBlank()
+            ) {
                 Text(
-                    text = "$remaining spaces remaining",
-                    color = AppColors.GreyText
+                    text =
+                        event.description,
+                    color =
+                        AppColors.GreyText
                 )
             }
 
             Button(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = onButtonClick,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = AppColors.Yellow,
-                    contentColor = AppColors.DarkText
-                )
+                modifier =
+                    Modifier.fillMaxWidth(),
+                enabled =
+                    buttonEnabled,
+                onClick =
+                    onButtonClick,
+                colors =
+                    ButtonDefaults
+                        .buttonColors(
+                            containerColor =
+                                AppColors.Yellow,
+                            contentColor =
+                                AppColors.DarkText
+                        )
             ) {
                 Text(
-                    text = buttonText,
-                    fontWeight = FontWeight.Bold
+                    text =
+                        buttonText,
+                    fontWeight =
+                        FontWeight.Bold
                 )
             }
         }
