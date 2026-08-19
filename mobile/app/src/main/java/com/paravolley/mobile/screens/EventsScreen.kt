@@ -1,174 +1,77 @@
 package com.paravolley.mobile.screens
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.paravolley.mobile.components.AppBottomBar
 import com.paravolley.mobile.components.EventCard
-import com.paravolley.mobile.data.FakePlayerRepository
-import com.paravolley.mobile.navigation.Routes
-import com.paravolley.mobile.ui.theme.AppColors
+import com.paravolley.mobile.network.models.EventDto
+import com.paravolley.mobile.ui.theme.*
 
 @Composable
 fun EventsScreen(
-    onNavigate: (String) -> Unit
+    events: List<EventDto>,
+    registeredEventIds: Set<Int>,
+    onToggleRegistration: (Int, Boolean) -> Unit
 ) {
-    var showPastEvents by rememberSaveable {
-        mutableStateOf(false)
-    }
+    var selectedTab by remember { mutableIntStateOf(0) }
+    val tabs = listOf("Upcoming", "Registered")
 
-    val registeredEventIds = remember {
-        mutableStateListOf<Int>()
-    }
+    Column(modifier = Modifier.fillMaxSize()) {
+        Text(
+            text = "Events & Training",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = ParaGreenPrimary,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)
+        )
 
-    val displayedEvents =
-        FakePlayerRepository.events.filter {
-            it.isPast == showPastEvents
-        }
-
-    Scaffold(
-        containerColor = AppColors.LightBackground,
-        bottomBar = {
-            AppBottomBar(
-                selectedRoute = Routes.EVENTS,
-                onNavigate = onNavigate
-            )
-        }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier.padding(innerPadding)
+        TabRow(
+            selectedTabIndex = selectedTab,
+            containerColor = ParaSurface,
+            contentColor = ParaGreenPrimary
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(AppColors.DarkGreen)
-                    .padding(20.dp)
-            ) {
-                Text(
-                    text = "Events & Training",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 25.sp
+            tabs.forEachIndexed { index, title ->
+                Tab(
+                    selected = selectedTab == index,
+                    onClick = { selectedTab = index },
+                    text = { Text(title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp) }
                 )
             }
+        }
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement =
-                    Arrangement.spacedBy(12.dp)
-            ) {
-                Button(
-                    modifier = Modifier.weight(1f),
-                    onClick = {
-                        showPastEvents = false
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor =
-                            if (!showPastEvents) {
-                                AppColors.DarkGreen
-                            } else {
-                                Color.Gray
-                            }
+        val filteredEvents = if (selectedTab == 0) {
+            events
+        } else {
+            events.filter { registeredEventIds.contains(it.id) }
+        }
+
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            if (filteredEvents.isEmpty()) {
+                item {
+                    Text(
+                        text = if (selectedTab == 0) "No events available." else "You haven't registered for any events yet.",
+                        color = ParaTextMuted,
+                        modifier = Modifier.padding(16.dp)
                     )
-                ) {
-                    Text("Upcoming")
                 }
-
-                Button(
-                    modifier = Modifier.weight(1f),
-                    onClick = {
-                        showPastEvents = true
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor =
-                            if (showPastEvents) {
-                                AppColors.DarkGreen
-                            } else {
-                                Color.Gray
-                            }
-                    )
-                ) {
-                    Text("Past")
-                }
-            }
-
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(
-                    start = 16.dp,
-                    end = 16.dp,
-                    bottom = 24.dp
-                ),
-                verticalArrangement =
-                    Arrangement.spacedBy(12.dp)
-            ) {
-                items(displayedEvents) { event ->
-                    val registered =
-                        event.isRegistered ||
-                                registeredEventIds.contains(
-                                    event.id
-                                )
-
-                    val displayedEvent =
-                        if (
-                            registered &&
-                            !event.isPast
-                        ) {
-                            event.copy(
-                                status = "Registered"
-                            )
-                        } else {
-                            event
-                        }
-
-                    val buttonText = when {
-                        event.isPast ->
-                            "View details"
-
-                        registered ->
-                            "Registered"
-
-                        else ->
-                            "Register"
-                    }
-
+            } else {
+                items(filteredEvents) { event ->
+                    val isReg = registeredEventIds.contains(event.id)
                     EventCard(
-                        event = displayedEvent,
-                        buttonText = buttonText,
-                        onButtonClick = {
-                            if (
-                                !event.isPast &&
-                                !registered
-                            ) {
-                                registeredEventIds.add(
-                                    event.id
-                                )
-                            }
-                        }
+                        event = event,
+                        isRegistered = isReg,
+                        onActionClick = { onToggleRegistration(event.id, isReg) }
                     )
                 }
             }
