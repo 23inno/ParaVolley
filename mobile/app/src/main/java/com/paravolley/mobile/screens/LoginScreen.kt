@@ -1,217 +1,156 @@
 package com.paravolley.mobile.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.SportsVolleyball
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.paravolley.mobile.ui.theme.AppColors
+import com.paravolley.mobile.ui.theme.*
 
 @Composable
 fun LoginScreen(
-    onLoginSuccessful: () -> Unit
+    isLoading: Boolean,
+    errorMessage: String?,
+    onLoginClick: (String, String) -> Unit
 ) {
-    var email by rememberSaveable {
-        mutableStateOf("")
-    }
+    var email by remember { mutableStateOf("john.doe@email.com") }
+    var password by remember { mutableStateOf("password") }
 
-    var password by rememberSaveable {
-        mutableStateOf("")
-    }
-
-    var passwordVisible by rememberSaveable {
-        mutableStateOf(false)
-    }
-
-    var errorMessage by rememberSaveable {
-        mutableStateOf<String?>(null)
-    }
-
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(AppColors.LightBackground)
-            .safeDrawingPadding()
+            .background(ParaBackground)
             .verticalScroll(rememberScrollState())
-            .imePadding()
     ) {
-        Column(
+        // Header Green Banner
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(AppColors.DarkGreen)
-                .padding(vertical = 36.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .height(240.dp)
+                .background(ParaGreenPrimary),
+            contentAlignment = Alignment.Center
         ) {
-            Box(
-                modifier = Modifier
-                    .background(
-                        color = Color.White,
-                        shape = CircleShape
-                    )
-                    .padding(18.dp),
-                contentAlignment = Alignment.Center
-            ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = ParaGoldSecondary,
+                    modifier = Modifier.size(64.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.SportsVolleyball,
+                            contentDescription = "Logo",
+                            tint = ParaGreenDark,
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "PVM",
-                    color = AppColors.DarkGreen,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 22.sp
+                    text = "ParaVolley Mpumalanga",
+                    color = ParaSurface,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
                 )
             }
-
-            Spacer(
-                modifier = Modifier.height(16.dp)
-            )
-
-            Text(
-                text = "ParaVolley Mpumalanga",
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                fontSize = 24.sp
-            )
         }
 
+        // Login Card
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = Color.White
-            )
+                .padding(horizontal = 24.dp)
+                .padding(top = 180.dp),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = ParaSurface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
         ) {
-            Column(
-                modifier = Modifier.padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
+            Column(modifier = Modifier.padding(24.dp)) {
                 Text(
-                    text = "Player Login",
-                    color = AppColors.DarkGreen,
+                    text = "Sign In",
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 22.sp
+                    color = ParaTextDark
+                )
+                Text(
+                    text = "Access your training & tournament portal",
+                    fontSize = 12.sp,
+                    color = ParaTextMuted
                 )
 
-                OutlinedTextField(
-                    modifier = Modifier.fillMaxWidth(),
-                    value = email,
-                    onValueChange = {
-                        email = it
-                        errorMessage = null
-                    },
-                    label = {
-                        Text("Email or username")
-                    },
-                    singleLine = true
-                )
+                Spacer(modifier = Modifier.height(20.dp))
 
-                OutlinedTextField(
-                    modifier = Modifier.fillMaxWidth(),
-                    value = password,
-                    onValueChange = {
-                        password = it
-                        errorMessage = null
-                    },
-                    label = {
-                        Text("Password")
-                    },
-                    singleLine = true,
-                    visualTransformation =
-                        if (passwordVisible) {
-                            VisualTransformation.None
-                        } else {
-                            PasswordVisualTransformation()
-                        },
-                    trailingIcon = {
-                        TextButton(
-                            onClick = {
-                                passwordVisible = !passwordVisible
-                            }
-                        ) {
-                            Text(
-                                text =
-                                    if (passwordVisible) {
-                                        "Hide"
-                                    } else {
-                                        "Show"
-                                    }
-                            )
-                        }
+                if (errorMessage != null) {
+                    Surface(
+                        color = ParaError.copy(alpha = 0.1f),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = errorMessage,
+                            color = ParaError,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(8.dp)
+                        )
                     }
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Email Address") },
+                    leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = ParaTextMuted) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
                 )
 
-                TextButton(
-                    modifier = Modifier.align(Alignment.End),
-                    onClick = {}
-                ) {
-                    Text("Forgot password?")
-                }
+                Spacer(modifier = Modifier.height(14.dp))
 
-                errorMessage?.let { message ->
-                    Text(
-                        text = message,
-                        color = Color.Red
-                    )
-                }
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("Password") },
+                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = ParaTextMuted) },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                )
+
+                Spacer(modifier = Modifier.height(22.dp))
 
                 Button(
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = {
-                        if (
-                            email.isBlank() ||
-                            password.isBlank()
-                        ) {
-                            errorMessage =
-                                "Enter your email and password."
-                        } else {
-                            onLoginSuccessful()
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = AppColors.Yellow,
-                        contentColor = AppColors.DarkText
-                    )
+                    onClick = { onLoginClick(email, password) },
+                    enabled = !isLoading,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = ParaGoldSecondary, contentColor = ParaTextDark)
                 ) {
-                    Text(
-                        text = "Login",
-                        fontWeight = FontWeight.Bold
-                    )
+                    if (isLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = ParaTextDark)
+                    } else {
+                        Text("Login", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    }
                 }
-
-                Text(
-                    modifier = Modifier.fillMaxWidth(),
-                    text = "Prototype: use any email and password.",
-                    color = AppColors.GreyText,
-                    textAlign = TextAlign.Center
-                )
             }
         }
     }
