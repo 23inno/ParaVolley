@@ -1,8 +1,5 @@
 # ParaVolley Mpumalanga — Sports Management System (ASP.NET Core MVC)
 
-A full **ASP.NET Core MVC** rebuild of the original Figma Make React app, using the
-classic **Model / View / Controller** structure with `.cshtml` Razor views.
-
 ## Tech stack
 
 - ASP.NET Core MVC (.NET 8)
