@@ -1,239 +1,342 @@
-# ParaVolley Mpumalanga — Sports Management System (ASP.NET Core MVC)
+# ParaVolley Mpumalanga — Sports Management System
 
-A full **ASP.NET Core MVC** rebuild of the original Figma Make React app, using the
-classic **Model / View / Controller** structure with `.cshtml` Razor views.
+ParaVolley is a group project consisting of an **ASP.NET Core MVC website**, a **REST API/backend**, a **PostgreSQL database**, and an **Android mobile application**.
 
-## Tech stack
+The current project no longer uses the original in-memory database setup. The backend now uses **PostgreSQL with Entity Framework Core/Npgsql**, supports **cookie authentication for the MVC website**, **JWT authentication for the mobile API**, and includes Android API integration for the main player flows.
 
-- ASP.NET Core MVC (.NET 8)
-- Entity Framework Core — **In-Memory** database provider (no SQL Server install required — data resets each time you stop the app, and is re-seeded automatically)
-- Cookie-based authentication (login required to view any page except the login screen)
-- Bootstrap 5 + Bootstrap Icons (via CDN)
+## Current Tech Stack
 
-## Project structure
+### Website / Backend
+- ASP.NET Core MVC — .NET 8
+- Razor `.cshtml` views
+- Entity Framework Core 8
+- PostgreSQL
+- Npgsql Entity Framework Core provider
+- Cookie authentication for the MVC website
+- JWT Bearer authentication for the REST API
+- .NET User Secrets for development credentials and secrets
 
-```
+### Android
+- Kotlin
+- Jetpack Compose
+- Retrofit
+- Gson
+- Navigation Compose
+- Gradle 9.3.1 wrapper
+
+## Project Structure
+
+```text
 SportsManagementMVC/
-├── Controllers/        # HomeController, PlayersController, CoachesController,
-│                          EventsController, MatchesController, AnnouncementsController,
-│                          AttendanceController, ReportsController, SettingsController,
-│                          AccountController (login/logout)
-├── Models/              # Player, Coach, Event, Match, Announcement, Attendance,
-│                          plus view models (Dashboard, Reports, Settings, Login)
-├── Data/                # ApplicationDbContext (EF Core) + DbInitializer (seed data)
-├── Views/                # .cshtml Razor views, one folder per controller
-│   └── Shared/           # _Layout.cshtml (sidebar + topbar), Error.cshtml
-├── wwwroot/              # site.css, site.js
-├── Program.cs            # app startup, DB + auth configuration
-└── SportsManagementMVC.sln
+├── Controllers/           # MVC controllers
+│   └── Api/               # Mobile/API controllers
+├── Data/                  # DbContext, seeding, supporting services
+├── Dtos/                  # API request/response DTOs
+├── Migrations/            # EF Core PostgreSQL migrations
+├── Models/                # Domain/entity models
+├── Views/                 # Razor MVC views
+├── wwwroot/               # Website CSS/JS/static files
+├── mobile/                # Android application
+├── Program.cs             # Application startup/configuration
+├── SportsManagementMVC.csproj
+├── SportsManagementMVC.sln
+├── README.md
+└── TEAM_SETUP.md          # Full local setup/reproducibility guide
 ```
 
-## How to run (Visual Studio 2022 / 2026)
+## Important: Team Setup
 
-1. Double-click `SportsManagementMVC.sln` to open the solution in Visual Studio.
-2. Visual Studio will restore NuGet packages automatically (EF Core, EF Core InMemory).
-   If it doesn't, right-click the solution in **Solution Explorer** → **Restore NuGet Packages**.
-3. Press **F5** (or the green ▶ **Run** button) to build and launch.
-4. Your browser will open to the login page automatically.
+For the full local setup instructions, use:
 
-### Demo login
-
-```
-Email:    admin@paravolley.com
-Password: Admin123!
+```text
+TEAM_SETUP.md
 ```
 
-## Features covered (for the assignment write-up)
+That guide explains:
 
-- **Models**: `Player`, `Coach`, `Event`, `Match`, `Announcement`, `Attendance`, each with
-  data annotations for validation (`[Required]`, `[EmailAddress]`, `[Range]`, etc.)
-- **Controllers**: full CRUD (Create, Read, Update, Delete) for Players, Coaches, Events,
-  Matches, and Announcements, plus a dedicated Attendance controller (with foreign-key
-  dropdowns to Player/Event) and a Reports controller that aggregates data with LINQ.
-- **Views**: Razor `.cshtml` views using Tag Helpers (`asp-for`, `asp-action`,
-  `asp-validation-for`) for strongly-typed forms, plus partials for shared layout and
-  client-side validation scripts.
-- **Entity Framework Core**: `DbContext` with `DbSet<T>` for each entity, relationships
-  between `Attendance` → `Player`/`Event` via foreign keys, and `Include()`/LINQ queries
-  in the controllers.
-- **Authentication**: cookie-based login using `ClaimsPrincipal`, with `[Authorize]`
-  attributes protecting all controllers except `AccountController`.
+- PostgreSQL setup
+- .NET User Secrets
+- JWT configuration
+- seeded development accounts
+- database migrations
+- running the website/backend
+- Android build setup
+- Android emulator/device testing
+- branch workflow
+- security rules
 
-## Switching to a real SQL Server database (optional)
+## Quick Website / Backend Setup
 
-Right now the app uses `UseInMemoryDatabase(...)` in `Program.cs` so it runs instantly
-with zero setup. If your assignment requires a persistent database instead:
+Install:
 
-1. Add the SQL Server EF Core package:
-   ```
-   dotnet add package Microsoft.EntityFrameworkCore.SqlServer
-   ```
-2. In `Program.cs`, replace:
-   ```csharp
-   options.UseInMemoryDatabase("SportsManagementDb")
-   ```
-   with:
-   ```csharp
-   options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
-   ```
-3. Add a connection string to `appsettings.json`:
-   ```json
-   "ConnectionStrings": {
-     "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=SportsManagementDb;Trusted_Connection=True;"
-   }
-   ```
-4. In the **Package Manager Console** (Tools → NuGet Package Manager → Package Manager Console):
-   ```
-   Add-Migration InitialCreate
-   Update-Database
-   ```
+- .NET 8 SDK
+- PostgreSQL
+- Git
 
-Let me know if you'd like help doing this migration.
+Then clone/pull the repository and configure local development secrets.
 
+The project uses the User Secrets ID:
 
----
+```text
+sports-management-mvc-secrets
+```
 
-# ParaVolley Team Development Guide
+Required development configuration includes:
 
-ParaVolley is a group project consisting of a web application, backend/API, and Android mobile application.
+```text
+ConnectionStrings:DefaultConnection
+Jwt:Key
+Jwt:Issuer
+Jwt:Audience
+SeedUsers:PlayerPassword
+SeedUsers:CoachPassword
+SeedUsers:AdminPassword
+```
 
-To protect the working project while allowing every group member to contribute, all team members must follow the Git and GitHub workflow described below.
+Example connection string format:
 
-## Team Members and Responsibilities
+```text
+Host=localhost;Port=5432;Database=paravolley_dev;Username=postgres;Password=YOUR_LOCAL_PASSWORD
+```
 
-### Thapelo
-Responsibilities:
-- Backend development
-- REST API development
-- Database integration
-- Android/API integration
-- Mobile application development
-- Website development when required
-- Reviewing backend changes
+Do **not** commit PostgreSQL passwords, JWT keys or User Secret values to GitHub.
 
-### Lerato
-Role: Project Manager and Lead Backend Developer
+## Build and Run the Website / Backend
 
-Responsibilities:
-- Backend development
-- REST API development
-- Backend review
-- Project coordination
-- Mobile application contributions
-- Website contributions
-- Access across the project
+From the root project folder:
 
-### Kamohelo (Zani)
-Responsibilities:
-- Website frontend development
-- UI/UX development
-- Mobile application development
-- Mobile frontend features
-- General frontend improvements
+```powershell
+dotnet restore
+dotnet build
+dotnet run
+```
 
-### Tumelo (Zuki)
-Responsibilities:
-- Website frontend development
-- UI/UX development
-- Mobile application development
-- Mobile frontend features
-- Reviewing and understanding the overall project
+The terminal will print the local URL, for example:
 
----
+```text
+Now listening on: http://localhost:5080
+```
 
-# Project Areas
+The MVC website and REST API run from the same ASP.NET Core application.
 
-## Backend
+The application calls `Database.Migrate()` at startup, so existing EF Core migrations are applied automatically when the PostgreSQL connection is valid.
 
-The backend includes areas such as:
+## Seeded Development Accounts
 
-- `Controllers/Api/`
-- `Data/`
-- `Dtos/`
-- `Models/`
-- `Migrations/`
+The current development seeder uses these emails:
 
-Primary backend developers:
+| Role | Email |
+|---|---|
+| Player | `john.doe@email.com` |
+| Coach | `john.smith@paravolley.com` |
+| Admin | `admin@paravolley.com` |
 
-- Thapelo
-- Lerato
+Passwords are not stored in the repository. They are read from .NET User Secrets.
 
-Backend changes should normally be handled by Thapelo and Lerato.
+## Main API Capabilities
 
-If another team member believes a backend change is required, the change should first be discussed with Thapelo or Lerato.
+The current backend includes the following mobile/API areas:
 
-This helps prevent frontend or mobile changes from accidentally breaking the API, authentication, database, or existing integrations.
-
----
-
-## Website
-
-Important website/frontend areas include:
-
-- `Views/`
-- `wwwroot/`
-
-Website development may be performed by:
-
-- Thapelo
-- Lerato
-- Kamohelo
-- Tumelo
-
-Kamohelo and Tumelo will primarily focus on frontend and UI/UX work.
-
----
+- Authentication / JWT login
+- Player registration
+- Admin approval/rejection of player accounts
+- Player profile
+- Player dashboard
+- Events
+- Event registration/cancellation
+- Attendance
+- Announcements
+- Matches
+- QR attendance sessions and player check-in
 
 ## Android Mobile Application
 
-The Android project is located in:
+The Android project is located at:
 
-`mobile/`
+```text
+mobile/
+```
 
-All team members may contribute to the mobile application:
+The current mobile integration includes:
 
-- Thapelo
-- Lerato
-- Kamohelo
-- Tumelo
+- real API login
+- JWT/session storage
+- player profile
+- player dashboard
+- events
+- event registration/cancellation
+- attendance history
+- announcements
+- QR attendance API check-in
 
-This includes:
+The old `FakePlayerRepository` is no longer used by the active Android screens.
 
-- UI improvements
-- New screens
-- Navigation
-- Dashboard features
-- Event features
-- Match features
-- Attendance features
-- QR features
-- API integration
-- Bug fixes
+### Build Android without an emulator
 
-Mobile developers should avoid changing backend code while implementing mobile features unless the backend change has been discussed with Thapelo or Lerato.
+From the repository root:
 
----
+```powershell
+cd mobile
+.\gradlew.bat assembleDebug
+```
 
-# Git and GitHub Workflow
+Expected result:
 
-## Important Rule
+```text
+BUILD SUCCESSFUL
+```
+
+This confirms the Android source compiles, but real emulator/device testing is still required for runtime behaviour and camera scanning.
+
+## Android Development API Address
+
+The standard Android emulator uses:
+
+```text
+http://10.0.2.2:5080/
+```
+
+This points from the emulator to the backend running on the same Windows PC.
+
+If the ASP.NET backend starts on another port, the Android development base URL must be updated accordingly.
+
+A physical Android device cannot use `10.0.2.2` to reach the development PC. Physical-device testing requires a LAN-accessible backend address or a deployed backend, plus any necessary firewall/network configuration.
+
+## Current Verified Status
+
+At the latest integration checkpoint:
+
+- ASP.NET backend: **build successful, 0 warnings, 0 errors**
+- Android project: **`assembleDebug` successful**
+- Player login/API authentication: tested
+- Player profile: tested
+- Player dashboard: tested
+- Events: tested
+- Player registrations: tested
+- Player attendance: tested
+- Announcements: tested
+- Coach login: tested
+- QR attendance end-to-end backend flow: tested successfully
+
+The QR workflow was verified through a fresh test event:
+
+```text
+Coach creates event
+→ Player registers
+→ Coach creates QR session
+→ Player submits QR token
+→ Backend validates session
+→ Attendance saved as Present
+→ Player attendance endpoint returns the record
+```
+
+## Remaining Work Before Final Submission
+
+The main outstanding work is:
+
+- Kamohelo to complete/polish the Android UI/UX
+- Tumelo to run and verify the MVC website locally, including responsiveness and website functionality
+- a teammate with a reliable Android Studio emulator or physical Android device to perform full Android runtime testing
+- physical QR camera scanning to be tested/completed during device testing
+- regression testing after UI/runtime fixes
+- final PR review and merge coordinated by Lerato
+
+## Team Responsibilities
+
+### Thapelo — Backend & Android API Integration
+- Backend/API development
+- PostgreSQL/database integration
+- Android/API integration
+- Maintains working API contracts
+- Supports confirmed backend/integration bugs
+
+### Kamohelo — Android UI/UX
+- Android frontend/UI polish
+- Main working areas: `screens/`, `components/`, `ui/theme/`
+- Avoid changing `network/` or backend code unless a confirmed bug requires it
+- Run `assembleDebug` before pushing changes
+
+### Tumelo — Website
+- Run the MVC website locally using `TEAM_SETUP.md`
+- Complete/check website UI, responsiveness, navigation, validation and functionality
+- Commit genuine frontend fixes on Tumelo's branch
+- Report backend/database issues to Lerato/Thapelo before changing working backend code
+
+### Lerato — Project Manager / Lead Backend
+- Coordinate final project work
+- Review backend/API requirements
+- Coordinate branch reviews and merges
+- Ensure at least one teammate other than Thapelo can reproduce/run the website locally
+- Coordinate unresolved backend issues
+- Confirm final testing evidence and submission readiness
+
+### Assigned Android Tester
+- Run the real Android app on emulator/device
+- Test login, dashboard, profile, events, registration/cancellation, attendance, announcements, navigation and QR camera scanning
+- Capture screenshots and Logcat for failures
+- Commit genuine runtime/device fixes on their own branch/account
+
+## Git Workflow
 
 Do not develop directly on the shared `mobile-api` branch.
 
-`mobile-api` is the project's main integration branch.
+Use:
 
-Each developer should create a separate branch for the feature they are working on.
+```text
+mobile-api
+→ feature branch
+→ changes
+→ commit
+→ push
+→ Pull Request
+→ review
+→ merge
+```
 
-The normal workflow is:
+Example:
 
-`mobile-api -> feature branch -> changes -> commit -> push -> Pull Request -> review -> merge`
-
----
-
-## Before Starting Work
-
-Always get the latest version of the project first:
-
-```bash
+```powershell
 git checkout mobile-api
 git pull origin mobile-api
+git checkout -b your-name-feature
+```
+
+Current Android/backend integration work is on:
+
+```text
+thapelo-android-api-integration
+```
+
+## Security Rules
+
+Do not commit or post publicly:
+
+- PostgreSQL passwords
+- JWT signing keys
+- User Secret values
+- raw JWT tokens
+- production/client credentials
+- `local.properties`
+- `.idea/`
+
+Use development/test accounts when testing the application.
+
+## Final Testing
+
+Before submission, the team should complete one final regression pass covering:
+
+- website startup and responsiveness
+- website database-backed functionality
+- Android installation and startup
+- player login
+- dashboard
+- profile
+- events
+- registration/cancellation
+- attendance
+- announcements
+- navigation
+- QR camera scanning/check-in
+- error handling
+
+For detailed setup and testing instructions, see **`TEAM_SETUP.md`**.
