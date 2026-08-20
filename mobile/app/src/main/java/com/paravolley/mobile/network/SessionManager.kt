@@ -1,6 +1,23 @@
 package com.paravolley.mobile.network
 
 import android.content.Context
+import java.time.Instant
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+
+object SessionEvents {
+    private val mutableSessionExpired =
+        MutableSharedFlow<Unit>(
+            extraBufferCapacity = 1
+        )
+
+    val sessionExpired =
+        mutableSessionExpired.asSharedFlow()
+
+    fun notifySessionExpired() {
+        mutableSessionExpired.tryEmit(Unit)
+    }
+}
 
 class SessionManager(
     context: Context
@@ -54,6 +71,14 @@ class SessionManager(
         )
     }
 
+    fun getAuthorizationHeader(): String? {
+        return if (hasValidPlayerSession()) {
+            "Bearer ${getToken()}"
+        } else {
+            null
+        }
+    }
+
     fun getRole(): String? {
         return preferences.getString(
             KEY_ROLE,
@@ -84,8 +109,39 @@ class SessionManager(
         )
     }
 
+    fun hasValidPlayerSession(): Boolean {
+        val token = getToken()
+        val role = getRole()
+        val playerId = getPlayerId()
+        val expiresAt = preferences.getString(
+            KEY_EXPIRES_AT,
+            null
+        )
+
+        val isValid =
+            !token.isNullOrBlank() &&
+                role.equals(
+                    "Player",
+                    ignoreCase = true
+                ) &&
+                playerId != null &&
+                !expiresAt.isNullOrBlank() &&
+                try {
+                    Instant.parse(expiresAt)
+                        .isAfter(Instant.now())
+                } catch (_: Exception) {
+                    false
+                }
+
+        if (!isValid && !token.isNullOrBlank()) {
+            clearSession()
+        }
+
+        return isValid
+    }
+
     fun isLoggedIn(): Boolean {
-        return !getToken().isNullOrBlank()
+        return hasValidPlayerSession()
     }
 
     fun clearSession() {

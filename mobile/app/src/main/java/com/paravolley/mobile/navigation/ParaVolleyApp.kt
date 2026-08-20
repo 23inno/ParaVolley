@@ -1,6 +1,8 @@
 package com.paravolley.mobile.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -10,10 +12,31 @@ import com.paravolley.mobile.screens.LoginScreen
 import com.paravolley.mobile.screens.NotificationsScreen
 import com.paravolley.mobile.screens.ProfileScreen
 import com.paravolley.mobile.screens.ScannerScreen
+import com.paravolley.mobile.network.SessionEvents
+import com.paravolley.mobile.network.SessionManager
 
 @Composable
 fun ParaVolleyApp() {
     val navController = rememberNavController()
+    val context = LocalContext.current
+    val sessionManager = SessionManager(
+        context.applicationContext
+    )
+    val startDestination =
+        if (sessionManager.hasValidPlayerSession()) {
+            Routes.DASHBOARD
+        } else {
+            Routes.LOGIN
+        }
+
+    LaunchedEffect(Unit) {
+        SessionEvents.sessionExpired.collect {
+            navController.navigate(Routes.LOGIN) {
+                popUpTo(0)
+                launchSingleTop = true
+            }
+        }
+    }
 
     val navigateFromBottomBar: (String) -> Unit = { route ->
         navController.navigate(route) {
@@ -28,7 +51,7 @@ fun ParaVolleyApp() {
 
     NavHost(
         navController = navController,
-        startDestination = Routes.LOGIN
+        startDestination = startDestination
     ) {
         composable(Routes.LOGIN) {
             LoginScreen(
