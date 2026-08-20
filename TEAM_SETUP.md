@@ -195,7 +195,7 @@ If Gradle in VS Code/PowerShell cannot find Java for the current terminal sessio
 
 ```powershell
 $env:JAVA_HOME="C:\Program Files\Android\Android Studio\jbr"
-$env:Path="$env:JAVA_HOMEin;$env:Path"
+$env:Path="$env:JAVA_HOME\bin;$env:Path"
 ```
 
 ## 10. Android SDK local.properties
@@ -266,11 +266,39 @@ http://10.0.2.2:5080/
 
 `10.0.2.2` means the Windows host PC from the standard Android emulator. Therefore the ASP.NET backend must also be running on that same test PC on port 5080 for this development configuration.
 
-If the backend starts on a different port, update the development base URL accordingly before testing.
+If the backend starts on a different port, override the URL when building:
 
-A physical Android phone cannot use `10.0.2.2` to reach the developer PC. For physical-device testing, the tester must use an appropriate LAN-accessible backend address or a deployed HTTPS backend and may need firewall/network configuration.
+```powershell
+.\gradlew.bat assembleDebug -PPARAVOLLEY_API_BASE_URL=http://10.0.2.2:YOUR_PORT/
+```
 
-## 14. Team responsibilities
+The build configuration automatically ensures Retrofit receives the required trailing `/`. Debug builds allow cleartext HTTP for local development. Release builds do not allow cleartext traffic and default to an intentionally invalid HTTPS address until `PARAVOLLEY_RELEASE_API_BASE_URL` is supplied.
+
+A physical Android phone cannot use `10.0.2.2` to reach the developer PC. The preferred USB development setup is ADB reverse:
+
+```powershell
+adb devices
+adb reverse tcp:5080 tcp:5080
+cd mobile
+.\gradlew.bat assembleDebug -PPARAVOLLEY_API_BASE_URL=http://127.0.0.1:5080/
+```
+
+Install that debug APK and keep the backend running on port 5080. `127.0.0.1` on the phone is forwarded to the PC by ADB.
+
+For optional Wi-Fi/LAN testing, temporarily provide the PC's reachable LAN address using the same Gradle property. Do not put a personal IP address in source control. The Windows firewall may need a development-only inbound rule. Prefer HTTPS for any deployed environment.
+
+ASP.NET Core uses HTTPS redirection where an HTTPS endpoint is configured. Local testing should use the exact HTTP or HTTPS address printed by `dotnet run`; if the development server redirects to an unreachable HTTPS port, configure the matching reachable development URL rather than disabling release transport security.
+
+## 14. Android authentication and QR notes
+
+- A valid Player login survives an app restart until the recorded expiry time.
+- A protected API response of HTTP 401 clears the saved session and returns the app to login.
+- Player registration creates a pending account; an Admin must approve it before login.
+- Camera QR scanning uses CameraX and ML Kit. Camera permission is requested at runtime.
+- Manual token entry remains available when camera permission is denied or for development diagnostics.
+- Authentication data is currently stored in app-private `SharedPreferences`. This is acceptable for the current academic build but encrypted storage should be considered before production deployment.
+
+## 15. Team responsibilities
 
 ### Thapelo - Backend & Android API Integration
 
@@ -306,7 +334,7 @@ A physical Android phone cannot use `10.0.2.2` to reach the developer PC. For ph
 - Records screenshots and Logcat for failures
 - Commits genuine runtime/device fixes on their own branch
 
-## 15. Security / files that must not be shared in Git
+## 16. Security / files that must not be shared in Git
 
 Do not commit/share publicly:
 
@@ -318,6 +346,6 @@ Do not commit/share publicly:
 - private production/client credentials
 - raw JWT tokens
 
-## 16. Important README note
+## 17. Documentation source
 
-The older repository README contains outdated information describing an EF Core In-Memory database and a hard-coded demo login. The current project actually uses PostgreSQL/Npgsql, EF Core migrations, cookie + JWT authentication and User Secrets. Team members should use this `TEAM_SETUP.md` guide as the current setup source until the old README is updated.
+The repository README and this guide describe the current PostgreSQL/Npgsql, EF Core migration, cookie/JWT authentication and User Secrets setup. Never use older instructions that describe an in-memory database or hard-coded credentials.

@@ -160,14 +160,17 @@ mobile/
 The current mobile integration includes:
 
 - real API login
-- JWT/session storage
+- configurable debug/release API addresses
+- JWT session persistence, expiry checks and automatic 401 logout
+- player account registration with administrator approval
 - player profile
 - player dashboard
 - events
 - event registration/cancellation
 - attendance history
 - announcements
-- QR attendance API check-in
+- CameraX + ML Kit QR scanning and attendance check-in
+- manual QR token fallback for development and devices without camera access
 
 The old `FakePlayerRepository` is no longer used by the active Android screens.
 
@@ -186,7 +189,7 @@ Expected result:
 BUILD SUCCESSFUL
 ```
 
-This confirms the Android source compiles, but real emulator/device testing is still required for runtime behaviour and camera scanning.
+This confirms the Android source compiles, but real emulator/device testing is still required for runtime behaviour and camera operation.
 
 ## Android Development API Address
 
@@ -198,9 +201,23 @@ http://10.0.2.2:5080/
 
 This points from the emulator to the backend running on the same Windows PC.
 
-If the ASP.NET backend starts on another port, the Android development base URL must be updated accordingly.
+If the ASP.NET backend starts on another port, override the debug URL at build time:
 
-A physical Android device cannot use `10.0.2.2` to reach the development PC. Physical-device testing requires a LAN-accessible backend address or a deployed backend, plus any necessary firewall/network configuration.
+```powershell
+.\gradlew.bat assembleDebug -PPARAVOLLEY_API_BASE_URL=http://10.0.2.2:YOUR_PORT/
+```
+
+The trailing `/` is normalized by the Gradle configuration.
+
+A physical Android device cannot use `10.0.2.2` to reach the development PC. For a USB-connected device with Android Debug Bridge enabled, run:
+
+```powershell
+adb reverse tcp:5080 tcp:5080
+cd mobile
+.\gradlew.bat assembleDebug -PPARAVOLLEY_API_BASE_URL=http://127.0.0.1:5080/
+```
+
+Keep the backend running on the PC while testing. As an optional alternative, temporarily supply the PC's LAN address through `PARAVOLLEY_API_BASE_URL`; do not commit a personal IP address. Use HTTPS for deployed/release builds.
 
 ## Current Verified Status
 
@@ -237,7 +254,7 @@ The main outstanding work is:
 - Kamohelo to complete/polish the Android UI/UX
 - Tumelo to run and verify the MVC website locally, including responsiveness and website functionality
 - a teammate with a reliable Android Studio emulator or physical Android device to perform full Android runtime testing
-- physical QR camera scanning to be tested/completed during device testing
+- physical QR camera scanning to be runtime-tested on a real device
 - regression testing after UI/runtime fixes
 - final PR review and merge coordinated by Lerato
 
