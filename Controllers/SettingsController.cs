@@ -372,7 +372,7 @@ namespace SportsManagementMVC.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> RestoreFromFile(IFormFile? file)
+        public IActionResult RestoreFromFile(IFormFile? file)
         {
             // A full restore-and-overwrite is out of scope for this demo (it would need
             // careful merge logic per entity), but we validate the upload and confirm receipt
