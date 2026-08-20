@@ -18,86 +18,205 @@ namespace SportsManagementMVC.Controllers
         }
 
         // GET: Attendance
-        // Builds the full attendance analytics dashboard (stat cards, charts, session table).
-        //
-        // NOTE: the underlying Attendance table only tracks individual Player/Event
-        // check-ins for our small 8-player demo roster, so it can't realistically
-        // power a 250+ person, multi-team analytics view on its own. The figures
-        // below are illustrative aggregate/demo data (clearly marked here), built
-        // in the same spirit as the Dashboard's "Player Statistics" chart. Swap
-        // this out for real aggregation once you're tracking full team rosters.
+        // Builds the attendance dashboard from persisted player/event records.
         public async Task<IActionResult> Index(string? search, string? team, string? status)
         {
+            var attendanceRecords = await _context.Attendances
+                .AsNoTracking()
+                .Include(record => record.Player)
+                .Include(record => record.Event)
+                .ToListAsync();
+
+            var players = await _context.Players
+                .AsNoTracking()
+                .OrderBy(player => player.Name)
+                .ToListAsync();
+
+            var totalPresent = attendanceRecords.Count(record =>
+                record.Status == AttendanceStatus.Present);
+
+            var attendanceRate = attendanceRecords.Count == 0
+                ? 0
+                : Math.Round(
+                    totalPresent * 100.0 / attendanceRecords.Count,
+                    1);
+
+            var playerStatistics = attendanceRecords
+                .Where(record => record.Player != null)
+                .GroupBy(record => new
+                {
+                    record.PlayerId,
+                    record.Player!.Name
+                })
+                .Select(group => new
+                {
+                    group.Key.PlayerId,
+                    group.Key.Name,
+                    Sessions = group.Count(),
+                    Rate = (int)Math.Round(
+                        group.Count(record =>
+                            record.Status == AttendanceStatus.Present) *
+                        100.0 / group.Count(),
+                        0)
+                })
+                .OrderByDescending(item => item.Rate)
+                .ThenByDescending(item => item.Sessions)
+                .ThenBy(item => item.Name)
+                .ToList();
+
+            var topPerformer = playerStatistics.FirstOrDefault();
+
+            var sessionRecords = attendanceRecords
+                .Where(record =>
+                    record.Event != null &&
+                    record.Player != null)
+                .GroupBy(record => new
+                {
+                    record.EventId,
+                    record.Event!.Title,
+                    record.Event.Date,
+                    Team = record.Player!.Team
+                })
+                .Select(group => new SessionRecordRow
+                {
+                    Date = group.Key.Date,
+                    Session = group.Key.Title,
+                    Team = group.Key.Team,
+                    Present = group.Count(record =>
+                        record.Status == AttendanceStatus.Present),
+                    Absent = group.Count(record =>
+                        record.Status == AttendanceStatus.Absent)
+                })
+                .OrderByDescending(record => record.Date)
+                .ThenBy(record => record.Session)
+                .ThenBy(record => record.Team)
+                .ToList();
+
+            var playerAttendanceLookup = attendanceRecords
+                .GroupBy(record => record.PlayerId)
+                .ToDictionary(group => group.Key, group => group.ToList());
+
             var vm = new AttendanceDashboardViewModel
             {
-                TotalAttendance = 247,
-                AttendanceRate = 87,
-                ActiveSessions = 50,
-                TopPerformerName = "Sarah S.",
-                TopPerformerRate = 98,
+                TotalAttendance = attendanceRecords.Count,
+                AttendanceRate = attendanceRate,
+                ActiveSessions = attendanceRecords
+                    .Select(record => record.EventId)
+                    .Distinct()
+                    .Count(),
+                TopPerformerName = topPerformer?.Name ?? "No attendance yet",
+                TopPerformerRate = topPerformer?.Rate ?? 0,
 
-                TrendsWeek = new List<MonthlyAttendanceTrend>
-                {
-                    new() { Label = "Mon", Actual = 44, Target = 50 },
-                    new() { Label = "Tue", Actual = 47, Target = 50 },
-                    new() { Label = "Wed", Actual = 41, Target = 50 },
-                    new() { Label = "Thu", Actual = 48, Target = 50 },
-                    new() { Label = "Fri", Actual = 45, Target = 50 },
-                },
-                TrendsMonth = new List<MonthlyAttendanceTrend>
-                {
-                    new() { Label = "Jan", Actual = 210, Target = 245 },
-                    new() { Label = "Feb", Actual = 225, Target = 245 },
-                    new() { Label = "Mar", Actual = 220, Target = 245 },
-                    new() { Label = "Apr", Actual = 235, Target = 240 },
-                    new() { Label = "May", Actual = 247, Target = 240 },
-                },
-                TrendsYear = new List<MonthlyAttendanceTrend>
-                {
-                    new() { Label = "2022", Actual = 1980, Target = 2200 },
-                    new() { Label = "2023", Actual = 2150, Target = 2300 },
-                    new() { Label = "2024", Actual = 2260, Target = 2350 },
-                    new() { Label = "2025", Actual = 2400, Target = 2400 },
-                    new() { Label = "2026", Actual = 1247, Target = 1200 },
-                },
+                TrendsWeek = attendanceRecords
+                    .GroupBy(record => record.Date.Date)
+                    .OrderByDescending(group => group.Key)
+                    .Take(7)
+                    .OrderBy(group => group.Key)
+                    .Select(group => new MonthlyAttendanceTrend
+                    {
+                        Label = group.Key.ToString("ddd"),
+                        Actual = group.Count(record =>
+                            record.Status == AttendanceStatus.Present),
+                        Target = group.Count()
+                    })
+                    .ToList(),
+
+                TrendsMonth = attendanceRecords
+                    .GroupBy(record => new
+                    {
+                        record.Date.Year,
+                        record.Date.Month
+                    })
+                    .OrderByDescending(group => group.Key.Year)
+                    .ThenByDescending(group => group.Key.Month)
+                    .Take(6)
+                    .OrderBy(group => group.Key.Year)
+                    .ThenBy(group => group.Key.Month)
+                    .Select(group => new MonthlyAttendanceTrend
+                    {
+                        Label = new DateTime(
+                            group.Key.Year,
+                            group.Key.Month,
+                            1).ToString("MMM yy"),
+                        Actual = group.Count(record =>
+                            record.Status == AttendanceStatus.Present),
+                        Target = group.Count()
+                    })
+                    .ToList(),
+
+                TrendsYear = attendanceRecords
+                    .GroupBy(record => record.Date.Year)
+                    .OrderBy(group => group.Key)
+                    .Select(group => new MonthlyAttendanceTrend
+                    {
+                        Label = group.Key.ToString(),
+                        Actual = group.Count(record =>
+                            record.Status == AttendanceStatus.Present),
+                        Target = group.Count()
+                    })
+                    .ToList(),
 
                 ParticipationSplit = new List<ParticipationSplitStat>
                 {
-                    new() { Label = "Regular", Count = 180 },
-                    new() { Label = "Occasional", Count = 45 },
-                    new() { Label = "Inactive", Count = 22 },
+                    new()
+                    {
+                        Label = "Regular",
+                        Count = players.Count(player =>
+                            playerAttendanceLookup.TryGetValue(player.Id, out var records) &&
+                            records.Count(record => record.Status == AttendanceStatus.Present) *
+                                100.0 / records.Count >= 75)
+                    },
+                    new()
+                    {
+                        Label = "Occasional",
+                        Count = players.Count(player =>
+                            playerAttendanceLookup.TryGetValue(player.Id, out var records) &&
+                            records.Count(record => record.Status == AttendanceStatus.Present) *
+                                100.0 / records.Count < 75)
+                    },
+                    new()
+                    {
+                        Label = "No records",
+                        Count = players.Count(player =>
+                            !playerAttendanceLookup.ContainsKey(player.Id))
+                    }
                 },
 
-                TeamComparison = new List<TeamComparisonStat>
-                {
-                    new() { Team = "Team A", Present = 45, Absent = 5 },
-                    new() { Team = "Team B", Present = 41, Absent = 8 },
-                    new() { Team = "Team C", Present = 37, Absent = 12 },
-                    new() { Team = "Team D", Present = 39, Absent = 9 },
-                },
+                TeamComparison = players
+                    .Select(player => player.Team)
+                    .Where(teamName => !string.IsNullOrWhiteSpace(teamName))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(teamName => teamName)
+                    .Select(teamName => new TeamComparisonStat
+                    {
+                        Team = teamName,
+                        Present = attendanceRecords.Count(record =>
+                            record.Player?.Team == teamName &&
+                            record.Status == AttendanceStatus.Present),
+                        Absent = attendanceRecords.Count(record =>
+                            record.Player?.Team == teamName &&
+                            record.Status == AttendanceStatus.Absent)
+                    })
+                    .ToList(),
 
-                MostActivePlayers = new List<TopPlayerStat>
-                {
-                    new() { Rank = 1, Name = "Sarah Smith", Sessions = 49, Rate = 98 },
-                    new() { Rank = 2, Name = "John Doe", Sessions = 48, Rate = 96 },
-                    new() { Rank = 3, Name = "Michael Johnson", Sessions = 47, Rate = 94 },
-                    new() { Rank = 4, Name = "Emily Davis", Sessions = 46, Rate = 92 },
-                    new() { Rank = 5, Name = "David Martinez", Sessions = 45, Rate = 90 },
-                },
+                MostActivePlayers = playerStatistics
+                    .Take(5)
+                    .Select((item, index) => new TopPlayerStat
+                    {
+                        Rank = index + 1,
+                        Name = item.Name,
+                        Sessions = item.Sessions,
+                        Rate = item.Rate
+                    })
+                    .ToList(),
 
-                SessionRecords = new List<SessionRecordRow>
-                {
-                    new() { Date = new DateTime(2026, 5, 10), Session = "Training Session", Team = "Team A", Present = 42, Absent = 8 },
-                    new() { Date = new DateTime(2026, 5, 9), Session = "Team Practice", Team = "Team B", Present = 38, Absent = 12 },
-                    new() { Date = new DateTime(2026, 5, 8), Session = "Strength Training", Team = "Team A", Present = 45, Absent = 5 },
-                    new() { Date = new DateTime(2026, 5, 7), Session = "Team Meeting", Team = "Team C", Present = 48, Absent = 2 },
-                    new() { Date = new DateTime(2026, 5, 6), Session = "Skills Workshop", Team = "Team D", Present = 40, Absent = 10 },
-                    new() { Date = new DateTime(2026, 5, 5), Session = "Tactical Training", Team = "Team B", Present = 35, Absent = 15 },
-                    new() { Date = new DateTime(2026, 5, 4), Session = "Fitness Session", Team = "Team C", Present = 44, Absent = 6 },
-                    new() { Date = new DateTime(2026, 5, 3), Session = "Scrimmage", Team = "Team A", Present = 50, Absent = 0 },
-                },
-
-                Teams = new List<string> { "Team A", "Team B", "Team C", "Team D" },
+                SessionRecords = sessionRecords,
+                Teams = players
+                    .Select(player => player.Team)
+                    .Where(teamName => !string.IsNullOrWhiteSpace(teamName))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(teamName => teamName)
+                    .ToList()
             };
 
             IEnumerable<SessionRecordRow> filtered = vm.SessionRecords;
@@ -124,30 +243,49 @@ namespace SportsManagementMVC.Controllers
             ViewBag.Search = search;
             ViewBag.SelectedTeam = team;
             ViewBag.SelectedStatus = status;
-            ViewBag.TotalSessionCount = 8;
+            ViewBag.TotalSessionCount = sessionRecords.Count;
 
             return View(vm);
         }
 
         // GET: Attendance/Export - downloads the session records as CSV
-        public IActionResult Export()
+        public async Task<IActionResult> Export()
         {
-            // Rebuild the same demo dataset used by Index (see note above).
-            var records = new List<SessionRecordRow>
-            {
-                new() { Date = new DateTime(2026, 5, 10), Session = "Training Session", Team = "Team A", Present = 42, Absent = 8 },
-                new() { Date = new DateTime(2026, 5, 9), Session = "Team Practice", Team = "Team B", Present = 38, Absent = 12 },
-                new() { Date = new DateTime(2026, 5, 8), Session = "Strength Training", Team = "Team A", Present = 45, Absent = 5 },
-                new() { Date = new DateTime(2026, 5, 7), Session = "Team Meeting", Team = "Team C", Present = 48, Absent = 2 },
-                new() { Date = new DateTime(2026, 5, 6), Session = "Skills Workshop", Team = "Team D", Present = 40, Absent = 10 },
-                new() { Date = new DateTime(2026, 5, 5), Session = "Tactical Training", Team = "Team B", Present = 35, Absent = 15 },
-                new() { Date = new DateTime(2026, 5, 4), Session = "Fitness Session", Team = "Team C", Present = 44, Absent = 6 },
-                new() { Date = new DateTime(2026, 5, 3), Session = "Scrimmage", Team = "Team A", Present = 50, Absent = 0 },
-            };
+            var records = await _context.Attendances
+                .AsNoTracking()
+                .Include(record => record.Player)
+                .Include(record => record.Event)
+                .Where(record =>
+                    record.Player != null &&
+                    record.Event != null)
+                .ToListAsync();
+
+            var sessionRecords = records
+                .GroupBy(record => new
+                {
+                    record.EventId,
+                    record.Event!.Title,
+                    record.Event.Date,
+                    Team = record.Player!.Team
+                })
+                .Select(group => new SessionRecordRow
+                {
+                    Date = group.Key.Date,
+                    Session = group.Key.Title,
+                    Team = group.Key.Team,
+                    Present = group.Count(record =>
+                        record.Status == AttendanceStatus.Present),
+                    Absent = group.Count(record =>
+                        record.Status == AttendanceStatus.Absent)
+                })
+                .OrderByDescending(record => record.Date)
+                .ThenBy(record => record.Session)
+                .ThenBy(record => record.Team)
+                .ToList();
 
             var sb = new System.Text.StringBuilder();
             sb.AppendLine("Date,Session,Team,Present,Absent,Rate,Status");
-            foreach (var r in records)
+            foreach (var r in sessionRecords)
             {
                 sb.AppendLine($"{r.Date:yyyy-MM-dd},\"{r.Session}\",\"{r.Team}\",{r.Present},{r.Absent},{r.Rate}%,\"{r.Status}\"");
             }

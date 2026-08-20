@@ -389,7 +389,8 @@ namespace SportsManagementMVC.Controllers
                 return RedirectToAction(nameof(BackupData));
             }
 
-            TempData["Success"] = $"\"{file.FileName}\" was received and validated. Full automatic restore isn't wired up in this demo build.";
+            TempData["Error"] =
+                "Automatic PostgreSQL restore is not implemented. No data was changed. Ask the system administrator to restore a verified database backup.";
             return RedirectToAction(nameof(BackupData));
         }
 
@@ -416,30 +417,10 @@ namespace SportsManagementMVC.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ResetDemoData()
+        public IActionResult ResetDemoData()
         {
-            // Safe "danger zone" action for this demo: wipes and re-seeds the in-memory
-            // database back to its original demo state.
-            _context.Attendances.RemoveRange(_context.Attendances);
-            _context.Matches.RemoveRange(_context.Matches);
-            _context.Events.RemoveRange(_context.Events);
-            _context.Players.RemoveRange(_context.Players);
-            _context.Coaches.RemoveRange(_context.Coaches);
-            _context.Announcements.RemoveRange(_context.Announcements);
-            _context.Sponsors.RemoveRange(_context.Sponsors);
-            _context.Reports.RemoveRange(_context.Reports);
-            _context.SystemUsers.RemoveRange(_context.SystemUsers);
-            _context.NotificationPreferences.RemoveRange(_context.NotificationPreferences);
-            _context.BackupRecords.RemoveRange(_context.BackupRecords);
-            _context.UserProfiles.RemoveRange(_context.UserProfiles);
-            _context.OrganisationSettings.RemoveRange(_context.OrganisationSettings);
-            _context.AppearanceSettings.RemoveRange(_context.AppearanceSettings);
-            _context.Subscribers.RemoveRange(_context.Subscribers);
-            await _context.SaveChangesAsync();
-
-            DbInitializer.Seed(_context);
-
-            TempData["Success"] = "All demo data was reset to its original state.";
+            TempData["Error"] =
+                "Database reset is disabled because this application uses persistent PostgreSQL data.";
             return RedirectToAction(nameof(BackupData));
         }
     }

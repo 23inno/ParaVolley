@@ -31,10 +31,10 @@ namespace SportsManagementMVC.Models
         public int PublishedCount { get; set; }
         public int DraftCount { get; set; }
 
-        // Quick stats (illustrative - see note in ReportsController)
-        public string WeeklyAverage { get; set; } = "85%";
-        public string SessionsThisMonth { get; set; } = "50";
-        public string PerfectAttendanceCount { get; set; } = "23";
+        // Quick statistics calculated from PostgreSQL data.
+        public string WeeklyAverage { get; set; } = "0%";
+        public string SessionsThisMonth { get; set; } = "0";
+        public string PerfectAttendanceCount { get; set; } = "0";
 
         // Real data-driven analytics (unchanged from before)
         public int TotalPlayers { get; set; }

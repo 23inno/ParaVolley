@@ -23,10 +23,40 @@ namespace SportsManagementMVC.Controllers
             var players = await _context.Players.ToListAsync();
             var matches = await _context.Matches.ToListAsync();
             var events = await _context.Events.ToListAsync();
+            var attendanceRecords = await _context.Attendances
+                .AsNoTracking()
+                .ToListAsync();
 
             var completedMatches = matches.Where(m => m.Status == MatchStatus.Completed).ToList();
 
             var allReports = await _context.Reports.ToListAsync();
+
+            var today = DateTime.Today;
+            var weekStart = today.AddDays(-6);
+            var weeklyAttendance = attendanceRecords
+                .Where(record =>
+                    record.Date.Date >= weekStart &&
+                    record.Date.Date <= today)
+                .ToList();
+
+            var weeklyAttendanceRate = weeklyAttendance.Count == 0
+                ? 0
+                : Math.Round(
+                    weeklyAttendance.Count(record =>
+                        record.Status == AttendanceStatus.Present) *
+                    100.0 / weeklyAttendance.Count,
+                    1);
+
+            var sessionsThisMonth = events.Count(eventItem =>
+                eventItem.Date.Year == today.Year &&
+                eventItem.Date.Month == today.Month);
+
+            var perfectAttendanceCount = attendanceRecords
+                .GroupBy(record => record.PlayerId)
+                .Count(group =>
+                    group.Any() &&
+                    group.All(record =>
+                        record.Status == AttendanceStatus.Present));
 
             var filteredReports = allReports.AsEnumerable();
             if (!string.IsNullOrWhiteSpace(search))
@@ -48,6 +78,10 @@ namespace SportsManagementMVC.Controllers
                 TotalReportsCount = allReports.Count,
                 PublishedCount = allReports.Count(r => r.Status == ReportStatus.Published),
                 DraftCount = allReports.Count(r => r.Status == ReportStatus.Draft),
+
+                WeeklyAverage = $"{weeklyAttendanceRate:0.#}%",
+                SessionsThisMonth = sessionsThisMonth.ToString(),
+                PerfectAttendanceCount = perfectAttendanceCount.ToString(),
 
                 TotalPlayers = players.Count,
                 ActivePlayers = players.Count(p => p.Status == PlayerStatus.Active),
@@ -142,9 +176,7 @@ namespace SportsManagementMVC.Controllers
             }
             else
             {
-                // No file uploaded - generate a placeholder size like a freshly
-                // generated report would have, matching the earlier prototype's behavior.
-                report.SizeBytes = (long)(new Random().NextDouble() * 3 * 1024 * 1024 + 500 * 1024);
+                report.SizeBytes = 0;
             }
 
             _context.Add(report);

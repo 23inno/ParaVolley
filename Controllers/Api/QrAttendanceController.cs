@@ -120,6 +120,68 @@ namespace SportsManagementMVC.Controllers.Api
                 });
         }
 
+        [HttpPost("sessions/{sessionId:int:min(1)}/revoke")]
+        [Authorize(Roles = "Admin,Coach")]
+        public async Task<IActionResult> RevokeSession(int sessionId)
+        {
+            var appUserIdValue =
+                User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (!int.TryParse(appUserIdValue, out var appUserId))
+            {
+                return Unauthorized(new
+                {
+                    message =
+                        "The access token does not contain a valid user account."
+                });
+            }
+
+            var userIsActive = await _db.AppUsers
+                .AsNoTracking()
+                .AnyAsync(user =>
+                    user.Id == appUserId &&
+                    user.IsActive);
+
+            if (!userIsActive)
+            {
+                return Unauthorized(new
+                {
+                    message =
+                        "The authenticated user account could not be found."
+                });
+            }
+
+            var session = await _db.QrAttendanceSessions
+                .FirstOrDefaultAsync(item => item.Id == sessionId);
+
+            if (session == null)
+            {
+                return NotFound(new
+                {
+                    message =
+                        "The QR attendance session could not be found."
+                });
+            }
+
+            if (session.IsRevoked)
+            {
+                return Ok(new
+                {
+                    message =
+                        "The QR attendance session is already revoked."
+                });
+            }
+
+            session.IsRevoked = true;
+            await _db.SaveChangesAsync();
+
+            return Ok(new
+            {
+                message =
+                    "The QR attendance session was revoked successfully."
+            });
+        }
+
         // Player submits the token obtained from scanning the QR code.
         [HttpPost("check-in")]
         [Authorize(Roles = "Player")]
@@ -140,14 +202,16 @@ namespace SportsManagementMVC.Controllers.Api
 
             var player = await _db.Players
                 .AsNoTracking()
-                .FirstOrDefaultAsync(p => p.Id == playerId);
+                .FirstOrDefaultAsync(p =>
+                    p.Id == playerId &&
+                    p.Status == PlayerStatus.Active);
 
             if (player == null)
             {
                 return NotFound(new
                 {
                     message =
-                        "The player profile could not be found."
+                        "The active player profile could not be found."
                 });
             }
 
