@@ -3,6 +3,24 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+val debugApiBaseUrl = providers
+    .gradleProperty("PARAVOLLEY_API_BASE_URL")
+    .orNull
+    ?.trim()
+    ?.let { value ->
+        if (value.endsWith("/")) value else "$value/"
+    }
+    ?: "http://10.0.2.2:5080/"
+
+val releaseApiBaseUrl = providers
+    .gradleProperty("PARAVOLLEY_RELEASE_API_BASE_URL")
+    .orNull
+    ?.trim()
+    ?.let { value ->
+        if (value.endsWith("/")) value else "$value/"
+    }
+    ?: "https://example.invalid/"
+
 android {
     namespace = "com.paravolley.mobile"
 
@@ -24,8 +42,22 @@ android {
     }
 
     buildTypes {
+        debug {
+            buildConfigField(
+                "String",
+                "API_BASE_URL",
+                "\"$debugApiBaseUrl\""
+            )
+        }
+
         release {
             isMinifyEnabled = false
+
+            buildConfigField(
+                "String",
+                "API_BASE_URL",
+                "\"$releaseApiBaseUrl\""
+            )
 
             proguardFiles(
                 getDefaultProguardFile(
@@ -43,6 +75,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

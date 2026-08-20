@@ -20,6 +20,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -82,6 +83,22 @@ fun LoginScreen(
 
     val coroutineScope =
         rememberCoroutineScope()
+
+    val loginFieldColors =
+        OutlinedTextFieldDefaults.colors(
+            focusedTextColor = AppColors.DarkText,
+            unfocusedTextColor = AppColors.DarkText,
+            disabledTextColor = AppColors.GreyText,
+            cursorColor = AppColors.DarkGreen,
+            focusedLabelColor = AppColors.DarkGreen,
+            unfocusedLabelColor = AppColors.GreyText,
+            disabledLabelColor = AppColors.GreyText,
+            focusedBorderColor = AppColors.DarkGreen,
+            unfocusedBorderColor = AppColors.GreyText,
+            disabledBorderColor = Color.LightGray,
+            focusedTrailingIconColor = AppColors.DarkGreen,
+            unfocusedTrailingIconColor = AppColors.DarkGreen
+        )
 
     Column(
         modifier = Modifier
@@ -184,7 +201,8 @@ fun LoginScreen(
                         Text("Email")
                     },
                     singleLine = true,
-                    enabled = !isLoading
+                    enabled = !isLoading,
+                    colors = loginFieldColors
                 )
 
                 OutlinedTextField(
@@ -201,6 +219,7 @@ fun LoginScreen(
                     },
                     singleLine = true,
                     enabled = !isLoading,
+                    colors = loginFieldColors,
                     visualTransformation =
                         if (
                             passwordVisible
