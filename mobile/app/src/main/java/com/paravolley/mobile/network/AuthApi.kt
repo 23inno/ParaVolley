@@ -10,4 +10,9 @@ interface AuthApi {
     suspend fun login(
         @Body request: LoginRequest
     ): Response<LoginResponse>
+
+    @POST("api/auth/register/player")
+    suspend fun registerPlayer(
+        @Body request: RegisterPlayerRequest
+    ): Response<RegisterPlayerResponse>
 }

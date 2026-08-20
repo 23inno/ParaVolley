@@ -11,6 +11,7 @@ import com.paravolley.mobile.screens.EventsScreen
 import com.paravolley.mobile.screens.LoginScreen
 import com.paravolley.mobile.screens.NotificationsScreen
 import com.paravolley.mobile.screens.ProfileScreen
+import com.paravolley.mobile.screens.RegisterPlayerScreen
 import com.paravolley.mobile.screens.ScannerScreen
 import com.paravolley.mobile.network.SessionEvents
 import com.paravolley.mobile.network.SessionManager
@@ -65,6 +66,17 @@ fun ParaVolleyApp() {
 
                         launchSingleTop = true
                     }
+                },
+                onRegister = {
+                    navController.navigate(Routes.REGISTER)
+                }
+            )
+        }
+
+        composable(Routes.REGISTER) {
+            RegisterPlayerScreen(
+                onBackToLogin = {
+                    navController.popBackStack()
                 }
             )
         }

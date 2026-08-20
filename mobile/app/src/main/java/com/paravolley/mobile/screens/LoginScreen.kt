@@ -47,7 +47,8 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
-    onLoginSuccessful: () -> Unit
+    onLoginSuccessful: () -> Unit,
+    onRegister: () -> Unit
 ) {
     var email by rememberSaveable {
         mutableStateOf("")
@@ -374,6 +375,14 @@ fun LoginScreen(
                     textAlign =
                         TextAlign.Center
                 )
+
+                TextButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isLoading,
+                    onClick = onRegister
+                ) {
+                    Text("Create a player account")
+                }
             }
         }
     }
