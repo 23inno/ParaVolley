@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -31,6 +33,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -190,6 +194,15 @@ private fun DashboardContent(
     onNavigate: (String) -> Unit,
     onOpenNotifications: () -> Unit
 ) {
+    val playerInitials = dashboard.player.name
+        .trim()
+        .split(Regex("\\s+"))
+        .filter(String::isNotBlank)
+        .take(2)
+        .mapNotNull { it.firstOrNull()?.uppercase() }
+        .joinToString("")
+        .ifBlank { "PV" }
+
     LazyColumn(
         modifier =
             Modifier.padding(
@@ -218,32 +231,40 @@ private fun DashboardContent(
                     verticalAlignment =
                         Alignment.CenterVertically
                 ) {
-                    Column {
-                        Text(
-                            text = "Welcome,",
-                            color =
-                                Color.White
-                        )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .background(AppColors.Yellow, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = playerInitials,
+                                color = AppColors.DarkText,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
 
-                        Text(
-                            text =
-                                dashboard
-                                    .player
-                                    .name,
-                            color =
-                                Color.White,
-                            fontSize =
-                                28.sp,
-                            fontWeight =
-                                FontWeight.Bold
-                        )
+                        Spacer(modifier = Modifier.width(12.dp))
 
-                        Text(
-                            text =
-                                "${dashboard.player.position} • ${dashboard.player.team}",
-                            color =
-                                Color.White
-                        )
+                        Column {
+                            Text(
+                                text = "Welcome back,",
+                                color = Color.White.copy(alpha = 0.82f)
+                            )
+
+                            Text(
+                                text = dashboard.player.name,
+                                color = Color.White,
+                                fontSize = 23.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            Text(
+                                text = "${dashboard.player.position} • ${dashboard.player.team}",
+                                color = Color.White.copy(alpha = 0.9f)
+                            )
+                        }
                     }
 
                     Button(
@@ -383,9 +404,9 @@ private fun DashboardContent(
             ) {
                 Button(
                     modifier =
-                        Modifier.weight(
-                            1f
-                        ),
+                        Modifier
+                            .weight(1f)
+                            .height(82.dp),
                     onClick = {
                         onNavigate(
                             Routes.SCANNER
@@ -398,18 +419,20 @@ private fun DashboardContent(
                                     AppColors.Yellow,
                                 contentColor =
                                     AppColors.DarkText
-                            )
+                            ),
+                    shape = RoundedCornerShape(16.dp)
                 ) {
-                    Text(
-                        "Scan QR"
-                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Scan QR", fontWeight = FontWeight.Bold)
+                        Text("Attendance check-in", fontSize = 11.sp)
+                    }
                 }
 
                 Button(
                     modifier =
-                        Modifier.weight(
-                            1f
-                        ),
+                        Modifier
+                            .weight(1f)
+                            .height(82.dp),
                     onClick = {
                         onNavigate(
                             Routes.EVENTS
@@ -420,11 +443,13 @@ private fun DashboardContent(
                             .buttonColors(
                                 containerColor =
                                     AppColors.DarkGreen
-                            )
+                            ),
+                    shape = RoundedCornerShape(16.dp)
                 ) {
-                    Text(
-                        "View Events"
-                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("View Events", fontWeight = FontWeight.Bold)
+                        Text("Schedule and register", fontSize = 11.sp)
+                    }
                 }
             }
         }
@@ -561,6 +586,7 @@ private fun SummaryCard(
     Card(
         modifier =
             Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
         colors =
             CardDefaults.cardColors(
                 containerColor =
@@ -601,6 +627,7 @@ private fun DashboardEventCard(
     Card(
         modifier =
             modifier,
+        shape = RoundedCornerShape(16.dp),
         colors =
             CardDefaults.cardColors(
                 containerColor =
@@ -679,6 +706,7 @@ private fun AnnouncementCard(
                     vertical =
                         5.dp
                 ),
+        shape = RoundedCornerShape(14.dp),
         colors =
             CardDefaults.cardColors(
                 containerColor =
@@ -749,6 +777,7 @@ private fun MatchCard(
                     vertical =
                         5.dp
                 ),
+        shape = RoundedCornerShape(14.dp),
         colors =
             CardDefaults.cardColors(
                 containerColor =

@@ -22,12 +22,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -40,6 +42,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -149,7 +152,8 @@ fun ScannerScreen(onBack: () -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(280.dp)
-                    .border(5.dp, AppColors.Yellow),
+                    .clip(RoundedCornerShape(18.dp))
+                    .border(4.dp, AppColors.Yellow, RoundedCornerShape(18.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 if (cameraPermissionGranted) {
@@ -175,6 +179,18 @@ fun ScannerScreen(onBack: () -> Unit) {
                 textAlign = TextAlign.Center
             )
 
+            Surface(
+                color = AppColors.Yellow.copy(alpha = 0.14f),
+                contentColor = AppColors.Yellow,
+                shape = RoundedCornerShape(999.dp)
+            ) {
+                Text(
+                    text = if (isCheckingIn) "Checking attendance…" else "Scanner ready",
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
             OutlinedTextField(
                 modifier = Modifier.fillMaxWidth(),
                 value = qrToken,
@@ -185,6 +201,7 @@ fun ScannerScreen(onBack: () -> Unit) {
                 },
                 label = { Text("QR attendance token") },
                 singleLine = true,
+                shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = Color.White,
                     unfocusedTextColor = Color.White,
@@ -203,7 +220,8 @@ fun ScannerScreen(onBack: () -> Unit) {
                 colors = ButtonDefaults.buttonColors(
                     containerColor = AppColors.Yellow,
                     contentColor = AppColors.DarkText
-                )
+                ),
+                shape = RoundedCornerShape(12.dp)
             ) {
                 if (isCheckingIn) {
                     CircularProgressIndicator()
@@ -225,7 +243,7 @@ fun ScannerScreen(onBack: () -> Unit) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color.White)
+                        .background(Color.White, RoundedCornerShape(16.dp))
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(5.dp)
                 ) {

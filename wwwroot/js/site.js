@@ -7,12 +7,44 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var toggleBtn = document.getElementById('sidebarToggle');
     var sidebar = document.getElementById('pvSidebar');
+    var backdrop = document.getElementById('sidebarBackdrop');
+
+    function setMobileMenu(open) {
+        if (!sidebar) return;
+
+        sidebar.classList.toggle('show', open);
+        if (toggleBtn) {
+            toggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        }
+    }
 
     if (toggleBtn && sidebar) {
         toggleBtn.addEventListener('click', function () {
-            sidebar.classList.toggle('show');
+            setMobileMenu(!sidebar.classList.contains('show'));
         });
     }
+
+    if (backdrop) {
+        backdrop.addEventListener('click', function () {
+            setMobileMenu(false);
+        });
+    }
+
+    if (sidebar) {
+        sidebar.querySelectorAll('nav a').forEach(function (link) {
+            link.addEventListener('click', function () {
+                if (window.matchMedia('(max-width: 991.98px)').matches) {
+                    setMobileMenu(false);
+                }
+            });
+        });
+    }
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+            setMobileMenu(false);
+        }
+    });
 
     // Desktop sidebar collapse/expand toggle
     var collapseBtn = document.getElementById('sidebarCollapseBtn');

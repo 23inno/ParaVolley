@@ -5,10 +5,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -27,17 +29,15 @@ fun EventCard(
     onButtonClick: () -> Unit
 ) {
     Card(
-        modifier =
-            Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
         colors =
             CardDefaults.cardColors(
-                containerColor =
-                    Color.White
+                containerColor = Color.White
             ),
         elevation =
             CardDefaults.cardElevation(
-                defaultElevation =
-                    2.dp
+                defaultElevation = 2.dp
             )
     ) {
         Column(
@@ -51,24 +51,22 @@ fun EventCard(
                 )
         ) {
             Row(
-                modifier =
-                    Modifier.fillMaxWidth(),
-                horizontalArrangement =
-                    Arrangement.SpaceBetween
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text =
-                        event.type,
-                    color =
+                EventChip(event.type, AppColors.LightGreen, AppColors.Green)
+                EventChip(
+                    registrationStatus ?: event.status,
+                    if (registrationStatus.equals("Registered", true)) {
+                        AppColors.WarningBackground
+                    } else {
+                        AppColors.LightGreen
+                    },
+                    if (registrationStatus.equals("Registered", true)) {
+                        AppColors.WarningText
+                    } else {
                         AppColors.Green
-                )
-
-                Text(
-                    text =
-                        registrationStatus
-                            ?: event.status,
-                    color =
-                        AppColors.GreyText
+                    }
                 )
             }
 
@@ -78,22 +76,19 @@ fun EventCard(
                 color =
                     AppColors.DarkGreen,
                 fontWeight =
-                    FontWeight.Bold
+                    FontWeight.Bold,
+                style = androidx.compose.material3.MaterialTheme.typography.titleMedium
             )
 
             Text(
-                text =
-                    "Date: ${event.date}"
+                text = "${event.date}  •  ${event.time}",
+                color = AppColors.DarkText,
+                fontWeight = FontWeight.Medium
             )
 
             Text(
-                text =
-                    "Time: ${event.time}"
-            )
-
-            Text(
-                text =
-                    "Location: ${event.location}"
+                text = event.location,
+                color = AppColors.DarkText
             )
 
             Text(
@@ -116,12 +111,12 @@ fun EventCard(
             }
 
             Button(
-                modifier =
-                    Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
                 enabled =
                     buttonEnabled,
                 onClick =
                     onButtonClick,
+                shape = RoundedCornerShape(12.dp),
                 colors =
                     ButtonDefaults
                         .buttonColors(
@@ -139,5 +134,25 @@ fun EventCard(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun EventChip(
+    text: String,
+    backgroundColor: Color,
+    contentColor: Color
+) {
+    Surface(
+        color = backgroundColor,
+        contentColor = contentColor,
+        shape = RoundedCornerShape(999.dp)
+    ) {
+        Text(
+            text = text,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+            fontWeight = FontWeight.SemiBold,
+            style = androidx.compose.material3.MaterialTheme.typography.labelMedium
+        )
     }
 }

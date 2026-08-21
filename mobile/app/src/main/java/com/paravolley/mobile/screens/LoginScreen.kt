@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -21,6 +22,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -120,7 +122,7 @@ fun LoginScreen(
                     AppColors.DarkGreen
                 )
                 .padding(
-                    vertical = 36.dp
+                    vertical = 42.dp
                 ),
             horizontalAlignment =
                 Alignment.CenterHorizontally
@@ -128,8 +130,8 @@ fun LoginScreen(
             Box(
                 modifier = Modifier
                     .background(
-                        color = Color.White,
-                        shape = CircleShape
+                        color = AppColors.Yellow,
+                        shape = RoundedCornerShape(16.dp)
                     )
                     .padding(18.dp),
                 contentAlignment =
@@ -164,11 +166,13 @@ fun LoginScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(20.dp),
+            shape = RoundedCornerShape(20.dp),
             colors =
                 CardDefaults.cardColors(
                     containerColor =
                         Color.White
-                )
+                ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 5.dp)
         ) {
             Column(
                 modifier =
@@ -189,6 +193,11 @@ fun LoginScreen(
                     fontSize = 22.sp
                 )
 
+                Text(
+                    text = "Access your training and tournament portal",
+                    color = AppColors.GreyText
+                )
+
                 OutlinedTextField(
                     modifier =
                         Modifier
@@ -201,6 +210,7 @@ fun LoginScreen(
                     label = {
                         Text("Email")
                     },
+                    shape = RoundedCornerShape(12.dp),
                     singleLine = true,
                     enabled = !isLoading,
                     colors = loginFieldColors
@@ -218,6 +228,7 @@ fun LoginScreen(
                     label = {
                         Text("Password")
                     },
+                    shape = RoundedCornerShape(12.dp),
                     singleLine = true,
                     enabled = !isLoading,
                     colors = loginFieldColors,
@@ -268,16 +279,24 @@ fun LoginScreen(
 
                 errorMessage?.let {
                     message ->
-                    Text(
-                        text = message,
-                        color = Color.Red
-                    )
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = AppColors.Error.copy(alpha = 0.1f),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text(
+                            modifier = Modifier.padding(12.dp),
+                            text = message,
+                            color = AppColors.Error
+                        )
+                    }
                 }
 
                 Button(
                     modifier =
                         Modifier
-                            .fillMaxWidth(),
+                            .fillMaxWidth()
+                            .height(50.dp),
                     enabled = !isLoading,
                     onClick = {
                         if (
@@ -351,7 +370,8 @@ fun LoginScreen(
                                     AppColors.Yellow,
                                 contentColor =
                                     AppColors.DarkText
-                            )
+                            ),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     if (isLoading) {
                         CircularProgressIndicator()

@@ -5,15 +5,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -66,8 +65,8 @@ fun EventsScreen(
         )
     }
 
-    var showPastEvents by rememberSaveable {
-        mutableStateOf(false)
+    var selectedTab by rememberSaveable {
+        mutableStateOf(0)
     }
 
     var isLoading by remember {
@@ -128,16 +127,13 @@ fun EventsScreen(
     val displayedEvents =
         events.filter { event ->
 
-            val isUpcoming =
-                event.status.equals(
-                    "Upcoming",
-                    ignoreCase = true
-                )
-
-            if (showPastEvents) {
-                !isUpcoming
-            } else {
-                isUpcoming
+            when (selectedTab) {
+                0 -> event.status.equals("Upcoming", ignoreCase = true)
+                1 -> registrations.any { registration ->
+                    registration.eventId == event.id &&
+                        registration.registrationStatus.equals("Registered", ignoreCase = true)
+                }
+                else -> !event.status.equals("Upcoming", ignoreCase = true)
             }
         }
 
@@ -181,52 +177,26 @@ fun EventsScreen(
                 )
             }
 
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                horizontalArrangement =
-                    Arrangement.spacedBy(
-                        12.dp
-                    )
+            TabRow(
+                selectedTabIndex = selectedTab,
+                containerColor = Color.White,
+                contentColor = AppColors.Green
             ) {
-                Button(
-                    modifier =
-                        Modifier.weight(1f),
-                    onClick = {
-                        showPastEvents = false
-                    },
-                    colors =
-                        ButtonDefaults.buttonColors(
-                            containerColor =
-                                if (!showPastEvents) {
-                                    AppColors.DarkGreen
+                listOf("Upcoming", "Registered", "Past").forEachIndexed { index, title ->
+                    Tab(
+                        selected = selectedTab == index,
+                        onClick = { selectedTab = index },
+                        text = {
+                            Text(
+                                text = title,
+                                fontWeight = if (selectedTab == index) {
+                                    FontWeight.Bold
                                 } else {
-                                    Color.Gray
+                                    FontWeight.Medium
                                 }
-                        )
-                ) {
-                    Text("Upcoming")
-                }
-
-                Button(
-                    modifier =
-                        Modifier.weight(1f),
-                    onClick = {
-                        showPastEvents = true
-                    },
-                    colors =
-                        ButtonDefaults.buttonColors(
-                            containerColor =
-                                if (showPastEvents) {
-                                    AppColors.DarkGreen
-                                } else {
-                                    Color.Gray
-                                }
-                        )
-                ) {
-                    Text("Past / Closed")
+                            )
+                        }
+                    )
                 }
             }
 
@@ -285,10 +255,10 @@ fun EventsScreen(
                 ) {
                     Text(
                         text =
-                            if (showPastEvents) {
-                                "No past or closed events are available."
-                            } else {
-                                "No upcoming events are available."
+                            when (selectedTab) {
+                                0 -> "No upcoming events are available."
+                                1 -> "You have not registered for any events yet."
+                                else -> "No past or closed events are available."
                             },
                         color =
                             AppColors.GreyText

@@ -18,9 +18,18 @@
     var themeAttr = appearance.Theme.ToString().ToLower();
     var densityAttr = appearance.Density.ToString().ToLower();
 
-    var initials = profile != null
-        ? string.Concat(profile.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(n => n[0])).ToUpper()
-        : "AD";
+    var accountDisplayName = profile?.FullName
+        ?? User.Identity?.Name
+        ?? "Admin User";
+    var accountEmail = profile?.Email
+        ?? User.FindFirstValue(ClaimTypes.Email)
+        ?? User.Identity?.Name
+        ?? "";
+    var initials = string.Concat(accountDisplayName
+        .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+        .Select(n => n[0]))
+        .ToUpper();
+    if (string.IsNullOrWhiteSpace(initials)) { initials = "AU"; }
     if (initials.Length > 2) { initials = initials.Substring(0, 2); }
 }
 @functions {
@@ -107,32 +116,34 @@
                     <i class="bi bi-gear-fill"></i> <span>Settings</span>
                 </a>
             </nav>
-            <div class="user-box">
-                <div class="d-flex align-items-center gap-2 mb-3">
+            <div class="user-box" title="Signed in as @accountDisplayName">
+                <div class="user-summary">
                     @if (profile != null && !string.IsNullOrEmpty(profile.AvatarPath))
                     {
-                        <img src="@profile.AvatarPath" class="pv-avatar" style="object-fit:cover;" alt="Avatar" title="@(profile?.FullName ?? "Admin User")" />
+                        <img src="@profile.AvatarPath" class="pv-avatar" alt="@accountDisplayName avatar" title="@accountDisplayName" />
                     }
                     else
                     {
-                        <div class="pv-avatar" title="@(profile?.FullName ?? "Admin User")">@initials</div>
+                        <div class="pv-avatar" title="@accountDisplayName">@initials</div>
                     }
                     <div class="user-info-text">
-                        <p class="text-white small mb-0 fw-semibold">@(profile?.FullName ?? "Admin User")</p>
-                        <p class="mb-0" style="color:var(--pv-gold); font-size:0.75rem;">@(profile?.Email ?? User.Identity.Name)</p>
+                        <p class="user-name">@accountDisplayName</p>
+                        <p class="user-email">@accountEmail</p>
                     </div>
                 </div>
                 <form asp-controller="Account" asp-action="Logout" method="post">
-                    <button type="submit" class="btn btn-sm w-100 text-white text-start px-3" style="background:transparent;" title="Logout">
+                    <button type="submit" class="sidebar-logout-btn" title="Logout" aria-label="Logout @accountDisplayName">
                         <i class="bi bi-box-arrow-right"></i> <span>Logout</span>
                     </button>
                 </form>
             </div>
         </aside>
 
+        <button type="button" class="sidebar-backdrop" id="sidebarBackdrop" aria-label="Close menu"></button>
+
         <main class="pv-content">
             <div class="d-flex align-items-center justify-content-between mb-3 d-lg-none">
-                <button id="sidebarToggle" class="btn btn-outline-secondary btn-sm">
+                <button id="sidebarToggle" class="btn btn-outline-secondary btn-sm" type="button" aria-controls="pvSidebar" aria-expanded="false">
                     <i class="bi bi-list"></i> Menu
                 </button>
             </div>

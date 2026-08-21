@@ -12,11 +12,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -125,7 +127,8 @@ fun NotificationsScreen(
                             AppColors.Yellow,
                         contentColor =
                             AppColors.DarkText
-                    )
+                    ),
+                shape = RoundedCornerShape(12.dp)
             ) {
                 Text("Back")
             }
@@ -238,7 +241,8 @@ fun NotificationsScreen(
                                             AppColors.Yellow,
                                         contentColor =
                                             AppColors.DarkText
-                                    )
+                                    ),
+                            shape = RoundedCornerShape(12.dp)
                         ) {
                             Text(
                                 "Mark all as read"
@@ -264,6 +268,7 @@ fun NotificationsScreen(
                         Card(
                             modifier =
                                 Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(14.dp),
                             colors =
                                 CardDefaults
                                     .cardColors(
@@ -273,7 +278,8 @@ fun NotificationsScreen(
                                             } else {
                                                 AppColors.UnreadBlue
                                             }
-                                    )
+                                    ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                         ) {
                             Column(
                                 modifier =
@@ -299,14 +305,18 @@ fun NotificationsScreen(
                                     )
 
                                     if (!isRead) {
-                                        Text(
-                                            text =
-                                                "NEW",
-                                            color =
-                                                AppColors.Green,
-                                            fontWeight =
-                                                FontWeight.Bold
-                                        )
+                                        Surface(
+                                            color = AppColors.LightGreen,
+                                            contentColor = AppColors.Green,
+                                            shape = RoundedCornerShape(999.dp)
+                                        ) {
+                                            Text(
+                                                text = "NEW",
+                                                modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 11.sp
+                                            )
+                                        }
                                     }
                                 }
 
@@ -355,10 +365,10 @@ fun NotificationsScreen(
                                         Modifier.padding(
                                             top = 8.dp
                                         ),
-                                    text =
-                                        "Category: ${announcement.category}",
+                                    text = announcement.category,
                                     color =
-                                        AppColors.GreyText
+                                        AppColors.Green,
+                                    fontWeight = FontWeight.SemiBold
                                 )
 
                                 Text(
@@ -412,7 +422,8 @@ fun NotificationsScreen(
                                                 .buttonColors(
                                                     containerColor =
                                                         AppColors.DarkGreen
-                                                )
+                                                ),
+                                        shape = RoundedCornerShape(12.dp)
                                     ) {
                                         Text(
                                             "Mark as read"
