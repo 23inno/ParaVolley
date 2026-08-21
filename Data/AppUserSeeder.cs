@@ -53,14 +53,27 @@ namespace SportsManagementMVC.Data
             }
 
             var player = context.Players.FirstOrDefault(
-                playerItem =>
-                    playerItem.Email == PlayerEmail);
+    playerItem =>
+        playerItem.Email == PlayerEmail);
 
-            if (player is null)
-            {
-                throw new InvalidOperationException(
-                    $"No player record exists for {PlayerEmail}.");
-            }
+if (player is null)
+{
+    player = new Player
+    {
+        Name = "John Doe",
+        Position = "Outside Hitter",
+        Team = "Team A",
+        Status = PlayerStatus.Active,
+        Age = 24,
+        Matches = 45,
+        Email = PlayerEmail,
+        Phone = "+27 76 000 0001",
+        Disability = "Wheelchair"
+    };
+
+    context.Players.Add(player);
+    context.SaveChanges();
+}
 
             var user = context.AppUsers.FirstOrDefault(
                 userItem =>
