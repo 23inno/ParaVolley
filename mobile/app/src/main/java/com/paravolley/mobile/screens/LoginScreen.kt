@@ -1,8 +1,8 @@
 package com.paravolley.mobile.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,8 +11,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -34,7 +34,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -42,6 +44,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.paravolley.mobile.R
 import com.paravolley.mobile.network.AuthRepository
 import com.paravolley.mobile.network.SessionManager
 import com.paravolley.mobile.ui.theme.AppColors
@@ -127,25 +130,16 @@ fun LoginScreen(
             horizontalAlignment =
                 Alignment.CenterHorizontally
         ) {
-            Box(
+            Image(
+                painter = painterResource(
+                    id = R.drawable.paravolley_mpumalanga_logo
+                ),
+                contentDescription =
+                    "ParaVolley Mpumalanga logo",
                 modifier = Modifier
-                    .background(
-                        color = AppColors.Yellow,
-                        shape = RoundedCornerShape(16.dp)
-                    )
-                    .padding(18.dp),
-                contentAlignment =
-                    Alignment.Center
-            ) {
-                Text(
-                    text = "PVM",
-                    color =
-                        AppColors.DarkGreen,
-                    fontWeight =
-                        FontWeight.Bold,
-                    fontSize = 22.sp
-                )
-            }
+                    .size(116.dp)
+                    .clip(RoundedCornerShape(16.dp))
+            )
 
             Spacer(
                 modifier =

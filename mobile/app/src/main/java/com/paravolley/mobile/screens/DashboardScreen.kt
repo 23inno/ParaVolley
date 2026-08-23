@@ -1,6 +1,7 @@
 package com.paravolley.mobile.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,12 +34,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.paravolley.mobile.R
 import com.paravolley.mobile.components.AppBottomBar
 import com.paravolley.mobile.navigation.Routes
 import com.paravolley.mobile.network.DashboardAnnouncement
@@ -194,15 +197,6 @@ private fun DashboardContent(
     onNavigate: (String) -> Unit,
     onOpenNotifications: () -> Unit
 ) {
-    val playerInitials = dashboard.player.name
-        .trim()
-        .split(Regex("\\s+"))
-        .filter(String::isNotBlank)
-        .take(2)
-        .mapNotNull { it.firstOrNull()?.uppercase() }
-        .joinToString("")
-        .ifBlank { "PV" }
-
     LazyColumn(
         modifier =
             Modifier.padding(
@@ -232,18 +226,16 @@ private fun DashboardContent(
                         Alignment.CenterVertically
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
+                        Image(
+                            painter = painterResource(
+                                id = R.drawable.paravolley_mpumalanga_logo
+                            ),
+                            contentDescription =
+                                "ParaVolley Mpumalanga logo",
                             modifier = Modifier
                                 .size(48.dp)
-                                .background(AppColors.Yellow, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = playerInitials,
-                                color = AppColors.DarkText,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+                                .clip(RoundedCornerShape(10.dp))
+                        )
 
                         Spacer(modifier = Modifier.width(12.dp))
 
