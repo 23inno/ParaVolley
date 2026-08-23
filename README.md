@@ -1,87 +1,145 @@
-# ParaVolley Mpumalanga — Sports Management System
+# ParaVolley Mpumalanga – Sports Management System
 
-ParaVolley is a group project consisting of an **ASP.NET Core MVC website**, a **REST API/backend**, a **PostgreSQL database**, and an **Android mobile application**.
+ParaVolley Mpumalanga is a group project developed to make it easier to manage players, events, matches, attendance, announcements and other information for ParaVolley Mpumalanga.
 
-The current project no longer uses the original in-memory database setup. The backend now uses **PostgreSQL with Entity Framework Core/Npgsql**, supports **cookie authentication for the MVC website**, **JWT authentication for the mobile API**, and includes Android API integration for the main player flows.
+The final system consists of:
 
-## Current Tech Stack
+- an ASP.NET Core MVC website
+- a REST API
+- a PostgreSQL database
+- an Android mobile application
 
-### Website / Backend
-- ASP.NET Core MVC — .NET 8
-- Razor `.cshtml` views
-- Entity Framework Core 8
+The website and API are part of the same ASP.NET Core application. The system uses PostgreSQL for persistent data storage, while the Android application communicates with the backend through the REST API.
+
+## Live Website
+
+The web application has been deployed to Railway and is available at:
+
+https://paravolley-production.up.railway.app/
+
+The deployed version uses a PostgreSQL database hosted on Railway.
+
+## Technologies Used
+
+### Website and Backend
+
+- ASP.NET Core MVC (.NET 8)
+- Razor views
+- Entity Framework Core
 - PostgreSQL
-- Npgsql Entity Framework Core provider
-- Cookie authentication for the MVC website
-- JWT Bearer authentication for the REST API
-- .NET User Secrets for development credentials and secrets
+- Npgsql
+- REST API
+- Cookie authentication for the website
+- JWT authentication for the Android application
 
-### Android
+### Android Application
+
 - Kotlin
 - Jetpack Compose
 - Retrofit
 - Gson
 - Navigation Compose
-- Gradle 9.3.1 wrapper
+- CameraX
+- ML Kit QR scanning
+
+### Deployment
+
+- GitHub for source control
+- Railway for the ASP.NET Core website/API
+- Railway PostgreSQL for the production database
 
 ## Project Structure
 
 ```text
 SportsManagementMVC/
-├── Controllers/           # MVC controllers
-│   └── Api/               # Mobile/API controllers
-├── Data/                  # DbContext, seeding, supporting services
-├── Dtos/                  # API request/response DTOs
-├── Migrations/            # EF Core PostgreSQL migrations
-├── Models/                # Domain/entity models
-├── Views/                 # Razor MVC views
-├── wwwroot/               # Website CSS/JS/static files
-├── mobile/                # Android application
-├── Program.cs             # Application startup/configuration
+├── Controllers/        # MVC controllers
+│   └── Api/            # REST API controllers
+├── Data/               # Database context and seeders
+├── Dtos/               # API request and response models
+├── Migrations/         # Entity Framework Core migrations
+├── Models/             # Application models/entities
+├── Views/              # Razor website views
+├── wwwroot/            # Website CSS, JavaScript and static files
+├── mobile/             # Android application
+├── Program.cs
 ├── SportsManagementMVC.csproj
 ├── SportsManagementMVC.sln
 ├── README.md
-└── TEAM_SETUP.md          # Full local setup/reproducibility guide
+└── TEAM_SETUP.md
 ```
 
-## Important: Team Setup
+## Main Features
 
-For the full local setup instructions, use:
+The final system includes functionality for:
 
-```text
-TEAM_SETUP.md
-```
+- player management
+- coach management
+- events
+- event registration and cancellation
+- matches
+- attendance
+- announcements/news
+- reports
+- system settings
+- player registration and approval
+- player dashboard and profile
+- QR attendance
 
-That guide explains:
+The Android application allows players to log in and access the main player features from their phones.
 
-- PostgreSQL setup
-- .NET User Secrets
-- JWT configuration
-- seeded development accounts
-- database migrations
-- running the website/backend
-- Android build setup
-- Android emulator/device testing
-- branch workflow
-- security rules
+## Authentication
 
-## Quick Website / Backend Setup
+The project uses two forms of authentication.
 
-Install:
+The MVC website uses cookie authentication, while the Android application uses JWT Bearer authentication when communicating with the REST API.
+
+Development/test accounts are seeded for the Player, Coach and Admin roles.
+
+The seeded email addresses are:
+
+| Role | Email |
+| --- | --- |
+| Player | `john.doe@email.com` |
+| Coach | `john.smith@paravolley.com` |
+| Admin | `admin@paravolley.com` |
+
+Passwords are not stored in the repository.
+
+For local development they are supplied using .NET User Secrets. For the deployed Railway version they are supplied using Railway environment variables.
+
+## Database
+
+The final application uses PostgreSQL instead of the original in-memory database setup.
+
+Entity Framework Core and the Npgsql provider are used to communicate with PostgreSQL.
+
+EF Core migrations are used to create and update the database structure.
+
+Some of the main persisted data includes:
+
+- players
+- coaches
+- users
+- events
+- event registrations
+- matches
+- attendance
+- announcements
+- QR attendance sessions
+
+The development environment uses a local PostgreSQL database, while the deployed application uses PostgreSQL hosted on Railway.
+
+## Running the Website Locally
+
+Requirements:
 
 - .NET 8 SDK
 - PostgreSQL
 - Git
 
-Then clone/pull the repository and configure local development secrets.
+Clone the repository and configure the required User Secrets.
 
-The project uses the User Secrets ID:
-
-```text
-sports-management-mvc-secrets
-```
-
-Required development configuration includes:
+The application expects configuration for:
 
 ```text
 ConnectionStrings:DefaultConnection
@@ -93,17 +151,9 @@ SeedUsers:CoachPassword
 SeedUsers:AdminPassword
 ```
 
-Example connection string format:
+Do not commit these values to GitHub.
 
-```text
-Host=localhost;Port=5432;Database=paravolley_dev;Username=postgres;Password=YOUR_LOCAL_PASSWORD
-```
-
-Do **not** commit PostgreSQL passwords, JWT keys or User Secret values to GitHub.
-
-## Build and Run the Website / Backend
-
-From the root project folder:
+From the project folder run:
 
 ```powershell
 dotnet restore
@@ -111,249 +161,171 @@ dotnet build
 dotnet run
 ```
 
-The terminal will print the local URL, for example:
+The local development server normally runs at:
 
 ```text
-Now listening on: http://localhost:5080
+http://localhost:5080
 ```
 
-The MVC website and REST API run from the same ASP.NET Core application.
+The exact URL can also be checked in the terminal after starting the application.
 
-The application calls `Database.Migrate()` at startup, so existing EF Core migrations are applied automatically when the PostgreSQL connection is valid.
+## Android Application
 
-## Seeded Development Accounts
-
-The current development seeder uses these emails:
-
-| Role | Email |
-|---|---|
-| Player | `john.doe@email.com` |
-| Coach | `john.smith@paravolley.com` |
-| Admin | `admin@paravolley.com` |
-
-Passwords are not stored in the repository. They are read from .NET User Secrets.
-
-## Main API Capabilities
-
-The current backend includes the following mobile/API areas:
-
-- Authentication / JWT login
-- Player registration
-- Admin approval/rejection of player accounts
-- Player profile
-- Player dashboard
-- Events
-- Event registration/cancellation
-- Attendance
-- Announcements
-- Matches
-- QR attendance sessions and player check-in
-
-## Android Mobile Application
-
-The Android project is located at:
+The Android project is located inside:
 
 ```text
 mobile/
 ```
 
-The current mobile integration includes:
+The Android application uses the ParaVolley REST API instead of relying on fake player data.
 
-- real API login
-- configurable debug/release API addresses
-- JWT session persistence, expiry checks and automatic 401 logout
-- player account registration with administrator approval
-- player profile
+The implemented mobile functionality includes:
+
+- player login
+- player registration
+- session persistence
 - player dashboard
+- profile
 - events
-- event registration/cancellation
+- event registration and cancellation
 - attendance history
 - announcements
-- CameraX + ML Kit QR scanning and attendance check-in
-- manual QR token fallback for development and devices without camera access
+- QR attendance scanning
+- logout
 
-The old `FakePlayerRepository` is no longer used by the active Android screens.
+The official ParaVolley Mpumalanga logo is also used on the final login and dashboard screens.
 
-### Build Android without an emulator
+## Building the Android App
 
-From the repository root:
+From the `mobile` directory:
 
 ```powershell
-cd mobile
 .\gradlew.bat assembleDebug
 ```
 
-Expected result:
+A successful build produces the debug APK at:
 
 ```text
-BUILD SUCCESSFUL
+mobile/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-This confirms the Android source compiles, but real emulator/device testing is still required for runtime behaviour and camera operation.
+For production/live testing, the Android application can be built against the deployed Railway API:
 
-## Android Development API Address
+```powershell
+.\gradlew.bat assembleDebug -PPARAVOLLEY_API_BASE_URL=https://paravolley-production.up.railway.app/
+```
 
-The standard Android emulator uses:
+## Deployment
+
+The ASP.NET Core website and REST API are deployed together on Railway.
+
+The production setup is:
+
+```text
+Web Browser
+     |
+     v
+ASP.NET Core MVC
+     |
+     +------------------+
+     |                  |
+     |              REST API
+     |                  |
+     |             Android App
+     |
+     v
+Entity Framework Core
+     |
+     v
+Railway PostgreSQL
+```
+
+The Android application does not need to be hosted as a separate web service. It communicates with the deployed API over HTTPS.
+
+## Final Testing
+
+Before the final version was considered complete, the project was tested both locally and against the deployed environment.
+
+The following were successfully verified:
+
+- ASP.NET Core build
+- PostgreSQL connection
+- EF Core migrations
+- Railway deployment
+- public HTTPS website access
+- website login and dashboard
+- Android `assembleDebug`
+- Android unit tests
+- Android lint
+- installation on a physical Samsung Android device
+- player login through the deployed REST API
+- dashboard
+- profile
+- events
+- event registration/cancellation
+- attendance
+- announcements
+- QR functionality
+- logout
+
+The physical-device test confirmed that the Android application can communicate with the Railway-hosted backend and PostgreSQL database over the internet.
+
+## Environment Setup
+
+The project currently uses two main environments.
+
+### Development
+
+Development and debugging are done locally using ASP.NET Core, PostgreSQL and Android Studio.
+
+Android emulator testing can use:
 
 ```text
 http://10.0.2.2:5080/
 ```
 
-This points from the emulator to the backend running on the same Windows PC.
+Physical-device development can also use ADB reverse when required.
 
-If the ASP.NET backend starts on another port, override the debug URL at build time:
+### Production
 
-```powershell
-.\gradlew.bat assembleDebug -PPARAVOLLEY_API_BASE_URL=http://10.0.2.2:YOUR_PORT/
-```
+The production version uses:
 
-The trailing `/` is normalized by the Gradle configuration.
+- Railway ASP.NET Core hosting
+- Railway PostgreSQL
+- HTTPS
+- Railway environment variables for sensitive configuration
 
-A physical Android device cannot use `10.0.2.2` to reach the development PC. For a USB-connected device with Android Debug Bridge enabled, run:
+The production website/API is available at:
 
-```powershell
-adb reverse tcp:5080 tcp:5080
-cd mobile
-.\gradlew.bat assembleDebug -PPARAVOLLEY_API_BASE_URL=http://127.0.0.1:5080/
-```
+https://paravolley-production.up.railway.app/
 
-Keep the backend running on the PC while testing. As an optional alternative, temporarily supply the PC's LAN address through `PARAVOLLEY_API_BASE_URL`; do not commit a personal IP address. Use HTTPS for deployed/release builds.
+A separate staging environment was not created for this project.
 
-## Current Verified Status
+## Security
 
-At the latest integration checkpoint:
+Sensitive information should never be committed to the repository.
 
-- ASP.NET backend: **build successful, 0 warnings, 0 errors**
-- Android project: **`assembleDebug` successful**
-- Player login/API authentication: tested
-- Player profile: tested
-- Player dashboard: tested
-- Events: tested
-- Player registrations: tested
-- Player attendance: tested
-- Announcements: tested
-- Coach login: tested
-- QR attendance end-to-end backend flow: tested successfully
-
-The QR workflow was verified through a fresh test event:
-
-```text
-Coach creates event
-→ Player registers
-→ Coach creates QR session
-→ Player submits QR token
-→ Backend validates session
-→ Attendance saved as Present
-→ Player attendance endpoint returns the record
-```
-
-## Remaining Work Before Final Submission
-
-The main outstanding work is:
-
-- Kamohelo to complete/polish the Android UI/UX
-- Tumelo to run and verify the MVC website locally, including responsiveness and website functionality
-- a teammate with a reliable Android Studio emulator or physical Android device to perform full Android runtime testing
-- physical QR camera scanning to be runtime-tested on a real device
-- regression testing after UI/runtime fixes
-- final PR review and merge coordinated by Lerato
-
-## Team Responsibilities
-
-### Thapelo — Backend & Android API Integration
-- Backend/API development
-- PostgreSQL/database integration
-- Android/API integration
-- Maintains working API contracts
-- Supports confirmed backend/integration bugs
-
-### Kamohelo — Android UI/UX
-- Android frontend/UI polish
-- Main working areas: `screens/`, `components/`, `ui/theme/`
-- Avoid changing `network/` or backend code unless a confirmed bug requires it
-- Run `assembleDebug` before pushing changes
-
-### Tumelo — Website
-- Run the MVC website locally using `TEAM_SETUP.md`
-- Complete/check website UI, responsiveness, navigation, validation and functionality
-- Commit genuine frontend fixes on Tumelo's branch
-- Report backend/database issues to Lerato/Thapelo before changing working backend code
-
-### Lerato — Project Manager / Lead Backend
-- Coordinate final project work
-- Review backend/API requirements
-- Coordinate branch reviews and merges
-- Ensure at least one teammate other than Thapelo can reproduce/run the website locally
-- Coordinate unresolved backend issues
-- Confirm final testing evidence and submission readiness
-
-### Assigned Android Tester
-- Run the real Android app on emulator/device
-- Test login, dashboard, profile, events, registration/cancellation, attendance, announcements, navigation and QR camera scanning
-- Capture screenshots and Logcat for failures
-- Commit genuine runtime/device fixes on their own branch/account
-
-## Git Workflow
-
-Do not develop directly on the shared `mobile-api` branch.
-
-Use:
-
-```text
-mobile-api
-→ feature branch
-→ changes
-→ commit
-→ push
-→ Pull Request
-→ review
-→ merge
-```
-
-Example:
-
-```powershell
-git checkout mobile-api
-git pull origin mobile-api
-git checkout -b your-name-feature
-```
-
-Current Android/backend integration work is on:
-
-```text
-thapelo-android-api-integration
-```
-
-## Security Rules
-
-Do not commit or post publicly:
+This includes:
 
 - PostgreSQL passwords
 - JWT signing keys
-- User Secret values
+- seeded account passwords
+- production credentials
 - raw JWT tokens
-- production/client credentials
-- `local.properties`
-- `.idea/`
+- local development secrets
 
-Use development/test accounts when testing the application.
+Local development secrets are managed using .NET User Secrets and production configuration is stored using Railway environment variables.
 
-## Final Testing
+## Team
 
-Before submission, the team should complete one final regression pass covering:
+The project was completed as a group project, with different members contributing to the website, Android application, backend, database and project management.
 
-- website startup and responsiveness
-- website database-backed functionality
-- Android installation and startup
-- player login
-- dashboard
-- profile
-- events
-- registration/cancellation
-- attendance
-- announcements
-- navigation
-- QR camera scanning/check-in
-- error handling
+The final system brings these parts together through one shared ASP.NET Core backend and PostgreSQL database.
 
-For detailed setup and testing instructions, see **`TEAM_SETUP.md`**.
+## Current Status
+
+The final project is working and has been deployed.
+
+The website is publicly accessible through Railway, the PostgreSQL production database is connected, and the Android application has been successfully installed and tested on a physical Android device using the deployed API.
+
+Further improvements can still be made to the UI, reporting, testing and deployment configuration in future versions.
