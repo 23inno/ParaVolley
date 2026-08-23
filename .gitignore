@@ -8,3 +8,8 @@ obj/
 *.suo
 *.userosscache
 *.sln.docstates
+# Generated Android release APK
+mobile/ParaVolley-Mpumalanga.apk
+
+# User uploaded files created while the application is running
+wwwroot/uploads/
