@@ -2,11 +2,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SportsManagementMVC.Data;
+using SportsManagementMVC.Infrastructure;
 using SportsManagementMVC.Models;
+using SportsManagementMVC.Security;
 
 namespace SportsManagementMVC.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     public class ReportsController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -18,100 +20,174 @@ namespace SportsManagementMVC.Controllers
             _env = env;
         }
 
-        public async Task<IActionResult> Index(string? search, string? type, string? status)
+        public async Task<IActionResult> Index(
+            string? search,
+            string? type,
+            string? status,
+            int page = 1,
+            CancellationToken cancellationToken = default)
         {
-            var players = await _context.Players.ToListAsync();
-            var matches = await _context.Matches.ToListAsync();
-            var events = await _context.Events.ToListAsync();
-            var attendanceRecords = await _context.Attendances
-                .AsNoTracking()
-                .ToListAsync();
-
-            var completedMatches = matches.Where(m => m.Status == MatchStatus.Completed).ToList();
-
-            var allReports = await _context.Reports.ToListAsync();
-
+            page = Paging.Page(page);
             var today = DateTime.Today;
             var weekStart = today.AddDays(-6);
-            var weeklyAttendance = attendanceRecords
-                .Where(record =>
-                    record.Date.Date >= weekStart &&
-                    record.Date.Date <= today)
-                .ToList();
+            var nextDay = today.AddDays(1);
+            var monthStart = new DateTime(today.Year, today.Month, 1);
+            var nextMonth = monthStart.AddMonths(1);
 
-            var weeklyAttendanceRate = weeklyAttendance.Count == 0
+            var weeklyAttendance = await _context.Attendances.AsNoTracking()
+                .Where(record =>
+                    record.Date >= weekStart &&
+                    record.Date < nextDay)
+                .GroupBy(_ => 1)
+                .Select(group => new
+                {
+                    Total = group.Count(),
+                    Present = group.Count(record =>
+                        record.Status == AttendanceStatus.Present)
+                })
+                .SingleOrDefaultAsync(cancellationToken);
+
+            var weeklyAttendanceRate = weeklyAttendance == null ||
+                weeklyAttendance.Total == 0
                 ? 0
                 : Math.Round(
-                    weeklyAttendance.Count(record =>
-                        record.Status == AttendanceStatus.Present) *
-                    100.0 / weeklyAttendance.Count,
+                    weeklyAttendance.Present * 100.0 /
+                    weeklyAttendance.Total,
                     1);
 
-            var sessionsThisMonth = events.Count(eventItem =>
-                eventItem.Date.Year == today.Year &&
-                eventItem.Date.Month == today.Month);
+            var sessionsThisMonth = await _context.Events.AsNoTracking()
+                .CountAsync(eventItem =>
+                    eventItem.Date >= monthStart &&
+                    eventItem.Date < nextMonth,
+                    cancellationToken);
 
-            var perfectAttendanceCount = attendanceRecords
+            var perfectAttendanceCount = await _context.Attendances.AsNoTracking()
                 .GroupBy(record => record.PlayerId)
-                .Count(group =>
-                    group.Any() &&
-                    group.All(record =>
-                        record.Status == AttendanceStatus.Present));
+                .Where(group => group.All(record =>
+                    record.Status == AttendanceStatus.Present))
+                .CountAsync(cancellationToken);
 
-            var filteredReports = allReports.AsEnumerable();
+            var reportQuery = _context.Reports.AsNoTracking().AsQueryable();
             if (!string.IsNullOrWhiteSpace(search))
             {
-                filteredReports = filteredReports.Where(r => r.Title.Contains(search, StringComparison.OrdinalIgnoreCase));
+                reportQuery = reportQuery.Where(report =>
+                    report.Title.Contains(search));
             }
             if (!string.IsNullOrWhiteSpace(type) && Enum.TryParse<ReportType>(type, out var parsedType))
             {
-                filteredReports = filteredReports.Where(r => r.Type == parsedType);
+                reportQuery = reportQuery.Where(report => report.Type == parsedType);
             }
             if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<ReportStatus>(status, out var parsedStatus))
             {
-                filteredReports = filteredReports.Where(r => r.Status == parsedStatus);
+                reportQuery = reportQuery.Where(report => report.Status == parsedStatus);
             }
+
+            var filteredReportCount = await reportQuery.CountAsync(cancellationToken);
+            var pageCount = Paging.PageCount(
+                filteredReportCount,
+                Paging.DefaultPageSize);
+            page = Math.Min(page, pageCount);
+
+            var reportCounts = await _context.Reports.AsNoTracking()
+                .GroupBy(_ => 1)
+                .Select(group => new
+                {
+                    Total = group.Count(),
+                    Published = group.Count(report =>
+                        report.Status == ReportStatus.Published),
+                    Draft = group.Count(report =>
+                        report.Status == ReportStatus.Draft)
+                })
+                .SingleOrDefaultAsync(cancellationToken);
+
+            var playerCounts = await _context.Players.AsNoTracking()
+                .GroupBy(_ => 1)
+                .Select(group => new
+                {
+                    Total = group.Count(),
+                    Active = group.Count(player =>
+                        player.Status == PlayerStatus.Active),
+                    Inactive = group.Count(player =>
+                        player.Status == PlayerStatus.Inactive)
+                })
+                .SingleOrDefaultAsync(cancellationToken);
+
+            var matchCounts = await _context.Matches.AsNoTracking()
+                .GroupBy(_ => 1)
+                .Select(group => new
+                {
+                    Total = group.Count(),
+                    Completed = group.Count(match =>
+                        match.Status == MatchStatus.Completed),
+                    Wins = group.Count(match =>
+                        match.Status == MatchStatus.Completed &&
+                        match.ScoreA > match.ScoreB),
+                    Losses = group.Count(match =>
+                        match.Status == MatchStatus.Completed &&
+                        match.ScoreA < match.ScoreB)
+                })
+                .SingleOrDefaultAsync(cancellationToken);
+
+            var teamBreakdowns = await _context.Players.AsNoTracking()
+                .GroupBy(player => player.Team)
+                .Select(group => new TeamBreakdown
+                {
+                    Team = group.Key,
+                    PlayerCount = group.Count(),
+                    ActiveCount = group.Count(player =>
+                        player.Status == PlayerStatus.Active)
+                })
+                .OrderBy(item => item.Team)
+                .Take(100)
+                .ToListAsync(cancellationToken);
+
+            var eventTypeCounts = await _context.Events.AsNoTracking()
+                .GroupBy(eventItem => eventItem.Type)
+                .Select(group => new
+                {
+                    Type = group.Key,
+                    Count = group.Count()
+                })
+                .OrderByDescending(item => item.Count)
+                .ToListAsync(cancellationToken);
 
             var vm = new ReportsViewModel
             {
-                Reports = filteredReports.OrderByDescending(r => r.Date).ToList(),
-                TotalReportsCount = allReports.Count,
-                PublishedCount = allReports.Count(r => r.Status == ReportStatus.Published),
-                DraftCount = allReports.Count(r => r.Status == ReportStatus.Draft),
+                Reports = await reportQuery
+                    .OrderByDescending(report => report.Date)
+                    .ThenByDescending(report => report.Id)
+                    .Skip((page - 1) * Paging.DefaultPageSize)
+                    .Take(Paging.DefaultPageSize)
+                    .ToListAsync(cancellationToken),
+                TotalReportsCount = reportCounts?.Total ?? 0,
+                PublishedCount = reportCounts?.Published ?? 0,
+                DraftCount = reportCounts?.Draft ?? 0,
 
                 WeeklyAverage = $"{weeklyAttendanceRate:0.#}%",
                 SessionsThisMonth = sessionsThisMonth.ToString(),
                 PerfectAttendanceCount = perfectAttendanceCount.ToString(),
 
-                TotalPlayers = players.Count,
-                ActivePlayers = players.Count(p => p.Status == PlayerStatus.Active),
-                InactivePlayers = players.Count(p => p.Status == PlayerStatus.Inactive),
-                TotalCoaches = await _context.Coaches.CountAsync(),
-                TotalMatches = matches.Count,
-                CompletedMatches = completedMatches.Count,
-                WinsA = completedMatches.Count(m => m.ScoreA > m.ScoreB),
-                LossesA = completedMatches.Count(m => m.ScoreA < m.ScoreB),
+                TotalPlayers = playerCounts?.Total ?? 0,
+                ActivePlayers = playerCounts?.Active ?? 0,
+                InactivePlayers = playerCounts?.Inactive ?? 0,
+                TotalCoaches = await _context.Coaches.CountAsync(cancellationToken),
+                TotalMatches = matchCounts?.Total ?? 0,
+                CompletedMatches = matchCounts?.Completed ?? 0,
+                WinsA = matchCounts?.Wins ?? 0,
+                LossesA = matchCounts?.Losses ?? 0,
 
-                TeamBreakdowns = players
-                    .GroupBy(p => p.Team)
-                    .Select(g => new TeamBreakdown
+                TeamBreakdowns = teamBreakdowns,
+                EventTypeBreakdowns = eventTypeCounts
+                    .Select(item => new EventTypeBreakdown
                     {
-                        Team = g.Key,
-                        PlayerCount = g.Count(),
-                        ActiveCount = g.Count(p => p.Status == PlayerStatus.Active)
+                        Type = item.Type.ToString(),
+                        Count = item.Count
                     })
-                    .OrderBy(t => t.Team)
-                    .ToList(),
-
-                EventTypeBreakdowns = events
-                    .GroupBy(e => e.Type)
-                    .Select(g => new EventTypeBreakdown { Type = g.Key.ToString(), Count = g.Count() })
-                    .OrderByDescending(e => e.Count)
-                    .ToList(),
+                    .ToList()
             };
 
             var attendanceByEvent = await _context.Attendances
-                .Include(a => a.Event)
+                .AsNoTracking()
                 .GroupBy(a => new { a.EventId, a.Event!.Title, a.Event.Date })
                 .Select(g => new AttendanceSummary
                 {
@@ -121,13 +197,16 @@ namespace SportsManagementMVC.Controllers
                     AbsentCount = g.Count(a => a.Status == AttendanceStatus.Absent)
                 })
                 .OrderByDescending(a => a.Date)
-                .ToListAsync();
+                .Take(50)
+                .ToListAsync(cancellationToken);
 
             vm.AttendanceSummaries = attendanceByEvent;
 
             ViewBag.Search = search;
             ViewBag.SelectedType = type;
             ViewBag.SelectedStatus = status;
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = pageCount;
 
             return View(vm);
         }
@@ -159,10 +238,20 @@ namespace SportsManagementMVC.Controllers
 
             if (file != null && file.Length > 0)
             {
+                if (!await UploadSecurity.IsSafeReportAsync(file))
+                {
+                    ModelState.AddModelError(
+                        "file",
+                        "Attachment must be a valid PDF, Word, Excel, CSV, JPG, PNG, or WebP file no larger than 10 MB.");
+                    return IsAjaxRequest()
+                        ? PartialView("_CreatePartial", report)
+                        : View(report);
+                }
+
                 var uploadsFolder = Path.Combine(_env.WebRootPath, "uploads", "reports");
                 Directory.CreateDirectory(uploadsFolder);
 
-                var safeFileName = $"{Guid.NewGuid()}_{Path.GetFileName(file.FileName)}";
+                var safeFileName = UploadSecurity.GeneratedFileName(file);
                 var fullPath = Path.Combine(uploadsFolder, safeFileName);
 
                 using (var stream = new FileStream(fullPath, FileMode.Create))
@@ -171,7 +260,7 @@ namespace SportsManagementMVC.Controllers
                 }
 
                 report.FilePath = $"/uploads/reports/{safeFileName}";
-                report.FileName = file.FileName;
+                report.FileName = UploadSecurity.SafeOriginalFileName(file.FileName);
                 report.SizeBytes = file.Length;
             }
             else
@@ -239,12 +328,22 @@ namespace SportsManagementMVC.Controllers
 
             if (file != null && file.Length > 0)
             {
+                if (!await UploadSecurity.IsSafeReportAsync(file))
+                {
+                    ModelState.AddModelError(
+                        "file",
+                        "Attachment must be a valid PDF, Word, Excel, CSV, JPG, PNG, or WebP file no larger than 10 MB.");
+                    return IsAjaxRequest()
+                        ? PartialView("_EditPartial", input)
+                        : View(input);
+                }
+
                 // Replace the attachment
                 DeleteExistingFile();
 
                 var uploadsFolder = Path.Combine(_env.WebRootPath, "uploads", "reports");
                 Directory.CreateDirectory(uploadsFolder);
-                var safeFileName = $"{Guid.NewGuid()}_{Path.GetFileName(file.FileName)}";
+                var safeFileName = UploadSecurity.GeneratedFileName(file);
                 var fullPath = Path.Combine(uploadsFolder, safeFileName);
 
                 using (var stream = new FileStream(fullPath, FileMode.Create))
@@ -253,7 +352,7 @@ namespace SportsManagementMVC.Controllers
                 }
 
                 report.FilePath = $"/uploads/reports/{safeFileName}";
-                report.FileName = file.FileName;
+                report.FileName = UploadSecurity.SafeOriginalFileName(file.FileName);
                 report.SizeBytes = file.Length;
             }
             else if (removeAttachment)
@@ -299,8 +398,11 @@ namespace SportsManagementMVC.Controllers
                 if (System.IO.File.Exists(fullPath))
                 {
                     var contentType = "application/octet-stream";
-                    var bytes = await System.IO.File.ReadAllBytesAsync(fullPath);
-                    return File(bytes, contentType, report.FileName ?? Path.GetFileName(fullPath));
+                    return PhysicalFile(
+                        fullPath,
+                        contentType,
+                        report.FileName ?? Path.GetFileName(fullPath),
+                        enableRangeProcessing: true);
                 }
             }
 

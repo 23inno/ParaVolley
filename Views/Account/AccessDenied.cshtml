@@ -1,0 +1,14 @@
+@{
+    ViewData["Title"] = "Access denied";
+}
+
+<div class="container py-5">
+    <div class="alert alert-warning mx-auto" style="max-width: 640px;">
+        <h1 class="h4">Access denied</h1>
+        <p>Your account does not have permission to open this page.</p>
+        @if (User.IsInRole("Admin")) { <a asp-controller="Home" asp-action="AdminDashboard" class="btn btn-warning">Return to dashboard</a> }
+        else if (User.IsInRole("Coach")) { <a asp-controller="Home" asp-action="CoachDashboard" class="btn btn-warning">Return to dashboard</a> }
+        else if (User.IsInRole("Player")) { <a asp-controller="Account" asp-action="PlayerAccess" class="btn btn-warning">Return to player home</a> }
+        else { <a asp-controller="Home" asp-action="Index" class="btn btn-warning">Return home</a> }
+    </div>
+</div>

@@ -2,11 +2,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SportsManagementMVC.Data;
+using SportsManagementMVC.Infrastructure;
 using SportsManagementMVC.Models;
+using SportsManagementMVC.Security;
 
 namespace SportsManagementMVC.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     public class CoachesController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -21,9 +23,15 @@ namespace SportsManagementMVC.Controllers
         private bool IsAjaxRequest() => Request.Headers["X-Requested-With"] == "XMLHttpRequest";
 
         // GET: Coaches
-        public async Task<IActionResult> Index(string? search, string? team, string? status)
+        public async Task<IActionResult> Index(
+            string? search,
+            string? team,
+            string? status,
+            int page = 1,
+            CancellationToken cancellationToken = default)
         {
-            var query = _context.Coaches.AsQueryable();
+            page = Paging.Page(page);
+            var query = _context.Coaches.AsNoTracking().AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -40,21 +48,38 @@ namespace SportsManagementMVC.Controllers
                 query = query.Where(c => c.Status == parsedStatus);
             }
 
-            var allCoaches = await _context.Coaches.ToListAsync();
-            ViewBag.TotalCount = allCoaches.Count;
-            ViewBag.ActiveCount = allCoaches.Count(c => c.Status == CoachStatus.Active);
-            ViewBag.TeamsAssignedCount = allCoaches
+            var coachCounts = await _context.Coaches.AsNoTracking()
+                .GroupBy(_ => 1)
+                .Select(group => new
+                {
+                    Total = group.Count(),
+                    Active = group.Count(coach => coach.Status == CoachStatus.Active),
+                    Available = group.Count(coach => coach.Status == CoachStatus.Available)
+                })
+                .SingleOrDefaultAsync(cancellationToken);
+            ViewBag.TotalCount = coachCounts?.Total ?? 0;
+            ViewBag.ActiveCount = coachCounts?.Active ?? 0;
+            ViewBag.TeamsAssignedCount = await _context.Coaches.AsNoTracking()
                 .Where(c => !string.IsNullOrWhiteSpace(c.AssignedTeam))
                 .Select(c => c.AssignedTeam)
                 .Distinct()
-                .Count();
-            ViewBag.AvailableCount = allCoaches.Count(c => c.Status == CoachStatus.Available);
+                .CountAsync(cancellationToken);
+            ViewBag.AvailableCount = coachCounts?.Available ?? 0;
+
+            var filteredCount = await query.CountAsync(cancellationToken);
+            var pageCount = Paging.PageCount(filteredCount, Paging.DefaultPageSize);
+            page = Math.Min(page, pageCount);
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = pageCount;
 
             ViewBag.Search = search;
             ViewBag.SelectedTeam = team;
             ViewBag.SelectedStatus = status;
 
-            return View(await query.OrderBy(c => c.Name).ToListAsync());
+            return View(await query.OrderBy(c => c.Name).ThenBy(c => c.Id)
+                .Skip((page - 1) * Paging.DefaultPageSize)
+                .Take(Paging.DefaultPageSize)
+                .ToListAsync(cancellationToken));
         }
 
         // GET: Coaches/Export - downloads the current filtered list as a CSV file
@@ -164,11 +189,18 @@ namespace SportsManagementMVC.Controllers
 
             if (photo != null && photo.Length > 0)
             {
-                var savedPath = await SaveCoachPhotoAsync(photo);
-                if (savedPath != null)
+                if (!await UploadSecurity.IsSafeImageAsync(photo))
                 {
-                    coach.AvatarPath = savedPath;
+                    ModelState.AddModelError(
+                        "photo",
+                        "Photo must be a valid JPG, PNG, or WebP file no larger than 2 MB.");
+                    return IsAjaxRequest()
+                        ? PartialView("_CreatePartial", coach)
+                        : View(coach);
                 }
+
+                var savedPath = await SaveCoachPhotoAsync(photo);
+                coach.AvatarPath = savedPath;
             }
 
             _context.Add(coach);
@@ -227,6 +259,16 @@ namespace SportsManagementMVC.Controllers
 
             if (photo != null && photo.Length > 0)
             {
+                if (!await UploadSecurity.IsSafeImageAsync(photo))
+                {
+                    ModelState.AddModelError(
+                        "photo",
+                        "Photo must be a valid JPG, PNG, or WebP file no larger than 2 MB.");
+                    return IsAjaxRequest()
+                        ? PartialView("_EditPartial", input)
+                        : View(input);
+                }
+
                 DeleteCoachPhotoIfExists(coach.AvatarPath);
                 var savedPath = await SaveCoachPhotoAsync(photo);
                 if (savedPath != null)
@@ -247,7 +289,7 @@ namespace SportsManagementMVC.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!CoachExists(coach.Id)) return NotFound();
+                if (!await CoachExistsAsync(coach.Id)) return NotFound();
                 throw;
             }
 
@@ -294,22 +336,15 @@ namespace SportsManagementMVC.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        private bool CoachExists(int id)
-        {
-            return _context.Coaches.Any(e => e.Id == id);
-        }
+        private Task<bool> CoachExistsAsync(int id) =>
+            _context.Coaches.AnyAsync(e => e.Id == id);
 
-        private async Task<string?> SaveCoachPhotoAsync(IFormFile photo)
+        private async Task<string> SaveCoachPhotoAsync(IFormFile photo)
         {
             var ext = Path.GetExtension(photo.FileName).ToLowerInvariant();
-            if (ext != ".jpg" && ext != ".jpeg" && ext != ".png" && ext != ".webp")
-            {
-                return null;
-            }
-
             var uploadsFolder = Path.Combine(_env.WebRootPath, "uploads", "coaches");
             Directory.CreateDirectory(uploadsFolder);
-            var fileName = $"{Guid.NewGuid()}{ext}";
+            var fileName = $"{Guid.NewGuid():N}{ext}";
             var fullPath = Path.Combine(uploadsFolder, fileName);
 
             using (var stream = new FileStream(fullPath, FileMode.Create))

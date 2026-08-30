@@ -40,7 +40,7 @@ namespace SportsManagementMVC.Data
             base.OnModelCreating(modelBuilder);
 
             modelBuilder.Entity<AppUser>()
-                .HasIndex(user => user.Email)
+                .HasIndex(user => user.NormalizedEmail)
                 .IsUnique();
 
             modelBuilder.Entity<AppUser>()
@@ -56,6 +56,40 @@ namespace SportsManagementMVC.Data
                     registration.EventId
                 })
                 .IsUnique();
+
+            modelBuilder.Entity<Player>()
+                .HasIndex(player => player.Status);
+
+            modelBuilder.Entity<Event>()
+                .HasIndex(eventItem => new
+                {
+                    eventItem.Status,
+                    eventItem.Date
+                });
+
+            modelBuilder.Entity<Match>()
+                .HasIndex(match => new
+                {
+                    match.Status,
+                    match.Date
+                });
+
+            modelBuilder.Entity<Announcement>()
+                .HasIndex(announcement => new
+                {
+                    announcement.IsPinned,
+                    announcement.Date
+                });
+
+            modelBuilder.Entity<Report>()
+                .HasIndex(report => new
+                {
+                    report.Status,
+                    report.Date
+                });
+
+            modelBuilder.Entity<Attendance>()
+                .HasIndex(attendance => attendance.Date);
 
             modelBuilder.Entity<EventRegistration>()
                 .HasOne(registration => registration.Player)

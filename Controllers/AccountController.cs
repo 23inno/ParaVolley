@@ -1,32 +1,41 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using SportsManagementMVC.Data;
 using SportsManagementMVC.Models;
+using SportsManagementMVC.Security;
 
 namespace SportsManagementMVC.Controllers
 {
     public class AccountController : Controller
     {
         private readonly ApplicationDbContext _context;
-        private readonly EmailService _emailService;
+        private readonly IPasswordHasher<AppUser> _passwordHasher;
 
-        public AccountController(ApplicationDbContext context, EmailService emailService)
+        public AccountController(
+            ApplicationDbContext context,
+            IPasswordHasher<AppUser> passwordHasher)
         {
             _context = context;
-            _emailService = emailService;
+            _passwordHasher = passwordHasher;
         }
 
+        [AllowAnonymous]
         [HttpGet]
         public IActionResult Login(string? returnUrl = null)
         {
             return View(new LoginViewModel { ReturnUrl = returnUrl });
         }
 
+        [AllowAnonymous]
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [EnableRateLimiting("login")]
         public async Task<IActionResult> Login(LoginViewModel model)
         {
             if (!ModelState.IsValid)
@@ -34,148 +43,154 @@ namespace SportsManagementMVC.Controllers
                 return View(model);
             }
 
-            var profile = await _context.UserProfiles.FirstOrDefaultAsync();
+            var normalizedEmail = NormalizeEmail(model.Email);
+            var user = await _context.AppUsers
+                .Include(appUser => appUser.Player)
+                .SingleOrDefaultAsync(appUser =>
+                    appUser.NormalizedEmail == normalizedEmail);
 
-            if (profile != null &&
-                model.Email.Equals(profile.Email, StringComparison.OrdinalIgnoreCase) &&
-                PasswordHasher.Verify(model.Password, profile.PasswordHash))
+            if (user == null || !user.IsActive)
             {
-                var claims = new List<Claim>
-                {
-                    new(ClaimTypes.Name, profile.FullName),
-                    new(ClaimTypes.Email, profile.Email),
-                };
-
-                var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                var principal = new ClaimsPrincipal(identity);
-
-                // "Remember me" keeps the user signed in across browser restarts for 30
-                // days. Without it, the session cookie expires after 8 hours or when the
-                // browser closes (IsPersistent = false), whichever comes first.
-                await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal,
-                    new AuthenticationProperties
-                    {
-                        IsPersistent = model.RememberMe,
-                        ExpiresUtc = model.RememberMe
-                            ? DateTimeOffset.UtcNow.AddDays(30)
-                            : DateTimeOffset.UtcNow.AddHours(8)
-                    });
-
-                if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
-                {
-                    return Redirect(model.ReturnUrl);
-                }
-
-                return RedirectToAction("Index", "Home");
+                return InvalidLogin(model);
             }
 
-            ModelState.AddModelError(string.Empty, "Invalid email or password. Try admin@paravolley.com / Admin123! (unless you've changed it in Settings).");
-            return View(model);
+            var passwordResult = _passwordHasher.VerifyHashedPassword(
+                user,
+                user.PasswordHash,
+                model.Password);
+
+            if (passwordResult == PasswordVerificationResult.Failed)
+            {
+                return InvalidLogin(model);
+            }
+
+            if (passwordResult ==
+                PasswordVerificationResult.SuccessRehashNeeded)
+            {
+                user.PasswordHash = _passwordHasher.HashPassword(
+                    user,
+                    model.Password);
+                await _context.SaveChangesAsync();
+            }
+
+            var claims = new List<Claim>
+            {
+                new(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new(ClaimTypes.Name, user.Player?.Name ?? user.Email),
+                new(ClaimTypes.Email, user.Email),
+                new(ClaimTypes.Role, user.Role.ToString())
+            };
+
+            if (user.PlayerId.HasValue)
+            {
+                claims.Add(new Claim(
+                    "playerId",
+                    user.PlayerId.Value.ToString()));
+            }
+
+            var identity = new ClaimsIdentity(
+                claims,
+                CookieAuthenticationDefaults.AuthenticationScheme);
+
+            await HttpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                new ClaimsPrincipal(identity),
+                new AuthenticationProperties
+                {
+                    IsPersistent = model.RememberMe,
+                    ExpiresUtc = model.RememberMe
+                        ? DateTimeOffset.UtcNow.AddDays(30)
+                        : DateTimeOffset.UtcNow.AddHours(8)
+                });
+
+            return RedirectForRole(user.Role);
         }
 
+        [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()
         {
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            return RedirectToAction("Login");
-        }
-
-        // ================= FORGOT / RESET PASSWORD =================
-
-        [HttpGet]
-        public IActionResult ForgotPassword()
-        {
-            return View();
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ForgotPassword(string email)
-        {
-            // Always show the same generic message, whether or not the email
-            // matches an account - this avoids leaking which emails exist.
-            var genericMessage = "If that email is on file, we've sent a link to reset your password.";
-
-            var profile = await _context.UserProfiles.FirstOrDefaultAsync();
-            if (profile != null && !string.IsNullOrWhiteSpace(email) &&
-                email.Equals(profile.Email, StringComparison.OrdinalIgnoreCase))
-            {
-                profile.ResetToken = Guid.NewGuid().ToString("N");
-                profile.ResetTokenExpiry = DateTime.UtcNow.AddHours(1);
-                await _context.SaveChangesAsync();
-
-                var resetUrl = Url.Action("ResetPassword", "Account", new { token = profile.ResetToken }, Request.Scheme);
-                var sent = await _emailService.SendAsync(
-                    profile.Email,
-                    "Reset your ParaVolley Mpumalanga password",
-                    $"<p>We received a request to reset your password.</p><p><a href=\"{resetUrl}\">Click here to reset your password</a></p><p>This link expires in 1 hour. If you didn't request this, you can ignore this email.</p>");
-
-                ViewBag.DemoResetUrl = sent ? null : resetUrl;
-            }
-
-            ViewBag.Message = genericMessage;
-            return View("ForgotPasswordConfirmation");
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> ResetPassword(string token)
-        {
-            var profile = await _context.UserProfiles.FirstOrDefaultAsync(p =>
-                p.ResetToken == token && p.ResetTokenExpiry != null && p.ResetTokenExpiry > DateTime.UtcNow);
-
-            if (profile == null)
-            {
-                TempData["Error"] = "This password reset link is invalid or has expired. Please request a new one.";
-                return RedirectToAction(nameof(ForgotPassword));
-            }
-
-            return View(new ResetPasswordViewModel { Token = token });
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model)
-        {
-            var profile = await _context.UserProfiles.FirstOrDefaultAsync(p =>
-                p.ResetToken == model.Token && p.ResetTokenExpiry != null && p.ResetTokenExpiry > DateTime.UtcNow);
-
-            if (profile == null)
-            {
-                TempData["Error"] = "This password reset link is invalid or has expired. Please request a new one.";
-                return RedirectToAction(nameof(ForgotPassword));
-            }
-
-            if (string.IsNullOrWhiteSpace(model.NewPassword) || model.NewPassword.Length < 8)
-            {
-                ModelState.AddModelError(string.Empty, "Password must be at least 8 characters.");
-                return View(model);
-            }
-
-            if (model.NewPassword != model.ConfirmPassword)
-            {
-                ModelState.AddModelError(string.Empty, "Passwords do not match.");
-                return View(model);
-            }
-
-            profile.PasswordHash = PasswordHasher.Hash(model.NewPassword);
-            profile.ResetToken = null;
-            profile.ResetTokenExpiry = null;
-            await _context.SaveChangesAsync();
-
-            TempData["Success"] = "Your password was reset. Please sign in with your new password.";
+            await HttpContext.SignOutAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme);
             return RedirectToAction(nameof(Login));
         }
 
-        // ================= LEGAL / SUPPORT PAGES =================
+        [Authorize(Policy = AuthorizationPolicies.PlayerOnly)]
+        [HttpGet]
+        public IActionResult PlayerAccess() => View();
 
+        [AllowAnonymous]
+        [HttpGet]
+        public IActionResult AccessDenied() => View();
+
+        [AllowAnonymous]
+        [HttpGet]
+        public IActionResult ForgotPassword() => View();
+
+        [AllowAnonymous]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult ForgotPassword(string email)
+        {
+            ViewBag.Message =
+                "If that email is on file, contact your administrator for secure account recovery.";
+            return View("ForgotPasswordConfirmation");
+        }
+
+        [AllowAnonymous]
+        [HttpGet]
+        public IActionResult ResetPassword(string token)
+        {
+            TempData["Error"] =
+                "Password reset links are not available. Contact your administrator.";
+            return RedirectToAction(nameof(ForgotPassword));
+        }
+
+        [AllowAnonymous]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult ResetPassword(ResetPasswordViewModel model)
+        {
+            TempData["Error"] =
+                "Password reset links are not available. Contact your administrator.";
+            return RedirectToAction(nameof(ForgotPassword));
+        }
+
+        [AllowAnonymous]
         [HttpGet]
         public IActionResult Privacy() => View();
 
+        [AllowAnonymous]
         [HttpGet]
         public IActionResult Terms() => View();
 
+        [AllowAnonymous]
         [HttpGet]
         public IActionResult Support() => View();
+
+        private IActionResult InvalidLogin(LoginViewModel model)
+        {
+            ModelState.AddModelError(
+                string.Empty,
+                "Invalid email or password.");
+            return View(model);
+        }
+
+        private IActionResult RedirectForRole(AppUserRole role)
+        {
+            return role switch
+            {
+                AppUserRole.Admin => RedirectToAction("AdminDashboard", "Home"),
+                AppUserRole.Coach => RedirectToAction("CoachDashboard", "Home"),
+                AppUserRole.Player => RedirectToAction(nameof(PlayerAccess)),
+                _ => RedirectToAction(nameof(AccessDenied))
+            };
+        }
+
+        private static string NormalizeEmail(string email)
+        {
+            return email.Trim().ToLowerInvariant();
+        }
     }
 }

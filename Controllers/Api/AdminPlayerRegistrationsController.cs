@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using SportsManagementMVC.Data;
 using SportsManagementMVC.Dtos;
+using SportsManagementMVC.Infrastructure;
 using SportsManagementMVC.Models;
 
 namespace SportsManagementMVC.Controllers.Api
@@ -15,6 +17,7 @@ namespace SportsManagementMVC.Controllers.Api
             JwtBearerDefaults.AuthenticationScheme,
         Roles = "Admin"
     )]
+    [EnableRateLimiting("sensitive")]
     public class AdminPlayerRegistrationsController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -28,8 +31,13 @@ namespace SportsManagementMVC.Controllers.Api
         [HttpGet]
         public async Task<ActionResult<
             IEnumerable<PendingPlayerRegistrationDto>>>
-            GetPendingRegistrations()
+            GetPendingRegistrations(
+                int page = 1,
+                int pageSize = Paging.DefaultApiPageSize,
+                CancellationToken cancellationToken = default)
         {
+            page = Paging.Page(page);
+            pageSize = Paging.PageSize(pageSize, Paging.MaximumApiPageSize);
             var registrations = await _context.AppUsers
                 .AsNoTracking()
                 .Include(user => user.Player)
@@ -53,20 +61,25 @@ namespace SportsManagementMVC.Controllers.Api
                         Age = user.Player.Age,
                         Disability = user.Player.Disability
                     })
-                .ToListAsync();
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
 
             return Ok(registrations);
         }
 
         [HttpPost("{playerId:int}/approve")]
         public async Task<IActionResult> Approve(
-            int playerId)
+            int playerId,
+            CancellationToken cancellationToken)
         {
             var user = await _context.AppUsers
+                .AsNoTracking()
                 .Include(appUser => appUser.Player)
                 .FirstOrDefaultAsync(appUser =>
                     appUser.Role == AppUserRole.Player &&
-                    appUser.PlayerId == playerId);
+                    appUser.PlayerId == playerId,
+                    cancellationToken);
 
             if (user == null || user.Player == null)
             {
@@ -87,10 +100,48 @@ namespace SportsManagementMVC.Controllers.Api
                 });
             }
 
-            user.IsActive = true;
-            user.Player.Status = PlayerStatus.Active;
+            await using var transaction = await _context.Database
+                .BeginTransactionAsync(cancellationToken);
 
-            await _context.SaveChangesAsync();
+            var activatedAccounts = await _context.AppUsers
+                .Where(appUser =>
+                    appUser.Id == user.Id &&
+                    !appUser.IsActive)
+                .ExecuteUpdateAsync(
+                    setters => setters.SetProperty(
+                        appUser => appUser.IsActive,
+                        true),
+                    cancellationToken);
+
+            if (activatedAccounts != 1)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                return Conflict(new
+                {
+                    message = "This player account has already been approved or changed."
+                });
+            }
+
+            var activatedPlayers = await _context.Players
+                .Where(player =>
+                    player.Id == playerId &&
+                    player.Status == PlayerStatus.Inactive)
+                .ExecuteUpdateAsync(
+                    setters => setters.SetProperty(
+                        player => player.Status,
+                        PlayerStatus.Active),
+                    cancellationToken);
+
+            if (activatedPlayers != 1)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                return Conflict(new
+                {
+                    message = "This player registration was changed by another request."
+                });
+            }
+
+            await transaction.CommitAsync(cancellationToken);
 
             return Ok(new
             {
@@ -103,13 +154,15 @@ namespace SportsManagementMVC.Controllers.Api
 
         [HttpPost("{playerId:int}/reject")]
         public async Task<IActionResult> Reject(
-            int playerId)
+            int playerId,
+            CancellationToken cancellationToken)
         {
             var user = await _context.AppUsers
                 .Include(appUser => appUser.Player)
                 .FirstOrDefaultAsync(appUser =>
                     appUser.Role == AppUserRole.Player &&
-                    appUser.PlayerId == playerId);
+                    appUser.PlayerId == playerId,
+                    cancellationToken);
 
             if (user == null || user.Player == null)
             {
@@ -130,15 +183,13 @@ namespace SportsManagementMVC.Controllers.Api
                 });
             }
 
-            var player = user.Player;
+            await using var transaction = await _context.Database
+                .BeginTransactionAsync(cancellationToken);
 
             _context.AppUsers.Remove(user);
-
-            await _context.SaveChangesAsync();
-
-            _context.Players.Remove(player);
-
-            await _context.SaveChangesAsync();
+            _context.Players.Remove(user.Player);
+            await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
 
             return Ok(new
             {

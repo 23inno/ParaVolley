@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SportsManagementMVC.Data;
 using SportsManagementMVC.Dtos;
+using SportsManagementMVC.Infrastructure;
 using SportsManagementMVC.Models;
 
 namespace SportsManagementMVC.Controllers.Api
@@ -130,7 +131,10 @@ namespace SportsManagementMVC.Controllers.Api
             {
                 await _db.SaveChangesAsync();
             }
-            catch (DbUpdateException)
+            catch (DbUpdateException exception)
+                when (DatabaseConflictClassifier.IsUniqueViolation(
+                    exception,
+                    _db.Database))
             {
                 return Conflict(new
                 {
@@ -210,8 +214,13 @@ namespace SportsManagementMVC.Controllers.Api
         [HttpGet("/api/player/registrations")]
         public async Task<ActionResult<
             IReadOnlyList<EventRegistrationDto>>>
-            GetMyRegistrations()
+            GetMyRegistrations(
+                int page = 1,
+                int pageSize = Paging.DefaultApiPageSize,
+                CancellationToken cancellationToken = default)
         {
+            page = Paging.Page(page);
+            pageSize = Paging.PageSize(pageSize, Paging.MaximumApiPageSize);
             var playerIdValue = User.FindFirstValue("playerId");
 
             if (!int.TryParse(playerIdValue, out var playerId))
@@ -220,20 +229,6 @@ namespace SportsManagementMVC.Controllers.Api
                 {
                     message =
                         "The access token does not contain a valid player account."
-                });
-            }
-
-            var playerExists = await _db.Players
-                .AsNoTracking()
-                .AnyAsync(player =>
-                    player.Id == playerId);
-
-            if (!playerExists)
-            {
-                return NotFound(new
-                {
-                    message =
-                        "The player profile could not be found."
                 });
             }
 
@@ -248,7 +243,9 @@ namespace SportsManagementMVC.Controllers.Api
                     registration.Event.Time)
                 .ThenBy(registration =>
                     registration.Id)
-                .ToListAsync();
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
 
             var response = registrations
                 .Select(registration =>

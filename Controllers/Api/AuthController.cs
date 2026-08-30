@@ -4,8 +4,10 @@ using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Npgsql;
 using SportsManagementMVC.Data;
 using SportsManagementMVC.Dtos;
 using SportsManagementMVC.Models;
@@ -33,6 +35,7 @@ namespace SportsManagementMVC.Controllers.Api
 
         [AllowAnonymous]
         [HttpPost("login")]
+        [EnableRateLimiting("login")]
         public async Task<ActionResult<LoginResponse>> Login(
             LoginRequest request)
         {
@@ -43,7 +46,7 @@ namespace SportsManagementMVC.Controllers.Api
             var user = await _context.AppUsers
                 .Include(x => x.Player)
                 .FirstOrDefaultAsync(x =>
-                    x.Email.ToLower() == normalizedEmail);
+                    x.NormalizedEmail == normalizedEmail);
 
             if (user == null || !user.IsActive)
             {
@@ -68,7 +71,19 @@ namespace SportsManagementMVC.Controllers.Api
                 });
             }
 
-            var expiresAt = DateTime.UtcNow.AddHours(8);
+            if (passwordResult ==
+                PasswordVerificationResult.SuccessRehashNeeded)
+            {
+                user.PasswordHash = _passwordHasher.HashPassword(
+                    user,
+                    request.Password);
+
+                await _context.SaveChangesAsync();
+            }
+
+            var accessTokenMinutes =
+                _configuration.GetValue<int?>("Jwt:AccessTokenMinutes") ?? 60;
+            var expiresAt = DateTime.UtcNow.AddMinutes(accessTokenMinutes);
             var token = CreateToken(user, expiresAt);
 
             return Ok(new LoginResponse
@@ -88,6 +103,7 @@ namespace SportsManagementMVC.Controllers.Api
 
         [AllowAnonymous]
         [HttpPost("register/player")]
+        [EnableRateLimiting("registration")]
         public async Task<IActionResult> RegisterPlayer(
             RegisterPlayerRequest request)
         {
@@ -97,7 +113,7 @@ namespace SportsManagementMVC.Controllers.Api
 
             var accountExists = await _context.AppUsers
                 .AnyAsync(user =>
-                    user.Email.ToLower() == normalizedEmail);
+                    user.NormalizedEmail == normalizedEmail);
 
             if (accountExists)
             {
@@ -146,6 +162,7 @@ namespace SportsManagementMVC.Controllers.Api
                 var appUser = new AppUser
                 {
                     Email = normalizedEmail,
+                    NormalizedEmail = normalizedEmail,
                     Role = AppUserRole.Player,
                     IsActive = false,
                     PlayerId = player.Id
@@ -170,6 +187,20 @@ namespace SportsManagementMVC.Controllers.Api
                             "Registration submitted successfully. An administrator must approve the account before login.",
                         playerId = player.Id
                     });
+            }
+            catch (DbUpdateException exception)
+                when (DatabaseConflictClassifier.IsUniqueViolation(
+                    exception,
+                    _context.Database,
+                    "IX_AppUsers_NormalizedEmail"))
+            {
+                await transaction.RollbackAsync();
+
+                return Conflict(new
+                {
+                    message =
+                        "An account already exists with this email address."
+                });
             }
             catch
             {

@@ -1,6 +1,8 @@
 package com.paravolley.mobile.network
 
 import android.content.Context
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import java.time.Instant
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -22,11 +24,23 @@ object SessionEvents {
 class SessionManager(
     context: Context
 ) {
+    private val masterKey = MasterKey.Builder(context)
+        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+        .build()
+
     private val preferences =
-        context.getSharedPreferences(
-            "paravolley_session",
-            Context.MODE_PRIVATE
+        EncryptedSharedPreferences.create(
+            context,
+            SECURE_PREFERENCES_NAME,
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
         )
+
+    init {
+        // Remove the legacy plaintext token store after an application upgrade.
+        context.deleteSharedPreferences(LEGACY_PREFERENCES_NAME)
+    }
 
     fun saveLogin(
         loginResponse: LoginResponse
@@ -151,6 +165,12 @@ class SessionManager(
     }
 
     companion object {
+        private const val SECURE_PREFERENCES_NAME =
+            "paravolley_secure_session"
+
+        private const val LEGACY_PREFERENCES_NAME =
+            "paravolley_session"
+
         private const val KEY_TOKEN =
             "token"
 

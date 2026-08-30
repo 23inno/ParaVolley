@@ -1,0 +1,3 @@
+@model CoachPlayerViewModel
+@{ ViewData["Title"] = "Player"; }
+<div class="pv-card" style="max-width:650px"><h1 class="h3">@Model.Name</h1><dl class="row"><dt class="col-4">Team</dt><dd class="col-8">@Model.Team</dd><dt class="col-4">Position</dt><dd class="col-8">@Model.Position</dd><dt class="col-4">Matches</dt><dd class="col-8">@Model.Matches</dd><dt class="col-4">Status</dt><dd class="col-8">@Model.Status</dd></dl><a asp-action="Index" class="btn btn-outline-secondary">Back to roster</a></div>

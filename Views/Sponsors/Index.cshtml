@@ -1,0 +1,3 @@
+@model IEnumerable<Sponsor>
+@{ ViewData["Title"] = "Sponsors"; }
+<div class="container py-5"><h1>Our Sponsors</h1><p class="lead">We acknowledge the organisations supporting ParaVolley Mpumalanga.</p><div class="row g-3 mt-2">@foreach(var s in Model){<div class="col-md-4"><div class="pv-card text-center h-100"><h2 class="h5">@s.Name</h2><span class="badge text-bg-warning">@s.Tier Sponsor</span></div></div>}@if(!Model.Any()){<p class="text-muted">No sponsors have been published.</p>}</div></div>

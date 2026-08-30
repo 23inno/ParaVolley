@@ -24,7 +24,8 @@ namespace SportsManagementMVC.Controllers.Api
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetDashboard()
+        public async Task<IActionResult> GetDashboard(
+            CancellationToken cancellationToken)
         {
             var playerIdValue = User.FindFirstValue("playerId");
 
@@ -39,7 +40,9 @@ namespace SportsManagementMVC.Controllers.Api
 
             var player = await _db.Players
                 .AsNoTracking()
-                .FirstOrDefaultAsync(item => item.Id == playerId);
+                .FirstOrDefaultAsync(
+                    item => item.Id == playerId,
+                    cancellationToken);
 
             if (player == null)
             {
@@ -66,7 +69,7 @@ namespace SportsManagementMVC.Controllers.Api
                     type = item.Type.ToString(),
                     status = item.Status.ToString()
                 })
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             var registeredEvents = await _db.EventRegistrations
                 .AsNoTracking()
@@ -87,7 +90,7 @@ namespace SportsManagementMVC.Controllers.Api
                     location = item.Event.Location,
                     status = item.Status.ToString()
                 })
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             var recentAnnouncements = await _db.Announcements
                 .AsNoTracking()
@@ -103,7 +106,7 @@ namespace SportsManagementMVC.Controllers.Api
                     date = item.Date,
                     isPinned = item.IsPinned
                 })
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             var recentMatches = await _db.Matches
                 .AsNoTracking()
@@ -123,21 +126,26 @@ namespace SportsManagementMVC.Controllers.Api
                     scoreA = item.ScoreA,
                     scoreB = item.ScoreB
                 })
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
-            var attendanceRecords = await _db.Attendances
+            var attendanceCounts = await _db.Attendances
                 .AsNoTracking()
                 .Where(item =>
                     item.PlayerId == playerId)
-                .ToListAsync();
+                .GroupBy(_ => 1)
+                .Select(group => new
+                {
+                    Total = group.Count(),
+                    Present = group.Count(item =>
+                        item.Status == AttendanceStatus.Present),
+                    Absent = group.Count(item =>
+                        item.Status == AttendanceStatus.Absent)
+                })
+                .SingleOrDefaultAsync(cancellationToken);
 
-            var totalAttendance = attendanceRecords.Count;
-
-            var presentAttendance = attendanceRecords.Count(item =>
-                item.Status == AttendanceStatus.Present);
-
-            var absentAttendance = attendanceRecords.Count(item =>
-                item.Status == AttendanceStatus.Absent);
+            var totalAttendance = attendanceCounts?.Total ?? 0;
+            var presentAttendance = attendanceCounts?.Present ?? 0;
+            var absentAttendance = attendanceCounts?.Absent ?? 0;
 
             var attendanceRate =
                 totalAttendance == 0

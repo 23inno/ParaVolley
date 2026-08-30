@@ -11,7 +11,7 @@
         <h2 class="news-page-title">News &amp; Announcements</h2>
         <p class="news-subtitle">Share updates and communicate with your community</p>
     </div>
-    <a asp-action="Create" class="btn btn-pm-add-gold js-modal-trigger"><i class="bi bi-plus-lg"></i> Create Announcement</a>
+    @if (User.IsInRole("Admin")) { <a asp-action="Create" class="btn btn-pm-add-gold js-modal-trigger"><i class="bi bi-plus-lg"></i> Create Announcement</a> }
 </div>
 
 <div class="d-flex flex-wrap align-items-center gap-2 mb-4">
@@ -49,7 +49,7 @@
                         }
                         <span class="news-cat-pill @catClass">@a.Category</span>
                     </div>
-                    <div class="news-card-actions">
+                    @if (User.IsInRole("Admin")) { <div class="news-card-actions">
                         <form asp-action="TogglePin" asp-route-id="@a.Id" asp-route-search="@ViewBag.Search" asp-route-category="@selectedCategory" method="post">
                             <button type="submit" class="pin-btn @(a.IsPinned ? "pinned" : "")" title="@(a.IsPinned ? "Unpin" : "Pin")">
                                 <i class="bi @(a.IsPinned ? "bi-pin-angle-fill" : "bi-pin-angle")"></i>
@@ -57,7 +57,7 @@
                         </form>
                         <a asp-action="Edit" asp-route-id="@a.Id" class="pm-action-icon edit js-modal-trigger" title="Edit"><i class="bi bi-pencil-square"></i></a>
                         <a asp-action="Delete" asp-route-id="@a.Id" class="pm-action-icon delete js-modal-trigger" title="Delete"><i class="bi bi-trash"></i></a>
-                    </div>
+                    </div> }
                 </div>
 
                 <div class="news-card-title">@a.Title</div>
@@ -113,16 +113,16 @@
                         <div class="sponsor-name">@s.Name</div>
                         <div class="sponsor-tier-label">@s.Tier Sponsor</div>
                     </a>
-                    <form asp-controller="Sponsors" asp-action="Delete" asp-route-id="@s.Id" method="post" onsubmit="return confirm('Remove this sponsor?');">
+                    @if (User.IsInRole("Admin")) { <form asp-controller="Sponsors" asp-action="Delete" asp-route-id="@s.Id" method="post" onsubmit="return confirm('Remove this sponsor?');">
                         <button type="submit" class="sponsor-heart-btn" title="Remove sponsor"><i class="bi bi-heart-fill"></i></button>
-                    </form>
+                    </form> }
                 </div>
             }
             @if (!sponsors.Any())
             {
                 <p class="text-muted small">No sponsors yet.</p>
             }
-            <a asp-controller="Sponsors" asp-action="Create" class="btn-add-sponsor js-modal-trigger"><i class="bi bi-plus-lg"></i> Add a New Sponsor</a>
+            @if (User.IsInRole("Admin")) { <a asp-controller="Sponsors" asp-action="Create" class="btn-add-sponsor js-modal-trigger"><i class="bi bi-plus-lg"></i> Add a New Sponsor</a> }
         </div>
 
         <div class="stay-connected-card">
@@ -149,6 +149,8 @@
         </div>
     </div>
 </div>
+
+<partial name="_Pagination" />
 
 @section Scripts {
     <script>

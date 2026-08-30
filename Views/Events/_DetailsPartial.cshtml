@@ -25,7 +25,6 @@
     </dl>
 </div>
 <div class="modal-footer">
-    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-pv js-modal-trigger"><i class="bi bi-pencil"></i> Edit</a>
-    <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-outline-danger js-modal-trigger"><i class="bi bi-trash"></i> Delete</a>
+    @if (User.IsInRole("Admin") || (User.IsInRole("Coach") && Model.Type == EventType.Practice)) { <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-pv js-modal-trigger"><i class="bi bi-pencil"></i> Edit</a><a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-outline-danger js-modal-trigger"><i class="bi bi-trash"></i> Delete</a> }
     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
 </div>

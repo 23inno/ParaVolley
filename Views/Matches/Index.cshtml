@@ -71,7 +71,7 @@
                 <i class="bi bi-download"></i> Export
             </a>
 
-            <a asp-action="Create" class="btn btn-pm-add-gold js-modal-trigger"><i class="bi bi-plus-lg"></i> Create Match</a>
+            @if (User.IsInRole("Admin")) { <a asp-action="Create" class="btn btn-pm-add-gold js-modal-trigger"><i class="bi bi-plus-lg"></i> Create Match</a> }
         </div>
     </div>
 
@@ -175,8 +175,7 @@
                         </td>
                         <td class="text-end">
                             <a asp-action="Details" asp-route-id="@m.Id" class="pm-action-icon view js-modal-trigger" title="View"><i class="bi bi-eye"></i></a>
-                            <a asp-action="Edit" asp-route-id="@m.Id" class="pm-action-icon edit js-modal-trigger" title="Edit"><i class="bi bi-pencil-square"></i></a>
-                            <a asp-action="Delete" asp-route-id="@m.Id" class="pm-action-icon delete js-modal-trigger" title="Delete"><i class="bi bi-trash"></i></a>
+                            @if (User.IsInRole("Admin")) { <a asp-action="Edit" asp-route-id="@m.Id" class="pm-action-icon edit js-modal-trigger" title="Edit"><i class="bi bi-pencil-square"></i></a><a asp-action="Delete" asp-route-id="@m.Id" class="pm-action-icon delete js-modal-trigger" title="Delete"><i class="bi bi-trash"></i></a> }
                         </td>
                     </tr>
                 }
@@ -198,6 +197,8 @@
         </div>
     </div>
 </div>
+
+<partial name="_Pagination" />
 
 @section Scripts {
     <script>

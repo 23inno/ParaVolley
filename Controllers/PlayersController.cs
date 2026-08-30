@@ -2,11 +2,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SportsManagementMVC.Data;
+using SportsManagementMVC.Infrastructure;
 using SportsManagementMVC.Models;
+using SportsManagementMVC.Security;
 
 namespace SportsManagementMVC.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = AuthorizationPolicies.AdminOrCoach)]
     public class PlayersController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -17,9 +19,16 @@ namespace SportsManagementMVC.Controllers
         }
 
         // GET: Players
-        public async Task<IActionResult> Index(string? search, string? team, string? position, string? status)
+        public async Task<IActionResult> Index(
+            string? search,
+            string? team,
+            string? position,
+            string? status,
+            int page = 1,
+            CancellationToken cancellationToken = default)
         {
-            var query = _context.Players.AsQueryable();
+            page = Paging.Page(page);
+            var query = _context.Players.AsNoTracking().AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -41,20 +50,48 @@ namespace SportsManagementMVC.Controllers
                 query = query.Where(p => p.Status == parsedStatus);
             }
 
-            var totalCount = await _context.Players.CountAsync();
+            var totalCount = await _context.Players.CountAsync(cancellationToken);
+            var filteredCount = await query.CountAsync(cancellationToken);
+            var pageCount = Paging.PageCount(filteredCount, Paging.DefaultPageSize);
+            page = Math.Min(page, pageCount);
 
-            ViewBag.Teams = await _context.Players.Select(p => p.Team).Distinct().OrderBy(t => t).ToListAsync();
-            ViewBag.Positions = await _context.Players.Select(p => p.Position).Distinct().OrderBy(p => p).ToListAsync();
+            ViewBag.Teams = await _context.Players.AsNoTracking()
+                .Select(p => p.Team).Distinct().OrderBy(t => t)
+                .ToListAsync(cancellationToken);
+            ViewBag.Positions = await _context.Players.AsNoTracking()
+                .Select(p => p.Position).Distinct().OrderBy(p => p)
+                .ToListAsync(cancellationToken);
             ViewBag.TotalCount = totalCount;
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = pageCount;
             ViewBag.Search = search;
             ViewBag.SelectedTeam = team;
             ViewBag.SelectedPosition = position;
             ViewBag.SelectedStatus = status;
 
-            return View(await query.OrderBy(p => p.Name).ToListAsync());
+            var pagedQuery = query.OrderBy(p => p.Name)
+                .ThenBy(p => p.Id)
+                .Skip((page - 1) * Paging.DefaultPageSize)
+                .Take(Paging.DefaultPageSize);
+            if (User.IsInRole(nameof(AppUserRole.Coach)))
+            {
+                return View("CoachIndex", await pagedQuery
+                    .Select(p => new CoachPlayerViewModel
+                    {
+                        Id = p.Id,
+                        Name = p.Name,
+                        Position = p.Position,
+                        Team = p.Team,
+                        Status = p.Status,
+                        Matches = p.Matches
+                    })
+                    .ToListAsync(cancellationToken));
+            }
+            return View(await pagedQuery.ToListAsync(cancellationToken));
         }
 
         // GET: Players/Export - downloads the current filtered list as a CSV file
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public async Task<IActionResult> Export(string? search, string? team, string? position, string? status)
         {
             var query = _context.Players.AsQueryable();
@@ -97,6 +134,15 @@ namespace SportsManagementMVC.Controllers
             var player = await _context.Players.FirstOrDefaultAsync(p => p.Id == id);
             if (player == null) return NotFound();
 
+            if (User.IsInRole(nameof(AppUserRole.Coach)))
+            {
+                return View("CoachDetails", new CoachPlayerViewModel
+                {
+                    Id = player.Id, Name = player.Name, Position = player.Position,
+                    Team = player.Team, Status = player.Status, Matches = player.Matches
+                });
+            }
+
             if (IsAjaxRequest())
             {
                 return PartialView("_DetailsPartial", player);
@@ -105,6 +151,7 @@ namespace SportsManagementMVC.Controllers
         }
 
         // GET: Players/Create
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public IActionResult Create()
         {
             if (IsAjaxRequest())
@@ -117,6 +164,7 @@ namespace SportsManagementMVC.Controllers
         // POST: Players/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public async Task<IActionResult> Create([Bind("Name,Position,Team,Status,Age,Matches,Email,Phone,Disability")] Player player)
         {
             if (ModelState.IsValid)
@@ -140,6 +188,7 @@ namespace SportsManagementMVC.Controllers
         }
 
         // GET: Players/Edit/5
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null) return NotFound();
@@ -157,6 +206,7 @@ namespace SportsManagementMVC.Controllers
         // POST: Players/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Position,Team,Status,Age,Matches,Email,Phone,Disability")] Player player)
         {
             if (id != player.Id) return NotFound();
@@ -171,7 +221,7 @@ namespace SportsManagementMVC.Controllers
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!PlayerExists(player.Id)) return NotFound();
+                    if (!await PlayerExistsAsync(player.Id)) return NotFound();
                     throw;
                 }
 
@@ -190,6 +240,7 @@ namespace SportsManagementMVC.Controllers
         }
 
         // GET: Players/Delete/5
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null) return NotFound();
@@ -207,6 +258,7 @@ namespace SportsManagementMVC.Controllers
         // POST: Players/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var player = await _context.Players.FindAsync(id);
@@ -224,10 +276,8 @@ namespace SportsManagementMVC.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        private bool PlayerExists(int id)
-        {
-            return _context.Players.Any(e => e.Id == id);
-        }
+        private Task<bool> PlayerExistsAsync(int id) =>
+            _context.Players.AnyAsync(e => e.Id == id);
 
         private bool IsAjaxRequest()
         {

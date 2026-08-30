@@ -3,11 +3,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using SportsManagementMVC.Data;
+using SportsManagementMVC.Infrastructure;
 using SportsManagementMVC.Models;
+using SportsManagementMVC.Security;
 
 namespace SportsManagementMVC.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = AuthorizationPolicies.AdminOrCoach)]
     public class AttendanceController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -19,18 +21,25 @@ namespace SportsManagementMVC.Controllers
 
         // GET: Attendance
         // Builds the attendance dashboard from persisted player/event records.
-        public async Task<IActionResult> Index(string? search, string? team, string? status)
+        public async Task<IActionResult> Index(
+            string? search,
+            string? team,
+            string? status,
+            CancellationToken cancellationToken)
         {
             var attendanceRecords = await _context.Attendances
                 .AsNoTracking()
                 .Include(record => record.Player)
                 .Include(record => record.Event)
-                .ToListAsync();
+                .OrderByDescending(record => record.Date)
+                .ThenByDescending(record => record.Id)
+                .Take(5000)
+                .ToListAsync(cancellationToken);
 
             var players = await _context.Players
                 .AsNoTracking()
                 .OrderBy(player => player.Name)
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             var totalPresent = attendanceRecords.Count(record =>
                 record.Status == AttendanceStatus.Present);
@@ -249,6 +258,7 @@ namespace SportsManagementMVC.Controllers
         }
 
         // GET: Attendance/Export - downloads the session records as CSV
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public async Task<IActionResult> Export()
         {
             var records = await _context.Attendances
@@ -296,9 +306,14 @@ namespace SportsManagementMVC.Controllers
 
         // GET: Attendance/Records - the raw individual Player/Event check-in log
         // (the original per-player attendance table still lives here)
-        public async Task<IActionResult> Records(int? eventId)
+        public async Task<IActionResult> Records(
+            int? eventId,
+            int page = 1,
+            CancellationToken cancellationToken = default)
         {
+            page = Paging.Page(page);
             var query = _context.Attendances
+                .AsNoTracking()
                 .Include(a => a.Player)
                 .Include(a => a.Event)
                 .AsQueryable();
@@ -308,36 +323,104 @@ namespace SportsManagementMVC.Controllers
                 query = query.Where(a => a.EventId == eventId);
             }
 
-            ViewBag.Events = new SelectList(await _context.Events.OrderByDescending(e => e.Date).ToListAsync(), "Id", "Title", eventId);
-            ViewBag.SelectedEventId = eventId;
+            var filteredCount = await query.CountAsync(cancellationToken);
+            var pageCount = Paging.PageCount(filteredCount, Paging.DefaultPageSize);
+            page = Math.Min(page, pageCount);
 
-            return View(await query.OrderByDescending(a => a.Date).ToListAsync());
+            ViewBag.Events = new SelectList(
+                await _context.Events.AsNoTracking()
+                    .OrderByDescending(e => e.Date)
+                    .Take(250)
+                    .ToListAsync(cancellationToken),
+                "Id",
+                "Title",
+                eventId);
+            ViewBag.SelectedEventId = eventId;
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = pageCount;
+
+            return View(await query.OrderByDescending(a => a.Date)
+                .ThenByDescending(a => a.Id)
+                .Skip((page - 1) * Paging.DefaultPageSize)
+                .Take(Paging.DefaultPageSize)
+                .ToListAsync(cancellationToken));
         }
 
         // GET: Attendance/Create
-        public IActionResult Create()
+        public async Task<IActionResult> Create(
+            CancellationToken cancellationToken)
         {
-            PopulateDropdowns();
+            await PopulateDropdownsAsync(cancellationToken: cancellationToken);
             return View(new Attendance { Date = DateTime.Today });
         }
 
         // POST: Attendance/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("PlayerId,EventId,Date,Status")] Attendance attendance)
+        public async Task<IActionResult> Create(
+            [Bind("PlayerId,EventId,Date,Status")] Attendance attendance,
+            CancellationToken cancellationToken)
         {
             if (ModelState.IsValid)
             {
                 _context.Add(attendance);
-                await _context.SaveChangesAsync();
-                TempData["Success"] = "Attendance record was added.";
-                return RedirectToAction(nameof(Records));
+                try
+                {
+                    await _context.SaveChangesAsync(cancellationToken);
+                    TempData["Success"] = "Attendance record was added.";
+                    return RedirectToAction(nameof(Records));
+                }
+                catch (DbUpdateException exception)
+                    when (DatabaseConflictClassifier.IsUniqueViolation(
+                        exception,
+                        _context.Database))
+                {
+                    ModelState.AddModelError(
+                        string.Empty,
+                        "Attendance has already been recorded for this player and event.");
+                }
             }
-            PopulateDropdowns(attendance.PlayerId, attendance.EventId);
+            await PopulateDropdownsAsync(
+                attendance.PlayerId,
+                attendance.EventId,
+                cancellationToken);
             return View(attendance);
         }
 
+        // Coaches and Admins may correct a recorded status, but the Player/Event
+        // identity of an existing record is not accepted from the client.
+        public async Task<IActionResult> Edit(int? id)
+        {
+            if (id == null) return NotFound();
+            var attendance = await _context.Attendances.FindAsync(id);
+            if (attendance == null) return NotFound();
+            await PopulateDropdownsAsync(attendance.PlayerId, attendance.EventId);
+            return View(attendance);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Date,Status")] Attendance input)
+        {
+            if (id != input.Id) return NotFound();
+            var attendance = await _context.Attendances.FindAsync(id);
+            if (attendance == null) return NotFound();
+            if (ModelState.IsValid)
+            {
+                attendance.Date = input.Date;
+                attendance.Status = input.Status;
+                await _context.SaveChangesAsync();
+                TempData["Success"] = "Attendance record was updated.";
+                return RedirectToAction(nameof(Records));
+            }
+            input.PlayerId = attendance.PlayerId;
+            input.EventId = attendance.EventId;
+            await PopulateDropdownsAsync(attendance.PlayerId, attendance.EventId);
+            return View(input);
+        }
+
         // GET: Attendance/Delete/5
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null) return NotFound();
@@ -355,6 +438,7 @@ namespace SportsManagementMVC.Controllers
         // POST: Attendance/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var attendance = await _context.Attendances.FindAsync(id);
@@ -367,10 +451,27 @@ namespace SportsManagementMVC.Controllers
             return RedirectToAction(nameof(Records));
         }
 
-        private void PopulateDropdowns(int? selectedPlayerId = null, int? selectedEventId = null)
+        private async Task PopulateDropdownsAsync(
+            int? selectedPlayerId = null,
+            int? selectedEventId = null,
+            CancellationToken cancellationToken = default)
         {
-            ViewBag.PlayerId = new SelectList(_context.Players.OrderBy(p => p.Name).ToList(), "Id", "Name", selectedPlayerId);
-            ViewBag.EventId = new SelectList(_context.Events.OrderByDescending(e => e.Date).ToList(), "Id", "Title", selectedEventId);
+            ViewBag.PlayerId = new SelectList(
+                await _context.Players.AsNoTracking()
+                    .OrderBy(p => p.Name)
+                    .Take(500)
+                    .ToListAsync(cancellationToken),
+                "Id",
+                "Name",
+                selectedPlayerId);
+            ViewBag.EventId = new SelectList(
+                await _context.Events.AsNoTracking()
+                    .OrderByDescending(e => e.Date)
+                    .Take(250)
+                    .ToListAsync(cancellationToken),
+                "Id",
+                "Title",
+                selectedEventId);
         }
     }
 }

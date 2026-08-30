@@ -1,11 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using SportsManagementMVC.Data;
 using SportsManagementMVC.Models;
+using SportsManagementMVC.Security;
 
 namespace SportsManagementMVC.Controllers
 {
-    [Authorize]
     public class SponsorsController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -17,7 +18,15 @@ namespace SportsManagementMVC.Controllers
 
         private bool IsAjaxRequest() => Request.Headers["X-Requested-With"] == "XMLHttpRequest";
 
+        [AllowAnonymous]
+        public async Task<IActionResult> Index()
+        {
+            return View(await _context.Sponsors.AsNoTracking()
+                .OrderBy(s => s.Tier).ThenBy(s => s.Name).ToListAsync());
+        }
+
         // GET: Sponsors/Create
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public IActionResult Create()
         {
             if (IsAjaxRequest())
@@ -30,6 +39,7 @@ namespace SportsManagementMVC.Controllers
         // POST: Sponsors/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public async Task<IActionResult> Create([Bind("Name,Tier")] Sponsor sponsor)
         {
             if (!ModelState.IsValid)
@@ -53,6 +63,7 @@ namespace SportsManagementMVC.Controllers
         }
 
         // GET: Sponsors/Details/5
+        [AllowAnonymous]
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null) return NotFound();
@@ -67,6 +78,7 @@ namespace SportsManagementMVC.Controllers
         }
 
         // GET: Sponsors/Edit/5
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null) return NotFound();
@@ -83,6 +95,7 @@ namespace SportsManagementMVC.Controllers
         // POST: Sponsors/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Tier")] Sponsor input)
         {
             if (id != input.Id) return NotFound();
@@ -114,6 +127,7 @@ namespace SportsManagementMVC.Controllers
         // POST: Sponsors/Delete/5
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public async Task<IActionResult> Delete(int id)
         {
             var sponsor = await _context.Sponsors.FindAsync(id);

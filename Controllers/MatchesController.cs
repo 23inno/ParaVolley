@@ -2,11 +2,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SportsManagementMVC.Data;
+using SportsManagementMVC.Infrastructure;
 using SportsManagementMVC.Models;
+using SportsManagementMVC.Security;
 
 namespace SportsManagementMVC.Controllers
 {
-    [Authorize]
     public class MatchesController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -17,9 +18,16 @@ namespace SportsManagementMVC.Controllers
         }
 
         // GET: Matches
-        public async Task<IActionResult> Index(string? search, string? tournament, string? status)
+        [AllowAnonymous]
+        public async Task<IActionResult> Index(
+            string? search,
+            string? tournament,
+            string? status,
+            int page = 1,
+            CancellationToken cancellationToken = default)
         {
-            var query = _context.Matches.AsQueryable();
+            page = Paging.Page(page);
+            var query = _context.Matches.AsNoTracking().AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -40,22 +48,47 @@ namespace SportsManagementMVC.Controllers
                 query = query.Where(m => m.Status == parsedStatus);
             }
 
-            var allMatches = await _context.Matches.ToListAsync();
-            ViewBag.TotalCount = allMatches.Count;
-            ViewBag.UpcomingCount = allMatches.Count(m => m.Status == MatchStatus.Scheduled);
-            ViewBag.CompletedCount = allMatches.Count(m => m.Status == MatchStatus.Completed);
-            ViewBag.InProgressCount = allMatches.Count(m => m.Status == MatchStatus.InProgress);
-            ViewBag.TournamentsCount = allMatches.Select(m => m.Tournament).Where(t => !string.IsNullOrWhiteSpace(t)).Distinct().Count();
-            ViewBag.Tournaments = allMatches.Select(m => m.Tournament).Where(t => !string.IsNullOrWhiteSpace(t)).Distinct().OrderBy(t => t).ToList();
+            var matchCounts = await _context.Matches.AsNoTracking()
+                .GroupBy(_ => 1)
+                .Select(group => new
+                {
+                    Total = group.Count(),
+                    Upcoming = group.Count(match => match.Status == MatchStatus.Scheduled),
+                    Completed = group.Count(match => match.Status == MatchStatus.Completed),
+                    InProgress = group.Count(match => match.Status == MatchStatus.InProgress)
+                })
+                .SingleOrDefaultAsync(cancellationToken);
+            ViewBag.TotalCount = matchCounts?.Total ?? 0;
+            ViewBag.UpcomingCount = matchCounts?.Upcoming ?? 0;
+            ViewBag.CompletedCount = matchCounts?.Completed ?? 0;
+            ViewBag.InProgressCount = matchCounts?.InProgress ?? 0;
+            var tournaments = await _context.Matches.AsNoTracking()
+                .Where(match => !string.IsNullOrWhiteSpace(match.Tournament))
+                .Select(match => match.Tournament)
+                .Distinct()
+                .OrderBy(value => value)
+                .ToListAsync(cancellationToken);
+            ViewBag.Tournaments = tournaments;
+            ViewBag.TournamentsCount = tournaments.Count;
+
+            var filteredCount = await query.CountAsync(cancellationToken);
+            var pageCount = Paging.PageCount(filteredCount, Paging.DefaultPageSize);
+            page = Math.Min(page, pageCount);
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = pageCount;
 
             ViewBag.Search = search;
             ViewBag.SelectedTournament = tournament;
             ViewBag.SelectedStatus = status;
 
-            return View(await query.OrderBy(m => m.Date).ToListAsync());
+            return View(await query.OrderBy(m => m.Date).ThenBy(m => m.Id)
+                .Skip((page - 1) * Paging.DefaultPageSize)
+                .Take(Paging.DefaultPageSize)
+                .ToListAsync(cancellationToken));
         }
 
         // GET: Matches/Export - downloads the current filtered list as a CSV file
+        [AllowAnonymous]
         public async Task<IActionResult> Export(string? search, string? tournament, string? status)
         {
             var query = _context.Matches.AsQueryable();
@@ -92,6 +125,7 @@ namespace SportsManagementMVC.Controllers
         }
 
         // GET: Matches/Details/5
+        [AllowAnonymous]
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null) return NotFound();
@@ -107,6 +141,7 @@ namespace SportsManagementMVC.Controllers
         }
 
         // GET: Matches/Create
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public IActionResult Create()
         {
             if (IsAjaxRequest())
@@ -119,6 +154,7 @@ namespace SportsManagementMVC.Controllers
         // POST: Matches/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public async Task<IActionResult> Create([Bind("TeamA,TeamB,Date,Time,Venue,Tournament,Status,ScoreA,ScoreB")] Match match)
         {
             if (ModelState.IsValid)
@@ -142,6 +178,7 @@ namespace SportsManagementMVC.Controllers
         }
 
         // GET: Matches/Edit/5
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null) return NotFound();
@@ -159,6 +196,7 @@ namespace SportsManagementMVC.Controllers
         // POST: Matches/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public async Task<IActionResult> Edit(int id, [Bind("Id,TeamA,TeamB,Date,Time,Venue,Tournament,Status,ScoreA,ScoreB")] Match match)
         {
             if (id != match.Id) return NotFound();
@@ -173,7 +211,7 @@ namespace SportsManagementMVC.Controllers
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!MatchExists(match.Id)) return NotFound();
+                    if (!await MatchExistsAsync(match.Id)) return NotFound();
                     throw;
                 }
 
@@ -192,6 +230,7 @@ namespace SportsManagementMVC.Controllers
         }
 
         // GET: Matches/Delete/5
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null) return NotFound();
@@ -209,6 +248,7 @@ namespace SportsManagementMVC.Controllers
         // POST: Matches/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var match = await _context.Matches.FindAsync(id);
@@ -226,10 +266,8 @@ namespace SportsManagementMVC.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        private bool MatchExists(int id)
-        {
-            return _context.Matches.Any(e => e.Id == id);
-        }
+        private Task<bool> MatchExistsAsync(int id) =>
+            _context.Matches.AnyAsync(e => e.Id == id);
 
         private bool IsAjaxRequest()
         {

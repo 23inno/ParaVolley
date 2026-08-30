@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SportsManagementMVC.Data;
 using SportsManagementMVC.Dtos;
+using SportsManagementMVC.Infrastructure;
 using SportsManagementMVC.Models;
 using EventEntity = SportsManagementMVC.Models.Event;
 
@@ -25,14 +26,21 @@ namespace SportsManagementMVC.Controllers.Api
         }
 
         [HttpGet]
-        public async Task<ActionResult<IReadOnlyList<EventDto>>> GetEvents()
+        public async Task<ActionResult<IReadOnlyList<EventDto>>> GetEvents(
+            int page = 1,
+            int pageSize = Paging.DefaultApiPageSize,
+            CancellationToken cancellationToken = default)
         {
+            page = Paging.Page(page);
+            pageSize = Paging.PageSize(pageSize, Paging.MaximumApiPageSize);
             var events = await _db.Events
                 .AsNoTracking()
                 .OrderBy(e => e.Date)
                 .ThenBy(e => e.Time)
                 .ThenBy(e => e.Id)
-                .ToListAsync();
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
 
             var response = events
                 .Select(MapToDto)

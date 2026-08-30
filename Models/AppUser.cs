@@ -19,6 +19,10 @@ namespace SportsManagementMVC.Models
         public string Email { get; set; } = string.Empty;
 
         [Required]
+        [StringLength(200)]
+        public string NormalizedEmail { get; set; } = string.Empty;
+
+        [Required]
         public string PasswordHash { get; set; } = string.Empty;
 
         public AppUserRole Role { get; set; } = AppUserRole.Player;

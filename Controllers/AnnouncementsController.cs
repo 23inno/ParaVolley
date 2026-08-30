@@ -2,11 +2,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SportsManagementMVC.Data;
+using SportsManagementMVC.Infrastructure;
 using SportsManagementMVC.Models;
+using SportsManagementMVC.Security;
 
 namespace SportsManagementMVC.Controllers
 {
-    [Authorize]
     public class AnnouncementsController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -21,9 +22,15 @@ namespace SportsManagementMVC.Controllers
         private bool IsAjaxRequest() => Request.Headers["X-Requested-With"] == "XMLHttpRequest";
 
         // GET: Announcements
-        public async Task<IActionResult> Index(string? search, string? category)
+        [AllowAnonymous]
+        public async Task<IActionResult> Index(
+            string? search,
+            string? category,
+            int page = 1,
+            CancellationToken cancellationToken = default)
         {
-            var query = _context.Announcements.AsQueryable();
+            page = Paging.Page(page);
+            var query = _context.Announcements.AsNoTracking().AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -38,10 +45,17 @@ namespace SportsManagementMVC.Controllers
             ViewBag.Search = search;
             ViewBag.SelectedCategory = category;
 
+            var filteredCount = await query.CountAsync(cancellationToken);
+            var pageCount = Paging.PageCount(filteredCount, Paging.DefaultPageSize);
+            page = Math.Min(page, pageCount);
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = pageCount;
+
             ViewBag.Sponsors = await _context.Sponsors
                 .OrderBy(s => s.Tier)
                 .ThenBy(s => s.Name)
-                .ToListAsync();
+                .Take(50)
+                .ToListAsync(cancellationToken);
 
             ViewBag.SubscriberCount = await _context.Subscribers.CountAsync();
 
@@ -50,7 +64,10 @@ namespace SportsManagementMVC.Controllers
             return View(await query
                 .OrderByDescending(a => a.IsPinned)
                 .ThenByDescending(a => a.Date)
-                .ToListAsync());
+                .ThenBy(a => a.Id)
+                .Skip((page - 1) * Paging.DefaultPageSize)
+                .Take(Paging.DefaultPageSize)
+                .ToListAsync(cancellationToken));
         }
 
         // Builds a real, live "recent activity" feed from actual data across the
@@ -105,7 +122,9 @@ namespace SportsManagementMVC.Controllers
                 });
             }
 
-            var latestReport = await _context.Reports.OrderByDescending(r => r.Date).FirstOrDefaultAsync();
+            var latestReport = User.IsInRole(nameof(AppUserRole.Admin))
+                ? await _context.Reports.OrderByDescending(r => r.Date).FirstOrDefaultAsync()
+                : null;
             if (latestReport != null)
             {
                 items.Add(new RecentUpdateItem
@@ -124,6 +143,7 @@ namespace SportsManagementMVC.Controllers
         // POST: Announcements/TogglePin/5
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public async Task<IActionResult> TogglePin(int id, string? search, string? category)
         {
             var announcement = await _context.Announcements.FindAsync(id);
@@ -136,6 +156,7 @@ namespace SportsManagementMVC.Controllers
         }
 
         // GET: Announcements/Details/5
+        [AllowAnonymous]
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null) return NotFound();
@@ -155,6 +176,7 @@ namespace SportsManagementMVC.Controllers
         }
 
         // GET: Announcements/Create
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public IActionResult Create()
         {
             if (IsAjaxRequest())
@@ -167,6 +189,7 @@ namespace SportsManagementMVC.Controllers
         // POST: Announcements/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public async Task<IActionResult> Create([Bind("Title,Excerpt,Content,Author,Date,Category,IsPinned,Views")] Announcement announcement)
         {
             if (ModelState.IsValid)
@@ -213,6 +236,7 @@ namespace SportsManagementMVC.Controllers
         // POST: Announcements/Subscribe
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [AllowAnonymous]
         public async Task<IActionResult> Subscribe(string email)
         {
             if (string.IsNullOrWhiteSpace(email) || !email.Contains('@'))
@@ -244,6 +268,7 @@ namespace SportsManagementMVC.Controllers
         }
 
         // GET: Announcements/Edit/5
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null) return NotFound();
@@ -261,6 +286,7 @@ namespace SportsManagementMVC.Controllers
         // POST: Announcements/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Title,Excerpt,Content,Author,Date,Category,IsPinned,Views")] Announcement announcement)
         {
             if (id != announcement.Id) return NotFound();
@@ -275,7 +301,7 @@ namespace SportsManagementMVC.Controllers
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!AnnouncementExists(announcement.Id)) return NotFound();
+                    if (!await AnnouncementExistsAsync(announcement.Id)) return NotFound();
                     throw;
                 }
 
@@ -294,6 +320,7 @@ namespace SportsManagementMVC.Controllers
         }
 
         // GET: Announcements/Delete/5
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null) return NotFound();
@@ -311,6 +338,7 @@ namespace SportsManagementMVC.Controllers
         // POST: Announcements/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var announcement = await _context.Announcements.FindAsync(id);
@@ -328,9 +356,7 @@ namespace SportsManagementMVC.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        private bool AnnouncementExists(int id)
-        {
-            return _context.Announcements.Any(e => e.Id == id);
-        }
+        private Task<bool> AnnouncementExistsAsync(int id) =>
+            _context.Announcements.AnyAsync(e => e.Id == id);
     }
 }

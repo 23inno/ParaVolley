@@ -1,10 +1,12 @@
-@model List<SystemUser>
+@model List<AppUser>
 @{
     ViewData["Title"] = "Roles & Users";
 }
 
 <h2 class="settings-page-title">Roles &amp; Users</h2>
-<p class="settings-page-subtitle mb-3">Manage who has access and what permissions they hold.</p>
+<p class="settings-page-subtitle mb-3">
+    Manage authenticated Admin and Coach accounts. Roles are assigned by the server.
+</p>
 
 <div class="settings-layout">
     <partial name="_SettingsNav" />
@@ -12,11 +14,12 @@
     <div class="settings-content-card">
         <div class="settings-section-header d-flex justify-content-between align-items-start">
             <div>
-                <h5>System Users</h5>
-                <p>Manage admin and coach access to the platform.</p>
+                <h5>Authentication accounts</h5>
+                <p>Coach accounts created here can sign in immediately.</p>
             </div>
-            <button type="button" class="btn btn-pv flex-shrink-0" data-bs-toggle="modal" data-bs-target="#inviteUserModal">
-                <i class="bi bi-plus-lg"></i> Invite User
+            <button type="button" class="btn btn-pv flex-shrink-0"
+                    data-bs-toggle="modal" data-bs-target="#provisionCoachModal">
+                <i class="bi bi-plus-lg"></i> Create Coach account
             </button>
         </div>
 
@@ -25,7 +28,6 @@
                 <table class="table pv-table align-middle">
                     <thead>
                         <tr>
-                            <th>Name</th>
                             <th>Email</th>
                             <th>Role</th>
                             <th>Status</th>
@@ -33,25 +35,25 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var u in Model)
+                        @foreach (var user in Model)
                         {
-                            var initials = string.Concat(u.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(n => n[0])).ToUpper();
-                            if (initials.Length > 2) { initials = initials.Substring(0, 2); }
-
                             <tr>
+                                <td class="fw-semibold">@user.Email</td>
                                 <td>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="coach-avatar" style="width:34px;height:34px;font-size:0.78rem;">@initials</div>
-                                        <span class="fw-semibold">@u.Name</span>
-                                    </div>
+                                    <span class="role-pill @(user.Role == AppUserRole.Admin ? "role-admin" : "role-coach")">
+                                        @user.Role
+                                    </span>
                                 </td>
-                                <td>@u.Email</td>
-                                <td><span class="role-pill @(u.Role == SystemUserRole.Admin ? "role-admin" : "role-coach")">@u.Role</span></td>
-                                <td><span class="status-pill @(u.IsActive ? "active" : "inactive")">@(u.IsActive ? "Active" : "Inactive")</span></td>
+                                <td>
+                                    <span class="status-pill @(user.IsActive ? "active" : "inactive")">
+                                        @(user.IsActive ? "Active" : "Inactive")
+                                    </span>
+                                </td>
                                 <td class="text-end">
-                                    <form asp-action="ToggleUserActive" asp-route-id="@u.Id" method="post">
-                                        <button type="submit" class="btn btn-sm @(u.IsActive ? "btn-outline-danger" : "btn-outline-secondary")">
-                                            @(u.IsActive ? "Deactivate" : "Activate")
+                                    <form asp-action="ToggleAppUserActive" asp-route-id="@user.Id" method="post">
+                                        <button type="submit"
+                                                class="btn btn-sm @(user.IsActive ? "btn-outline-danger" : "btn-outline-secondary")">
+                                            @(user.IsActive ? "Deactivate" : "Activate")
                                         </button>
                                     </form>
                                 </td>
@@ -64,34 +66,33 @@
     </div>
 </div>
 
-<div class="modal fade" id="inviteUserModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="provisionCoachModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form asp-action="InviteUser" method="post">
+            <form asp-action="ProvisionCoach" method="post">
                 <div class="modal-header">
-                    <h5 class="modal-title">Invite User</h5>
+                    <h5 class="modal-title">Create Coach account</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Full Name</label>
-                        <input type="text" name="name" class="form-control" required />
-                    </div>
+                    <p class="text-muted small">
+                        This operation always creates a Coach. It cannot create an Admin account.
+                    </p>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Email Address</label>
-                        <input type="email" name="email" class="form-control" required />
+                        <input type="email" name="email" class="form-control"
+                               autocomplete="off" required />
                     </div>
                     <div class="mb-2">
-                        <label class="form-label fw-semibold">Role</label>
-                        <select name="role" class="form-select">
-                            <option value="Coach">Coach</option>
-                            <option value="Admin">Admin</option>
-                        </select>
+                        <label class="form-label fw-semibold">Initial Password</label>
+                        <input type="password" name="password" class="form-control"
+                               minlength="8" autocomplete="new-password" required />
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-pv">Send Invite</button>
+                    <button type="button" class="btn btn-outline-secondary"
+                            data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-pv">Create Coach</button>
                 </div>
             </form>
         </div>

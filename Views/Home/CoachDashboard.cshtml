@@ -1,0 +1,13 @@
+@model CoachDashboardViewModel
+@{ ViewData["Title"] = "Coach Dashboard"; }
+<div class="pm-header-card mb-4"><h1 class="pm-title">Coach Dashboard</h1><p class="pm-subtitle">Training, team and attendance overview</p></div>
+<div class="row g-3 mb-4">
+ <div class="col-md-4"><div class="pv-card"><div class="text-muted">Active players</div><div class="display-6 fw-bold">@Model.ActivePlayers</div></div></div>
+ <div class="col-md-4"><div class="pv-card"><div class="text-muted">Upcoming training</div><div class="display-6 fw-bold">@Model.UpcomingTraining.Count</div></div></div>
+ <div class="col-md-4"><div class="pv-card"><div class="text-muted">Attendance rate</div><div class="display-6 fw-bold">@Model.AttendanceRate%</div></div></div>
+</div>
+<div class="row g-4">
+ <div class="col-lg-6"><div class="pv-card h-100"><h2 class="h5">Upcoming training</h2>@foreach(var e in Model.UpcomingTraining){<div class="border-bottom py-2"><a asp-controller="Events" asp-action="Details" asp-route-id="@e.Id">@e.Title</a><div class="text-muted">@e.Date.ToString("d MMM") · @e.Location</div></div>}@if(!Model.UpcomingTraining.Any()){<p class="text-muted">No upcoming training sessions.</p>}</div></div>
+ <div class="col-lg-6"><div class="pv-card h-100"><h2 class="h5">Upcoming matches</h2>@foreach(var m in Model.UpcomingMatches){<div class="border-bottom py-2">@m.TeamA vs @m.TeamB<div class="text-muted">@m.Date.ToString("d MMM") · @m.Venue</div></div>}@if(!Model.UpcomingMatches.Any()){<p class="text-muted">No upcoming matches.</p>}</div></div>
+ <div class="col-12"><div class="pv-card"><h2 class="h5">Recent announcements</h2>@foreach(var a in Model.RecentAnnouncements){<a class="d-block py-2 border-bottom" asp-controller="Announcements" asp-action="Details" asp-route-id="@a.Id">@a.Title</a>}@if(!Model.RecentAnnouncements.Any()){<p class="text-muted">No announcements.</p>}</div></div>
+</div>

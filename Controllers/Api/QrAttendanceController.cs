@@ -4,6 +4,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using SportsManagementMVC.Data;
@@ -30,6 +31,7 @@ namespace SportsManagementMVC.Controllers.Api
         // Admin/Coach creates a temporary QR attendance session.
         [HttpPost("events/{eventId:int}/sessions")]
         [Authorize(Roles = "Admin,Coach")]
+        [EnableRateLimiting("sensitive")]
         public async Task<ActionResult<QrAttendanceSessionDto>>
             CreateSession(int eventId)
         {
@@ -63,21 +65,6 @@ namespace SportsManagementMVC.Controllers.Api
                 {
                     message =
                         "A QR attendance session cannot be created for a cancelled event."
-                });
-            }
-
-            var userExists = await _db.AppUsers
-                .AsNoTracking()
-                .AnyAsync(user =>
-                    user.Id == appUserId &&
-                    user.IsActive);
-
-            if (!userExists)
-            {
-                return Unauthorized(new
-                {
-                    message =
-                        "The authenticated user account could not be found."
                 });
             }
 
@@ -122,6 +109,7 @@ namespace SportsManagementMVC.Controllers.Api
 
         [HttpPost("sessions/{sessionId:int:min(1)}/revoke")]
         [Authorize(Roles = "Admin,Coach")]
+        [EnableRateLimiting("sensitive")]
         public async Task<IActionResult> RevokeSession(int sessionId)
         {
             var appUserIdValue =
@@ -136,21 +124,6 @@ namespace SportsManagementMVC.Controllers.Api
                 });
             }
 
-            var userIsActive = await _db.AppUsers
-                .AsNoTracking()
-                .AnyAsync(user =>
-                    user.Id == appUserId &&
-                    user.IsActive);
-
-            if (!userIsActive)
-            {
-                return Unauthorized(new
-                {
-                    message =
-                        "The authenticated user account could not be found."
-                });
-            }
-
             var session = await _db.QrAttendanceSessions
                 .FirstOrDefaultAsync(item => item.Id == sessionId);
 
@@ -161,6 +134,12 @@ namespace SportsManagementMVC.Controllers.Api
                     message =
                         "The QR attendance session could not be found."
                 });
+            }
+
+            if (User.IsInRole("Coach") &&
+                session.CreatedByAppUserId != appUserId)
+            {
+                return Forbid(JwtBearerDefaults.AuthenticationScheme);
             }
 
             if (session.IsRevoked)
@@ -185,6 +164,7 @@ namespace SportsManagementMVC.Controllers.Api
         // Player submits the token obtained from scanning the QR code.
         [HttpPost("check-in")]
         [Authorize(Roles = "Player")]
+        [EnableRateLimiting("qr-check-in")]
         public async Task<ActionResult<AttendanceDto>>
             CheckIn(QrCheckInRequest request)
         {
@@ -303,10 +283,9 @@ namespace SportsManagementMVC.Controllers.Api
                 await _db.SaveChangesAsync();
             }
             catch (DbUpdateException exception)
-                when (exception.InnerException is PostgresException
-                {
-                    SqlState: PostgresErrorCodes.UniqueViolation
-                })
+                when (DatabaseConflictClassifier.IsUniqueViolation(
+                    exception,
+                    _db.Database))
             {
                 return DuplicateAttendanceConflict();
             }

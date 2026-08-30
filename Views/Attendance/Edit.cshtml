@@ -1,0 +1,10 @@
+@model Attendance
+@{ ViewData["Title"] = "Update Attendance"; }
+<div class="topbar"><h1 class="page-title">Update Attendance</h1><a asp-action="Records" class="btn btn-outline-secondary">Back</a></div>
+<div class="pv-card" style="max-width:560px"><form asp-action="Edit" method="post"><input asp-for="Id" type="hidden" /><div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+<div class="mb-3"><label class="form-label fw-semibold">Player</label>@Html.DropDownList("PlayerId", null, new { @class="form-select", disabled="disabled" })</div>
+<div class="mb-3"><label class="form-label fw-semibold">Event</label>@Html.DropDownList("EventId", null, new { @class="form-select", disabled="disabled" })</div>
+<div class="mb-3"><label asp-for="Date" class="form-label fw-semibold"></label><input asp-for="Date" class="form-control" type="date" /></div>
+<div class="mb-4"><label asp-for="Status" class="form-label fw-semibold"></label><select asp-for="Status" class="form-select"><option value="Present">Present</option><option value="Absent">Absent</option></select></div>
+<button class="btn btn-pv" type="submit">Save changes</button></form></div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

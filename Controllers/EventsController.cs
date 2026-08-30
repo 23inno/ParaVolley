@@ -2,11 +2,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SportsManagementMVC.Data;
+using SportsManagementMVC.Infrastructure;
 using SportsManagementMVC.Models;
+using SportsManagementMVC.Security;
 
 namespace SportsManagementMVC.Controllers
 {
-    [Authorize]
     public class EventsController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -17,9 +18,16 @@ namespace SportsManagementMVC.Controllers
         }
 
         // GET: Events
-        public async Task<IActionResult> Index(string? search, string? type, string? status)
+        [AllowAnonymous]
+        public async Task<IActionResult> Index(
+            string? search,
+            string? type,
+            string? status,
+            int page = 1,
+            CancellationToken cancellationToken = default)
         {
-            var query = _context.Events.AsQueryable();
+            page = Paging.Page(page);
+            var query = _context.Events.AsNoTracking().AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -36,15 +44,24 @@ namespace SportsManagementMVC.Controllers
                 query = query.Where(e => e.Status == parsedStatus);
             }
 
-            ViewBag.TotalCount = await _context.Events.CountAsync();
+            ViewBag.TotalCount = await _context.Events.CountAsync(cancellationToken);
+            var filteredCount = await query.CountAsync(cancellationToken);
+            var pageCount = Paging.PageCount(filteredCount, Paging.DefaultPageSize);
+            page = Math.Min(page, pageCount);
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = pageCount;
             ViewBag.Search = search;
             ViewBag.SelectedType = type;
             ViewBag.SelectedStatus = status;
 
-            return View(await query.OrderBy(e => e.Date).ToListAsync());
+            return View(await query.OrderBy(e => e.Date).ThenBy(e => e.Id)
+                .Skip((page - 1) * Paging.DefaultPageSize)
+                .Take(Paging.DefaultPageSize)
+                .ToListAsync(cancellationToken));
         }
 
         // GET: Events/Export - downloads the current filtered list as a CSV file
+        [AllowAnonymous]
         public async Task<IActionResult> Export(string? search, string? type, string? status)
         {
             var query = _context.Events.AsQueryable();
@@ -76,6 +93,7 @@ namespace SportsManagementMVC.Controllers
         }
 
         // GET: Events/Details/5
+        [AllowAnonymous]
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null) return NotFound();
@@ -91,6 +109,7 @@ namespace SportsManagementMVC.Controllers
         }
 
         // GET: Events/Create
+        [Authorize(Policy = AuthorizationPolicies.AdminOrCoach)]
         public IActionResult Create()
         {
             if (IsAjaxRequest())
@@ -103,8 +122,10 @@ namespace SportsManagementMVC.Controllers
         // POST: Events/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = AuthorizationPolicies.AdminOrCoach)]
         public async Task<IActionResult> Create([Bind("Title,Date,Time,Location,Type,Participants,Status,Description")] Event ev)
         {
+            if (User.IsInRole(nameof(AppUserRole.Coach))) ev.Type = EventType.Practice;
             if (ModelState.IsValid)
             {
                 _context.Add(ev);
@@ -126,12 +147,14 @@ namespace SportsManagementMVC.Controllers
         }
 
         // GET: Events/Edit/5
+        [Authorize(Policy = AuthorizationPolicies.AdminOrCoach)]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null) return NotFound();
 
             var ev = await _context.Events.FindAsync(id);
             if (ev == null) return NotFound();
+            if (User.IsInRole(nameof(AppUserRole.Coach)) && ev.Type != EventType.Practice) return Forbid();
 
             if (IsAjaxRequest())
             {
@@ -143,9 +166,15 @@ namespace SportsManagementMVC.Controllers
         // POST: Events/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = AuthorizationPolicies.AdminOrCoach)]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Title,Date,Time,Location,Type,Participants,Status,Description")] Event ev)
         {
             if (id != ev.Id) return NotFound();
+
+            var existing = await _context.Events.AsNoTracking().SingleOrDefaultAsync(e => e.Id == id);
+            if (existing == null) return NotFound();
+            if (User.IsInRole(nameof(AppUserRole.Coach)) && existing.Type != EventType.Practice) return Forbid();
+            if (User.IsInRole(nameof(AppUserRole.Coach))) ev.Type = EventType.Practice;
 
             if (ModelState.IsValid)
             {
@@ -157,7 +186,7 @@ namespace SportsManagementMVC.Controllers
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!EventExists(ev.Id)) return NotFound();
+                    if (!await EventExistsAsync(ev.Id)) return NotFound();
                     throw;
                 }
 
@@ -176,12 +205,14 @@ namespace SportsManagementMVC.Controllers
         }
 
         // GET: Events/Delete/5
+        [Authorize(Policy = AuthorizationPolicies.AdminOrCoach)]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null) return NotFound();
 
             var ev = await _context.Events.FirstOrDefaultAsync(e => e.Id == id);
             if (ev == null) return NotFound();
+            if (User.IsInRole(nameof(AppUserRole.Coach)) && ev.Type != EventType.Practice) return Forbid();
 
             if (IsAjaxRequest())
             {
@@ -193,9 +224,11 @@ namespace SportsManagementMVC.Controllers
         // POST: Events/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = AuthorizationPolicies.AdminOrCoach)]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var ev = await _context.Events.FindAsync(id);
+            if (ev != null && User.IsInRole(nameof(AppUserRole.Coach)) && ev.Type != EventType.Practice) return Forbid();
             if (ev != null)
             {
                 _context.Events.Remove(ev);
@@ -210,10 +243,8 @@ namespace SportsManagementMVC.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        private bool EventExists(int id)
-        {
-            return _context.Events.Any(e => e.Id == id);
-        }
+        private Task<bool> EventExistsAsync(int id) =>
+            _context.Events.AnyAsync(e => e.Id == id);
 
         private bool IsAjaxRequest()
         {

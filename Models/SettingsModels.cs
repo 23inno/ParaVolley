@@ -23,13 +23,13 @@ namespace SportsManagementMVC.Models
 
         public string? AvatarPath { get; set; }
 
-        // Simplified password storage for this demo app (SHA-256 hash, no salt/Identity).
-        // In a production app this would use ASP.NET Core Identity's password hasher.
+        // Legacy, non-authoritative column retained for migration compatibility.
+        // Authentication credentials are stored only on AppUser.
         public string PasswordHash { get; set; } = string.Empty;
 
         public bool TwoFactorEnabled { get; set; }
 
-        // Password reset flow
+        // Legacy display-profile reset fields. They are not used for authentication.
         public string? ResetToken { get; set; }
         public DateTime? ResetTokenExpiry { get; set; }
     }

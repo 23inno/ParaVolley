@@ -1,21 +1,32 @@
+using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using SportsManagementMVC.Data;
 using SportsManagementMVC.Models;
+using SportsManagementMVC.Security;
 
 namespace SportsManagementMVC.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     public class SettingsController : Controller
     {
         private readonly ApplicationDbContext _context;
         private readonly IWebHostEnvironment _env;
+        private readonly IPasswordHasher<AppUser> _passwordHasher;
 
-        public SettingsController(ApplicationDbContext context, IWebHostEnvironment env)
+        public SettingsController(
+            ApplicationDbContext context,
+            IWebHostEnvironment env,
+            IPasswordHasher<AppUser> passwordHasher)
         {
             _context = context;
             _env = env;
+            _passwordHasher = passwordHasher;
         }
 
         // Redirect the bare /Settings URL to Profile
@@ -63,18 +74,14 @@ namespace SportsManagementMVC.Controllers
 
             if (photo != null && photo.Length > 0)
             {
-                if (photo.Length > 2 * 1024 * 1024)
+                if (!await UploadSecurity.IsSafeImageAsync(photo))
                 {
-                    TempData["Error"] = "Photo must be 2 MB or smaller.";
+                    TempData["Error"] =
+                        "Photo must be a valid JPG, PNG, or WebP file no larger than 2 MB.";
                     return RedirectToAction(nameof(Profile));
                 }
 
                 var ext = Path.GetExtension(photo.FileName).ToLowerInvariant();
-                if (ext != ".jpg" && ext != ".jpeg" && ext != ".png" && ext != ".webp")
-                {
-                    TempData["Error"] = "Photo must be a JPG, PNG, or WebP file.";
-                    return RedirectToAction(nameof(Profile));
-                }
 
                 // Remove old avatar file if there was one
                 if (!string.IsNullOrEmpty(profile.AvatarPath))
@@ -130,10 +137,17 @@ namespace SportsManagementMVC.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ChangePassword(string currentPassword, string newPassword, string confirmPassword)
         {
-            var profile = await _context.UserProfiles.FirstOrDefaultAsync();
-            if (profile == null) return NotFound();
+            var appUserIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(appUserIdValue, out var appUserId)) return Forbid();
 
-            if (string.IsNullOrEmpty(currentPassword) || !PasswordHasher.Verify(currentPassword, profile.PasswordHash))
+            var appUser = await _context.AppUsers.FindAsync(appUserId);
+            if (appUser == null || !appUser.IsActive) return Forbid();
+
+            if (string.IsNullOrEmpty(currentPassword) ||
+                _passwordHasher.VerifyHashedPassword(
+                    appUser,
+                    appUser.PasswordHash,
+                    currentPassword) == PasswordVerificationResult.Failed)
             {
                 TempData["Error"] = "Current password is incorrect.";
                 return RedirectToAction(nameof(Security));
@@ -151,7 +165,9 @@ namespace SportsManagementMVC.Controllers
                 return RedirectToAction(nameof(Security));
             }
 
-            profile.PasswordHash = PasswordHasher.Hash(newPassword);
+            appUser.PasswordHash = _passwordHasher.HashPassword(
+                appUser,
+                newPassword);
             await _context.SaveChangesAsync();
 
             TempData["Success"] = "Password updated. Use your new password next time you log in.";
@@ -202,38 +218,99 @@ namespace SportsManagementMVC.Controllers
         public async Task<IActionResult> RolesUsers()
         {
             ViewBag.ActiveSettingsTab = "RolesUsers";
-            var users = await _context.SystemUsers.OrderBy(u => u.Name).ToListAsync();
+            var users = await _context.AppUsers
+                .AsNoTracking()
+                .Where(user =>
+                    user.Role == AppUserRole.Admin ||
+                    user.Role == AppUserRole.Coach)
+                .OrderBy(user => user.Email)
+                .ToListAsync();
             return View(users);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> InviteUser(string name, string email, SystemUserRole role)
+        [EnableRateLimiting("sensitive")]
+        public async Task<IActionResult> ProvisionCoach(
+            string email,
+            string password)
         {
-            if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(email))
+            var normalizedEmail = email.Trim().ToLowerInvariant();
+
+            if (!new EmailAddressAttribute().IsValid(normalizedEmail) ||
+                string.IsNullOrWhiteSpace(password) ||
+                password.Length < 8)
             {
-                TempData["Error"] = "Name and email are required.";
+                TempData["Error"] =
+                    "Enter a valid email and a password of at least 8 characters.";
                 return RedirectToAction(nameof(RolesUsers));
             }
 
-            _context.SystemUsers.Add(new SystemUser { Name = name, Email = email, Role = role, IsActive = true });
-            await _context.SaveChangesAsync();
+            if (await _context.AppUsers.AnyAsync(user =>
+                    user.NormalizedEmail == normalizedEmail))
+            {
+                TempData["Error"] =
+                    "An account already exists with this email address.";
+                return RedirectToAction(nameof(RolesUsers));
+            }
 
-            TempData["Success"] = $"{name} was invited.";
+            var coach = new AppUser
+            {
+                Email = normalizedEmail,
+                NormalizedEmail = normalizedEmail,
+                Role = AppUserRole.Coach,
+                IsActive = true
+            };
+
+            coach.PasswordHash = _passwordHasher.HashPassword(
+                coach,
+                password);
+
+            _context.AppUsers.Add(coach);
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException exception)
+                when (DatabaseConflictClassifier.IsUniqueViolation(
+                    exception,
+                    _context.Database,
+                    "IX_AppUsers_NormalizedEmail"))
+            {
+                TempData["Error"] =
+                    "An account already exists with this email address.";
+                return RedirectToAction(nameof(RolesUsers));
+            }
+
+            TempData["Success"] =
+                $"Coach account {coach.Email} was created.";
             return RedirectToAction(nameof(RolesUsers));
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ToggleUserActive(int id)
+        [EnableRateLimiting("sensitive")]
+        public async Task<IActionResult> ToggleAppUserActive(int id)
         {
-            var user = await _context.SystemUsers.FindAsync(id);
+            var currentIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (int.TryParse(currentIdValue, out var currentId) && currentId == id)
+            {
+                TempData["Error"] = "You cannot deactivate your own account.";
+                return RedirectToAction(nameof(RolesUsers));
+            }
+
+            var user = await _context.AppUsers.FirstOrDefaultAsync(appUser =>
+                appUser.Id == id &&
+                (appUser.Role == AppUserRole.Admin ||
+                 appUser.Role == AppUserRole.Coach));
             if (user == null) return NotFound();
 
             user.IsActive = !user.IsActive;
             await _context.SaveChangesAsync();
 
-            TempData["Success"] = $"{user.Name} was {(user.IsActive ? "activated" : "deactivated")}.";
+            TempData["Success"] =
+                $"{user.Email} was {(user.IsActive ? "activated" : "deactivated")}.";
             return RedirectToAction(nameof(RolesUsers));
         }
 
@@ -268,27 +345,35 @@ namespace SportsManagementMVC.Controllers
 
             if (logo != null && logo.Length > 0)
             {
-                var ext = Path.GetExtension(logo.FileName).ToLowerInvariant();
-                if (ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".webp" || ext == ".svg")
+                if (!await UploadSecurity.IsSafeImageAsync(logo))
                 {
-                    if (!string.IsNullOrEmpty(settings.LogoPath))
-                    {
-                        var oldPath = Path.Combine(_env.WebRootPath, settings.LogoPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
-                        if (System.IO.File.Exists(oldPath)) System.IO.File.Delete(oldPath);
-                    }
-
-                    var uploadsFolder = Path.Combine(_env.WebRootPath, "uploads", "branding");
-                    Directory.CreateDirectory(uploadsFolder);
-                    var fileName = $"{Guid.NewGuid()}{ext}";
-                    var fullPath = Path.Combine(uploadsFolder, fileName);
-
-                    using (var stream = new FileStream(fullPath, FileMode.Create))
-                    {
-                        await logo.CopyToAsync(stream);
-                    }
-
-                    settings.LogoPath = $"/uploads/branding/{fileName}";
+                    ModelState.AddModelError(
+                        "logo",
+                        "Logo must be a valid JPG, PNG, or WebP file no larger than 2 MB.");
+                    ViewBag.ActiveSettingsTab = "System";
+                    input.Id = settings.Id;
+                    input.LogoPath = settings.LogoPath;
+                    return View(input);
                 }
+
+                var ext = Path.GetExtension(logo.FileName).ToLowerInvariant();
+                if (!string.IsNullOrEmpty(settings.LogoPath))
+                {
+                    var oldPath = Path.Combine(_env.WebRootPath, settings.LogoPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+                    if (System.IO.File.Exists(oldPath)) System.IO.File.Delete(oldPath);
+                }
+
+                var uploadsFolder = Path.Combine(_env.WebRootPath, "uploads", "branding");
+                Directory.CreateDirectory(uploadsFolder);
+                var fileName = $"{Guid.NewGuid():N}{ext}";
+                var fullPath = Path.Combine(uploadsFolder, fileName);
+
+                using (var stream = new FileStream(fullPath, FileMode.CreateNew))
+                {
+                    await logo.CopyToAsync(stream);
+                }
+
+                settings.LogoPath = $"/uploads/branding/{fileName}";
             }
             else if (removeLogo && !string.IsNullOrEmpty(settings.LogoPath))
             {
@@ -328,35 +413,58 @@ namespace SportsManagementMVC.Controllers
         }
 
         // ================= BACKUP & DATA =================
-        public async Task<IActionResult> BackupData()
+        public async Task<IActionResult> BackupData(
+            CancellationToken cancellationToken)
         {
             ViewBag.ActiveSettingsTab = "BackupData";
-            var backups = await _context.BackupRecords.OrderByDescending(b => b.CreatedAt).ToListAsync();
+            var backups = await _context.BackupRecords.AsNoTracking()
+                .OrderByDescending(b => b.CreatedAt)
+                .Take(100)
+                .ToListAsync(cancellationToken);
             return View(backups);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CreateBackup()
+        public async Task<IActionResult> CreateBackup(
+            CancellationToken cancellationToken)
         {
-            // Serialize a real snapshot of the core tables so the "backup" is genuine data,
-            // not just a fake row - this also powers the Download button below.
+            // Stream each query to disk so backup size does not become equivalent
+            // to managed-memory growth as the tables expand.
             var snapshot = new
             {
                 GeneratedAt = DateTime.Now,
-                Players = await _context.Players.ToListAsync(),
-                Coaches = await _context.Coaches.ToListAsync(),
-                Events = await _context.Events.ToListAsync(),
-                Matches = await _context.Matches.ToListAsync(),
-                Announcements = await _context.Announcements.ToListAsync(),
+                Players = _context.Players.AsNoTracking().AsAsyncEnumerable(),
+                Coaches = _context.Coaches.AsNoTracking().AsAsyncEnumerable(),
+                Events = _context.Events.AsNoTracking().AsAsyncEnumerable(),
+                Matches = _context.Matches.AsNoTracking().AsAsyncEnumerable(),
+                Announcements = _context.Announcements.AsNoTracking().AsAsyncEnumerable(),
             };
-            var json = System.Text.Json.JsonSerializer.Serialize(snapshot, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
-            var sizeBytes = System.Text.Encoding.UTF8.GetByteCount(json);
 
             var backupsFolder = Path.Combine(_env.WebRootPath, "uploads", "backups");
             Directory.CreateDirectory(backupsFolder);
-            var fileName = $"backup_{DateTime.Now:yyyyMMdd_HHmmss}.json";
-            await System.IO.File.WriteAllTextAsync(Path.Combine(backupsFolder, fileName), json);
+            var fileName =
+                $"backup_{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid():N}.json";
+            var backupPath = Path.Combine(backupsFolder, fileName);
+            long sizeBytes;
+            await using (var stream = new FileStream(
+                backupPath,
+                FileMode.CreateNew,
+                FileAccess.Write,
+                FileShare.None,
+                bufferSize: 64 * 1024,
+                useAsync: true))
+            {
+                await System.Text.Json.JsonSerializer.SerializeAsync(
+                    stream,
+                    snapshot,
+                    new System.Text.Json.JsonSerializerOptions
+                    {
+                        WriteIndented = true
+                    },
+                    cancellationToken);
+                sizeBytes = stream.Length;
+            }
 
             _context.BackupRecords.Add(new BackupRecord
             {
@@ -364,7 +472,7 @@ namespace SportsManagementMVC.Controllers
                 SizeBytes = sizeBytes,
                 Success = true,
             });
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(cancellationToken);
 
             TempData["Success"] = "Backup created successfully.";
             return RedirectToAction(nameof(BackupData));
@@ -394,9 +502,15 @@ namespace SportsManagementMVC.Controllers
             return RedirectToAction(nameof(BackupData));
         }
 
-        public async Task<IActionResult> DownloadBackup(int id)
+        public async Task<IActionResult> DownloadBackup(
+            int id,
+            CancellationToken cancellationToken)
         {
-            var backup = await _context.BackupRecords.FindAsync(id);
+            var backup = await _context.BackupRecords
+                .AsNoTracking()
+                .FirstOrDefaultAsync(
+                    item => item.Id == id,
+                    cancellationToken);
             if (backup == null) return NotFound();
 
             var backupsFolder = Path.Combine(_env.WebRootPath, "uploads", "backups");
@@ -406,8 +520,11 @@ namespace SportsManagementMVC.Controllers
                 var match = files.FirstOrDefault();
                 if (match != null)
                 {
-                    var bytes = await System.IO.File.ReadAllBytesAsync(match);
-                    return File(bytes, "application/json", Path.GetFileName(match));
+                    return PhysicalFile(
+                        match,
+                        "application/json",
+                        Path.GetFileName(match),
+                        enableRangeProcessing: true);
                 }
             }
 

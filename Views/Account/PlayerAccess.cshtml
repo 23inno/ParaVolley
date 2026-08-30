@@ -1,0 +1,18 @@
+@{
+    ViewData["Title"] = "Player Access";
+}
+
+<div class="container py-5">
+    <div class="card mx-auto" style="max-width: 640px;">
+        <div class="card-body p-4 text-center">
+            <h1 class="h3">Player account active</h1>
+            <p class="text-muted mb-4">
+                Use the ParaVolley mobile app for your dashboard, events,
+                registrations, attendance and QR check-in.
+            </p>
+            <form asp-controller="Account" asp-action="Logout" method="post">
+                <button type="submit" class="btn btn-pv">Sign out</button>
+            </form>
+        </div>
+    </div>
+</div>

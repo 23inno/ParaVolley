@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using SportsManagementMVC.Data;
 using SportsManagementMVC.Dtos;
+using SportsManagementMVC.Infrastructure;
 using SportsManagementMVC.Models;
 using AttendanceEntity = SportsManagementMVC.Models.Attendance;
 
@@ -28,8 +29,13 @@ namespace SportsManagementMVC.Controllers.Api
         [HttpGet("/api/player/attendance")]
         [Authorize(Roles = "Player")]
         public async Task<ActionResult<IReadOnlyList<AttendanceDto>>>
-            GetMyAttendance()
+            GetMyAttendance(
+                int page = 1,
+                int pageSize = Paging.DefaultApiPageSize,
+                CancellationToken cancellationToken = default)
         {
+            page = Paging.Page(page);
+            pageSize = Paging.PageSize(pageSize, Paging.MaximumApiPageSize);
             var playerIdValue = User.FindFirstValue("playerId");
 
             if (!int.TryParse(playerIdValue, out var playerId))
@@ -38,18 +44,6 @@ namespace SportsManagementMVC.Controllers.Api
                 {
                     message =
                         "The access token does not contain a valid player account."
-                });
-            }
-
-            var playerExists = await _db.Players
-                .AsNoTracking()
-                .AnyAsync(player => player.Id == playerId);
-
-            if (!playerExists)
-            {
-                return NotFound(new
-                {
-                    message = "The player profile could not be found."
                 });
             }
 
@@ -63,7 +57,9 @@ namespace SportsManagementMVC.Controllers.Api
                     attendance.Date)
                 .ThenByDescending(attendance =>
                     attendance.Id)
-                .ToListAsync();
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
 
             var response = attendanceRecords
                 .Select(MapToDto)
@@ -152,10 +148,9 @@ namespace SportsManagementMVC.Controllers.Api
                 await _db.SaveChangesAsync();
             }
             catch (DbUpdateException exception)
-                when (exception.InnerException is PostgresException
-                {
-                    SqlState: PostgresErrorCodes.UniqueViolation
-                })
+                when (DatabaseConflictClassifier.IsUniqueViolation(
+                    exception,
+                    _db.Database))
             {
                 return DuplicateAttendanceConflict();
             }

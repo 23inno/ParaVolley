@@ -4,7 +4,19 @@ namespace SportsManagementMVC.Data
 {
     public static class DbInitializer
     {
-        public static void Seed(ApplicationDbContext context)
+        public static void Seed(
+            ApplicationDbContext context,
+            IConfiguration configuration)
+        {
+            if (!configuration.GetValue<bool>("SeedData:EnableDemoData"))
+            {
+                return;
+            }
+
+            SeedDemoBusinessData(context);
+        }
+
+        private static void SeedDemoBusinessData(ApplicationDbContext context)
         {
             if (context.Players.Any())
             {
@@ -111,7 +123,6 @@ namespace SportsManagementMVC.Data
                 Phone = "+27 13 000 0000",
                 Role = "Administrator",
                 Bio = "ParaVolley Mpumalanga system administrator.",
-                PasswordHash = PasswordHasher.Hash("Admin123!"),
                 TwoFactorEnabled = false,
             });
 

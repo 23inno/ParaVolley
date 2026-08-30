@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SportsManagementMVC.Data;
+using SportsManagementMVC.Infrastructure;
 
 namespace SportsManagementMVC.Controllers.Api
 {
@@ -22,8 +23,13 @@ namespace SportsManagementMVC.Controllers.Api
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAnnouncements()
+        public async Task<IActionResult> GetAnnouncements(
+            int page = 1,
+            int pageSize = Paging.DefaultApiPageSize,
+            CancellationToken cancellationToken = default)
         {
+            page = Paging.Page(page);
+            pageSize = Paging.PageSize(pageSize, Paging.MaximumApiPageSize);
             var announcements = await _db.Announcements
                 .AsNoTracking()
                 .OrderByDescending(a => a.IsPinned)
@@ -40,7 +46,9 @@ namespace SportsManagementMVC.Controllers.Api
                     isPinned = a.IsPinned,
                     views = a.Views
                 })
-                .ToListAsync();
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
 
             return Ok(announcements);
         }

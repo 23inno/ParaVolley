@@ -1,0 +1,26 @@
+@{
+    ViewData["Title"] = "Home";
+    var events = (List<Event>)ViewBag.UpcomingEvents;
+    var news = (List<Announcement>)ViewBag.RecentAnnouncements;
+    var sponsors = (List<Sponsor>)ViewBag.Sponsors;
+}
+<section class="container py-5">
+    <div class="p-5 rounded-4 text-white" style="background:linear-gradient(135deg,var(--pv-green),var(--pv-green-dark));">
+        <p class="text-uppercase fw-semibold mb-2">ParaVolley Mpumalanga</p>
+        <h1 class="display-5 fw-bold">Sport, teamwork and community</h1>
+        <p class="lead mb-4">Follow upcoming ParaVolley activities, match results and organisation news.</p>
+        <a asp-controller="Events" asp-action="Index" class="btn btn-warning fw-semibold me-2">View schedule</a>
+        <a asp-controller="Home" asp-action="About" class="btn btn-outline-light">About us</a>
+    </div>
+    <div class="row g-4 mt-3">
+        <div class="col-lg-6"><div class="pv-card h-100"><h2 class="h4">Upcoming events</h2>
+            @foreach (var item in events) { <div class="border-bottom py-2"><strong>@item.Title</strong><div class="text-muted">@item.Date.ToString("d MMM yyyy") · @item.Location</div></div> }
+            @if (!events.Any()) { <p class="text-muted">No upcoming events have been published.</p> }
+        </div></div>
+        <div class="col-lg-6"><div class="pv-card h-100"><h2 class="h4">Latest news</h2>
+            @foreach (var item in news) { <div class="border-bottom py-2"><a asp-controller="Announcements" asp-action="Details" asp-route-id="@item.Id" class="fw-semibold">@item.Title</a><div class="text-muted">@item.Date.ToString("d MMM yyyy")</div></div> }
+            @if (!news.Any()) { <p class="text-muted">No news has been published.</p> }
+        </div></div>
+    </div>
+    @if (sponsors.Any()) { <div class="text-center mt-5"><h2 class="h5">Our sponsors</h2><p>@string.Join(" · ", sponsors.Select(s => s.Name))</p></div> }
+</section>

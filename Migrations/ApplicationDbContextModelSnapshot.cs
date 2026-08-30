@@ -62,6 +62,8 @@ namespace SportsManagementMVC.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("IsPinned", "Date");
+
                     b.ToTable("Announcements");
                 });
 
@@ -81,6 +83,11 @@ namespace SportsManagementMVC.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("NormalizedEmail")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("text");
@@ -93,7 +100,7 @@ namespace SportsManagementMVC.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Email")
+                    b.HasIndex("NormalizedEmail")
                         .IsUnique();
 
                     b.HasIndex("PlayerId")
@@ -146,6 +153,8 @@ namespace SportsManagementMVC.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Date");
 
                     b.HasIndex("EventId");
 
@@ -263,6 +272,8 @@ namespace SportsManagementMVC.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Status", "Date");
+
                     b.ToTable("Events");
                 });
 
@@ -337,6 +348,8 @@ namespace SportsManagementMVC.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Status", "Date");
 
                     b.ToTable("Matches");
                 });
@@ -455,6 +468,8 @@ namespace SportsManagementMVC.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Status");
+
                     b.ToTable("Players");
                 });
 
@@ -530,6 +545,8 @@ namespace SportsManagementMVC.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Status", "Date");
 
                     b.ToTable("Reports");
                 });

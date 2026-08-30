@@ -28,7 +28,7 @@
                 <i class="bi bi-download"></i> Export
             </a>
 
-            <a asp-action="Create" class="btn btn-pm-add js-modal-trigger"><i class="bi bi-plus-lg"></i> Add Event</a>
+            @if (User.IsInRole("Admin") || User.IsInRole("Coach")) { <a asp-action="Create" class="btn btn-pm-add js-modal-trigger"><i class="bi bi-plus-lg"></i> @(User.IsInRole("Coach") ? "Add Training" : "Add Event")</a> }
         </div>
     </div>
 
@@ -97,8 +97,7 @@
                         <span class="em-pill @statusPillClass">@statusLabel</span>
                     </div>
                     <div class="d-flex gap-2 flex-shrink-0">
-                        <a asp-action="Edit" asp-route-id="@ev.Id" class="pm-action-icon edit js-modal-trigger" title="Edit"><i class="bi bi-pencil-square"></i></a>
-                        <a asp-action="Delete" asp-route-id="@ev.Id" class="pm-action-icon delete js-modal-trigger" title="Delete"><i class="bi bi-trash"></i></a>
+                            @if (User.IsInRole("Admin") || (User.IsInRole("Coach") && ev.Type == EventType.Practice)) { <a asp-action="Edit" asp-route-id="@ev.Id" class="pm-action-icon edit js-modal-trigger" title="Edit"><i class="bi bi-pencil-square"></i></a><a asp-action="Delete" asp-route-id="@ev.Id" class="pm-action-icon delete js-modal-trigger" title="Delete"><i class="bi bi-trash"></i></a> }
                     </div>
                 </div>
 
@@ -125,6 +124,8 @@
         </div>
     </div>
 </div>
+
+<partial name="_Pagination" />
 
 @section Scripts {
     <script>
