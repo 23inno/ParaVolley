@@ -2247,3 +2247,532 @@ a.dash-clickable-row:hover {
   color: inherit;
   transform: translateX(2px);
 }
+/* ============================================================
+ABOUT PAGE - ParaVolley Mpumalanga
+============================================================ */
+
+.about-page {
+overflow: hidden;
+}
+
+/* Hero */
+.about-hero {
+position: relative;
+background: linear-gradient(
+135deg,
+var(--pv-green) 0%,
+var(--pv-green-dark) 100%
+);
+color: #fff;
+border-radius: 1.25rem;
+padding: 4.5rem 4rem;
+margin-bottom: 3rem;
+min-height: 430px;
+display: flex;
+align-items: center;
+overflow: hidden;
+}
+
+.about-hero::before,
+.about-hero::after {
+content: "";
+position: absolute;
+border-radius: 50%;
+background: rgba(255,255,255,0.05);
+}
+
+.about-hero::before {
+width: 360px;
+height: 360px;
+right: -120px;
+top: -150px;
+}
+
+.about-hero::after {
+width: 260px;
+height: 260px;
+left: -120px;
+bottom: -150px;
+}
+
+.about-hero-content {
+position: relative;
+z-index: 2;
+max-width: 700px;
+}
+
+.about-eyebrow,
+.about-section-label {
+display: inline-block;
+font-size: 0.78rem;
+font-weight: 800;
+letter-spacing: 0.12em;
+color: var(--pv-gold);
+margin-bottom: 0.75rem;
+}
+
+.about-hero h1 {
+font-size: clamp(2.4rem, 5vw, 4.2rem);
+line-height: 1.05;
+font-weight: 800;
+margin: 0 0 1.25rem;
+}
+
+.about-hero h1 span {
+color: var(--pv-gold);
+}
+
+.about-hero p {
+max-width: 620px;
+color: rgba(255,255,255,0.88);
+font-size: 1.08rem;
+line-height: 1.7;
+margin-bottom: 1.75rem;
+}
+
+.about-hero-actions {
+display: flex;
+gap: 0.75rem;
+flex-wrap: wrap;
+}
+
+.btn-about-outline {
+color: #fff;
+border: 1.5px solid rgba(255,255,255,0.7);
+background: transparent;
+font-weight: 600;
+}
+
+.btn-about-outline:hover {
+background: #fff;
+color: var(--pv-green);
+}
+
+.about-hero-decoration {
+position: absolute;
+right: 9%;
+top: 50%;
+transform: translateY(-50%);
+z-index: 1;
+}
+
+.about-ball {
+width: 190px;
+height: 190px;
+border-radius: 50%;
+background: var(--pv-gold);
+color: var(--pv-green-dark);
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 5rem;
+box-shadow: 0 25px 60px rgba(0,0,0,0.2);
+}
+
+/* General sections */
+.about-section {
+padding: 2rem 0 4rem;
+}
+
+.about-section-heading {
+text-align: center;
+margin-bottom: 2.5rem;
+}
+
+.about-section-heading h2 {
+font-size: 2rem;
+font-weight: 800;
+margin: 0;
+color: #000;
+}
+
+.about-heading-line {
+width: 55px;
+height: 4px;
+border-radius: 999px;
+background: var(--pv-gold);
+margin: 0.9rem auto 0;
+}
+
+/* Two columns */
+.about-two-column {
+display: grid;
+grid-template-columns: 1.5fr 1fr;
+gap: 2rem;
+align-items: center;
+}
+
+.about-two-column p {
+color: #495057;
+line-height: 1.75;
+}
+
+.about-lead {
+font-size: 1.15rem;
+font-weight: 600;
+color: #212529 !important;
+}
+
+/* Highlight card */
+.about-highlight-card {
+background: #fff;
+border: 1px solid var(--pv-border);
+border-radius: 1.1rem;
+padding: 2rem;
+border-top: 5px solid var(--pv-green);
+box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+}
+
+.about-highlight-icon,
+.about-card-icon,
+.value-icon {
+width: 52px;
+height: 52px;
+border-radius: 0.85rem;
+background: var(--pv-green);
+color: #fff;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 1.35rem;
+margin-bottom: 1.1rem;
+}
+
+.about-highlight-card h3 {
+font-weight: 800;
+margin-bottom: 0.6rem;
+}
+
+/* Mission & Vision */
+.about-mission-section {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 1.5rem;
+margin: 1rem 0 4rem;
+}
+
+.about-mission-card,
+.about-vision-card {
+padding: 2rem;
+border-radius: 1.1rem;
+min-height: 280px;
+}
+
+.about-mission-card {
+background: var(--pv-green);
+color: #fff;
+}
+
+.about-vision-card {
+background: #fff;
+border: 1px solid var(--pv-border);
+border-left: 5px solid var(--pv-gold);
+}
+
+.about-mission-card span,
+.about-vision-card span {
+font-size: 0.78rem;
+font-weight: 800;
+letter-spacing: 0.1em;
+}
+
+.about-mission-card span {
+color: var(--pv-gold);
+}
+
+.about-vision-card span {
+color: var(--pv-green);
+}
+
+.about-mission-card h3,
+.about-vision-card h3 {
+font-weight: 800;
+margin: 0.6rem 0 0.8rem;
+}
+
+.about-mission-card p {
+color: rgba(255,255,255,0.88);
+line-height: 1.7;
+}
+
+.about-vision-card p {
+color: #495057;
+line-height: 1.7;
+}
+
+.gold-icon {
+background: var(--pv-gold);
+color: #4a3800;
+}
+
+/* Values */
+.about-values-grid {
+display: grid;
+grid-template-columns: repeat(4, 1fr);
+gap: 1rem;
+}
+
+.about-value-card {
+background: #fff;
+border: 1px solid var(--pv-border);
+border-radius: 1rem;
+padding: 1.5rem;
+transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.about-value-card:hover {
+transform: translateY(-5px);
+box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+}
+
+.about-value-card h3 {
+font-size: 1.05rem;
+font-weight: 800;
+}
+
+.about-value-card p {
+color: #6c757d;
+font-size: 0.9rem;
+line-height: 1.6;
+margin-bottom: 0;
+}
+
+.value-icon {
+width: 46px;
+height: 46px;
+font-size: 1.15rem;
+}
+
+/* What we do */
+.about-activities-section {
+background: var(--pv-green);
+border-radius: 1.25rem;
+padding: 3.5rem 2.5rem;
+margin: 1rem 0 4rem;
+}
+
+.light-heading h2 {
+color: #fff;
+}
+
+.about-activities-grid {
+display: grid;
+grid-template-columns: repeat(4, 1fr);
+gap: 1rem;
+}
+
+.about-activity {
+background: rgba(255,255,255,0.08);
+border: 1px solid rgba(255,255,255,0.12);
+border-radius: 1rem;
+padding: 1.5rem;
+color: #fff;
+}
+
+.about-activity i {
+display: inline-flex;
+width: 48px;
+height: 48px;
+align-items: center;
+justify-content: center;
+border-radius: 0.8rem;
+background: var(--pv-gold);
+color: #4a3800;
+font-size: 1.3rem;
+margin-bottom: 1rem;
+}
+
+.about-activity h3 {
+font-size: 1.05rem;
+font-weight: 800;
+}
+
+.about-activity p {
+color: rgba(255,255,255,0.78);
+font-size: 0.88rem;
+line-height: 1.6;
+margin: 0;
+}
+
+/* Why ParaVolley */
+.about-why {
+align-items: stretch;
+}
+
+.about-why h2 {
+font-weight: 800;
+margin-bottom: 1rem;
+}
+
+.about-stat-panel {
+background: #fff;
+border: 1px solid var(--pv-border);
+border-radius: 1.1rem;
+padding: 1rem;
+}
+
+.about-stat {
+display: flex;
+align-items: center;
+gap: 1rem;
+padding: 1rem;
+border-bottom: 1px solid #f1f1f1;
+}
+
+.about-stat:last-child {
+border-bottom: none;
+}
+
+.about-stat > i {
+width: 46px;
+height: 46px;
+border-radius: 0.75rem;
+background: var(--pv-green);
+color: #fff;
+display: flex;
+align-items: center;
+justify-content: center;
+}
+
+.about-stat strong,
+.about-stat span {
+display: block;
+}
+
+.about-stat strong {
+font-weight: 800;
+}
+
+.about-stat span {
+color: #6c757d;
+font-size: 0.85rem;
+}
+
+/* CTA */
+.about-cta {
+background: linear-gradient(
+135deg,
+var(--pv-green-dark),
+var(--pv-green)
+);
+border-radius: 1.25rem;
+padding: 2.5rem;
+margin: 0 0 2rem;
+color: #fff;
+display: flex;
+align-items: center;
+justify-content: space-between;
+gap: 2rem;
+}
+
+.about-cta h2 {
+font-weight: 800;
+margin: 0.25rem 0 0.6rem;
+}
+
+.about-cta p {
+color: rgba(255,255,255,0.82);
+max-width: 650px;
+margin: 0;
+}
+
+.about-cta-actions {
+display: flex;
+gap: 0.75rem;
+flex-shrink: 0;
+}
+
+/* Dark mode */
+html[data-theme="dark"] .about-section-heading h2,
+html[data-theme="dark"] .about-lead,
+html[data-theme="dark"] .about-why h2 {
+color: #f8f9fa !important;
+}
+
+html[data-theme="dark"] .about-two-column p {
+color: #ced4da;
+}
+
+html[data-theme="dark"] .about-highlight-card,
+html[data-theme="dark"] .about-value-card,
+html[data-theme="dark"] .about-stat-panel {
+background: #1a1d23;
+border-color: #2b2f38;
+}
+
+html[data-theme="dark"] .about-value-card p,
+html[data-theme="dark"] .about-stat span {
+color: #adb5bd;
+}
+
+html[data-theme="dark"] .about-vision-card {
+background: #1a1d23;
+border-color: #2b2f38;
+border-left-color: var(--pv-gold);
+}
+
+html[data-theme="dark"] .about-vision-card p {
+color: #ced4da;
+}
+
+/* Responsive */
+@media (max-width: 1000px) {
+.about-hero {
+padding: 3.5rem 2.5rem;
+}
+
+```
+.about-hero-decoration {
+    right: 4%;
+    opacity: 0.25;
+}
+
+.about-values-grid,
+.about-activities-grid {
+    grid-template-columns: repeat(2, 1fr);
+}
+```
+
+}
+
+@media (max-width: 767px) {
+.about-hero {
+min-height: auto;
+padding: 3rem 1.5rem;
+}
+
+```
+.about-hero h1 {
+    font-size: 2.5rem;
+}
+
+.about-hero-decoration {
+    display: none;
+}
+
+.about-two-column,
+.about-mission-section {
+    grid-template-columns: 1fr;
+}
+
+.about-values-grid,
+.about-activities-grid {
+    grid-template-columns: 1fr;
+}
+
+.about-activities-section {
+    padding: 2.5rem 1.25rem;
+}
+
+.about-cta {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 2rem 1.5rem;
+}
+
+.about-cta-actions {
+    flex-wrap: wrap;
+}
+```
+
+}
