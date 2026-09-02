@@ -2773,6 +2773,64 @@ padding: 3rem 1.5rem;
 .about-cta-actions {
     flex-wrap: wrap;
 }
-```
 
+
+}
+
+/* =========================================
+   ParaVolley Mpumalanga Hero Banner
+   ========================================= */
+
+.paravolley-hero {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: #0B6E4F;
+}
+
+.paravolley-hero-image-wrapper {
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+    background: #0B6E4F;
+}
+
+.paravolley-hero-image {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-width: 100%;
+    object-fit: cover;
+}
+
+/* Desktop */
+@media (min-width: 992px) {
+    .paravolley-hero-image-wrapper {
+        min-height: 520px;
+    }
+
+    .paravolley-hero-image {
+        width: 100%;
+    }
+}
+
+/* Tablet */
+@media (max-width: 991px) {
+    .paravolley-hero-image-wrapper {
+        min-height: auto;
+    }
+
+    .paravolley-hero-image {
+        width: 100%;
+        height: auto;
+    }
+}
+
+/* Mobile */
+@media (max-width: 576px) {
+    .paravolley-hero-image {
+        width: 100%;
+        height: auto;
+    }
 }
