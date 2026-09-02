@@ -2834,3 +2834,61 @@ padding: 3rem 1.5rem;
         height: auto;
     }
 }
+/* =========================================
+   ParaVolley Contact Bar
+   ========================================= */
+
+.paravolley-contact-bar {
+    background: #0B6E4F;
+    color: #FFFFFF;
+    padding: 24px 0;
+    border-bottom: 4px solid #FFC72C;
+}
+
+.paravolley-contact-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: #FFFFFF;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.paravolley-contact-link:hover {
+    color: #FFC72C;
+    transform: translateY(-2px);
+}
+
+.contact-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: #FFC72C;
+    color: #0B6E4F;
+    font-size: 20px;
+    font-weight: 800;
+}
+
+.paravolley-contact-link strong {
+    font-size: 0.95rem;
+}
+
+.paravolley-contact-link span:last-child {
+    text-align: left;
+    font-size: 0.85rem;
+}
+
+@media (max-width: 767px) {
+
+    .paravolley-contact-bar {
+        padding: 30px 15px;
+    }
+
+    .paravolley-contact-link {
+        width: 100%;
+    }
+}
