@@ -1,0 +1,46 @@
+/* About page responsive repair. Kept separate to avoid altering unrelated site styles. */
+@media (max-width: 1000px) {
+  .about-hero-decoration {
+    right: 4%;
+    opacity: 0.25;
+  }
+
+  .about-values-grid,
+  .about-activities-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .about-hero h1 {
+    font-size: 2.5rem;
+  }
+
+  .about-hero-decoration {
+    display: none;
+  }
+
+  .about-two-column,
+  .about-mission-section {
+    grid-template-columns: 1fr;
+  }
+
+  .about-values-grid,
+  .about-activities-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .about-activities-section {
+    padding: 2.5rem 1.25rem;
+  }
+
+  .about-cta {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 2rem 1.5rem;
+  }
+
+  .about-cta-actions {
+    flex-wrap: wrap;
+  }
+}
