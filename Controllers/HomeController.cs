@@ -39,8 +39,28 @@ namespace SportsManagementMVC.Controllers
         public IActionResult About() => View();
 
         [AllowAnonymous]
+        [HttpGet("/Join")]
+        public IActionResult Join()
+        {
+            return View("~/Views/Registration/Index.cshtml");
+        }
+
+        [AllowAnonymous]
         [HttpGet("/Contact")]
         public IActionResult Contact() => View();
+
+        [AllowAnonymous]
+        [HttpGet("/Athletes")]
+        public async Task<IActionResult> Athletes(
+    CancellationToken cancellationToken)
+        {
+            var players = await _context.Players
+                .AsNoTracking()
+                .OrderBy(p => p.Name)
+                .ToListAsync(cancellationToken);
+
+            return View("~/Views/Players/Athletes.cshtml", players);
+        }
 
         [AllowAnonymous]
         [HttpGet("/Results")]

@@ -1,128 +1,1323 @@
 @{
-ViewData["Title"] = "About Us";
+    ViewData["Title"] = "About Us";
 }
 
 <div class="about-page">
 
-<!-- Hero Section -->
-<section class="about-hero">
-    <div class="about-hero-content">
-        <span class="about-eyebrow">PARAVOLLEY MPUMALANGA</span>
+    <!-- =========================
+         HERO SECTION
+    ========================== -->
 
-        <h1>Empowering Athletes.<br />
-            <span>Building Champions.</span>
-        </h1>
+    <section class="about-hero-modern">
 
-        <p>
-            Promoting inclusive sport, developing athletes and creating
-            opportunities for people with disabilities through ParaVolley.
-        </p>
+        <div class="container">
 
-        <div class="about-hero-actions">
-            <a href="#who-we-are" class="btn btn-pv-gold">Discover Our Story</a>
-            <a href="#get-involved" class="btn btn-about-outline">Get Involved</a>
+            <div class="about-hero-grid">
+
+                <!-- LEFT: Hero Content -->
+                <div class="about-hero-content">
+
+                    <span class="about-hero-label">
+                        ABOUT PARAVOLLEY MPUMALANGA
+                    </span>
+
+                    <h1>
+                        Sport Without
+                        <span>Barriers.</span>
+                    </h1>
+
+                    <p>
+                        ParaVolley Mpumalanga is committed to creating inclusive
+                        sporting opportunities where athletes can develop their
+                        abilities, build confidence and experience the power of
+                        competition and community.
+                    </p>
+
+                    <div class="about-hero-actions">
+
+                        <a href="#who-we-are"
+                           class="btn btn-pv-gold">
+                            <i class="bi bi-arrow-down-circle-fill me-2"></i>
+                            Learn More
+                        </a>
+
+                        <a asp-controller="Home"
+                           asp-action="Contact"
+                           asp-fragment="send-message"
+                           class="btn btn-about-outline">
+                            <i class="bi bi-people-fill me-2"></i>
+                            Get Involved
+                        </a>
+
+                    </div>
+
+                </div>
+
+                <!-- RIGHT: About Hero Slideshow -->
+                <div class="about-hero-slider">
+
+                    <div class="about-slide active">
+                        <img src="~/images/about-slide-1.png"
+                             asp-append-version="true"
+                             alt="ParaVolley Mpumalanga athletes playing sitting volleyball" />
+                    </div>
+
+                    <div class="about-slide">
+                        <img src="~/images/about-slide-2.png"
+                             asp-append-version="true"
+                             alt="ParaVolley athletes during training" />
+                    </div>
+
+                    <div class="about-slide">
+                        <img src="~/images/about-slide-3.png"
+                             asp-append-version="true"
+                             alt="ParaVolley Mpumalanga community and athletes" />
+                    </div>
+
+                    <!-- Previous Button -->
+                    <button type="button"
+                            class="about-slider-button about-slider-prev"
+                            aria-label="Previous image">
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
+
+                    <!-- Next Button -->
+                    <button type="button"
+                            class="about-slider-button about-slider-next"
+                            aria-label="Next image">
+                        <i class="bi bi-chevron-right"></i>
+                    </button>
+
+                    <!-- Slide Indicators -->
+                    <div class="about-slider-dots">
+
+                        <button type="button"
+                                class="about-slider-dot active"
+                                aria-label="Show slide 1"></button>
+
+                        <button type="button"
+                                class="about-slider-dot"
+                                aria-label="Show slide 2"></button>
+
+                        <button type="button"
+                                class="about-slider-dot"
+                                aria-label="Show slide 3"></button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
         </div>
-    </div>
 
-    <div class="about-hero-decoration">
-        <div class="about-ball"><i class="bi bi-trophy-fill"></i></div>
-    </div>
-</section>
+    </section>
 
-<!-- Who We Are -->
-<section id="who-we-are" class="about-section">
-    <div class="about-section-heading">
-        <span class="about-section-label">WHO WE ARE</span>
-        <h2>About ParaVolley Mpumalanga</h2>
-        <div class="about-heading-line"></div>
-    </div>
 
-    <div class="about-two-column">
-        <div>
-            <p class="about-lead">ParaVolley Mpumalanga is a sporting organisation committed to creating opportunities for athletes with disabilities to participate, develop and excel in volleyball.</p>
-            <p>Through training, competitions, coaching and community engagement, we aim to create an environment where every athlete can develop their abilities, build confidence and experience the benefits of sport.</p>
-            <p>Our work is built around inclusion, teamwork, discipline and the belief that disability should never prevent an athlete from pursuing their sporting dreams.</p>
+    <!-- =========================
+         WHO WE ARE
+    ========================== -->
+    <section id="who-we-are" class="about-modern-section about-who-section">
+        <div class="container">
+
+            <div class="about-modern-heading">
+                <span class="about-modern-label">WHO WE ARE</span>
+
+                <h2>
+                    Creating Opportunities
+                    <span>Through Sport</span>
+                </h2>
+
+                <div class="about-modern-line"></div>
+            </div>
+
+            <div class="row align-items-center g-5">
+
+                <div class="col-lg-7">
+                    <div class="about-story-content">
+
+                        <p class="about-story-lead">
+                            ParaVolley Mpumalanga is a sporting organisation committed
+                            to creating meaningful opportunities for athletes with
+                            disabilities to participate, develop and excel in volleyball.
+                        </p>
+
+                        <p>
+                            Through training, competitions, coaching and community
+                            engagement, we aim to create an environment where every
+                            athlete can develop their abilities, build confidence and
+                            experience the benefits of sport.
+                        </p>
+
+                        <p>
+                            Our work is built around inclusion, teamwork, discipline
+                            and the belief that disability should never prevent an
+                            athlete from pursuing their sporting dreams.
+                        </p>
+
+                        <div class="about-story-points">
+
+                            <div class="about-story-point">
+                                <div class="about-story-point-icon">
+                                    <i class="bi bi-check-lg"></i>
+                                </div>
+
+                                <div>
+                                    <strong>Inclusive Participation</strong>
+                                    <span>Sporting opportunities for everyone</span>
+                                </div>
+                            </div>
+
+                            <div class="about-story-point">
+                                <div class="about-story-point-icon">
+                                    <i class="bi bi-check-lg"></i>
+                                </div>
+
+                                <div>
+                                    <strong>Athlete Development</strong>
+                                    <span>Supporting athletes to reach their potential</span>
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="col-lg-5">
+
+                    <div class="about-feature-card">
+
+                        <div class="about-feature-icon">
+                            <i class="bi bi-universal-access"></i>
+                        </div>
+
+                        <span class="about-feature-label">
+                            OUR BELIEF
+                        </span>
+
+                        <h3>
+                            <span class="who-sport-white">Sport Without</span>
+                            <span>Barriers.</span>
+                        </h3>
+
+                        <p>
+                            Everyone deserves the opportunity to participate in sport,
+                            develop their talents and belong to a supportive sporting
+                            community.
+                        </p>
+
+                        <div class="about-feature-footer">
+                            <i class="bi bi-arrow-right-circle-fill"></i>
+                            <span>Inclusion through sport</span>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
         </div>
-        <div class="about-highlight-card">
-            <div class="about-highlight-icon"><i class="bi bi-universal-access"></i></div>
-            <h3>Sport Without Barriers</h3>
-            <p>We believe that everyone deserves the opportunity to participate in sport, develop their talents and belong to a supportive sporting community.</p>
+    </section>
+
+
+    <!-- =========================
+         MISSION & VISION
+    ========================== -->
+    <section class="about-purpose-section">
+
+        <div class="container">
+
+            <div class="about-modern-heading centered-heading light-heading">
+                <span class="about-modern-label">OUR PURPOSE</span>
+
+                <h2>
+                    What Drives
+                    <span>Our Work</span>
+                </h2>
+
+                <div class="about-modern-line"></div>
+            </div>
+
+            <div class="row g-4">
+
+                <!-- Mission -->
+                <div class="col-lg-6">
+
+                    <div class="about-purpose-card">
+
+                        <div class="about-purpose-top">
+                            <div class="about-purpose-icon">
+                                <i class="bi bi-bullseye"></i>
+                            </div>
+
+                            <span>OUR MISSION</span>
+                        </div>
+
+                        <h3>
+                            <span class="mission-white-text">Creating Opportunities</span>
+                            <span>Through Sport</span>
+                        </h3>
+
+                        <p>
+                            To promote and develop ParaVolley in Mpumalanga by
+                            providing athletes with opportunities to train, compete,
+                            develop their skills and participate meaningfully in
+                            their communities.
+                        </p>
+
+                        <div class="about-card-number">01</div>
+
+                    </div>
+
+                </div>
+
+                <!-- Vision -->
+                <div class="col-lg-6">
+
+                    <div class="about-purpose-card about-purpose-card-gold">
+
+                        <div class="about-purpose-top">
+                            <div class="about-purpose-icon">
+                                <i class="bi bi-eye-fill"></i>
+                            </div>
+
+                            <span>OUR VISION</span>
+                        </div>
+
+                        <h3>
+                            A More Inclusive
+                            <span>Sporting Community</span>
+                        </h3>
+
+                        <p>
+                            To build a recognised and sustainable ParaVolley
+                            community where athletes with disabilities are
+                            empowered to reach their full sporting potential
+                            and inspire future generations.
+                        </p>
+
+                        <div class="about-card-number">02</div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
         </div>
-    </div>
-</section>
 
-<!-- Mission & Vision -->
-<section class="about-mission-section">
-    <div class="about-mission-card">
-        <div class="about-card-icon"><i class="bi bi-bullseye"></i></div>
-        <span>OUR MISSION</span>
-        <h3>Creating Opportunities Through Sport</h3>
-        <p>To promote and develop ParaVolley in Mpumalanga by providing athletes with opportunities to train, compete, develop their skills and participate meaningfully in their communities.</p>
-    </div>
-    <div class="about-vision-card">
-        <div class="about-card-icon gold-icon"><i class="bi bi-eye-fill"></i></div>
-        <span>OUR VISION</span>
-        <h3>A More Inclusive Sporting Community</h3>
-        <p>To build a recognised and sustainable ParaVolley community where athletes with disabilities are empowered to reach their full sporting potential and inspire future generations.</p>
-    </div>
-</section>
+    </section>
 
-<!-- Values -->
-<section class="about-section about-values-section">
-    <div class="about-section-heading">
-        <span class="about-section-label">WHAT GUIDES US</span>
-        <h2>Our Core Values</h2>
-        <div class="about-heading-line"></div>
-    </div>
-    <div class="about-values-grid">
-        <div class="about-value-card"><div class="value-icon"><i class="bi bi-people-fill"></i></div><h3>Inclusion</h3><p>Creating an environment where every athlete feels welcomed, respected and valued.</p></div>
-        <div class="about-value-card"><div class="value-icon"><i class="bi bi-heart-fill"></i></div><h3>Passion</h3><p>Encouraging athletes and volunteers to pursue sport with commitment, enthusiasm and purpose.</p></div>
-        <div class="about-value-card"><div class="value-icon"><i class="bi bi-shield-check"></i></div><h3>Integrity</h3><p>Promoting honesty, fairness, accountability and respect throughout our sporting community.</p></div>
-        <div class="about-value-card"><div class="value-icon"><i class="bi bi-people"></i></div><h3>Teamwork</h3><p>Working together to support athletes, coaches, volunteers and the wider community.</p></div>
-    </div>
-</section>
 
-<!-- What We Do -->
-<section class="about-activities-section">
-    <div class="about-section-heading light-heading">
-        <span class="about-section-label">OUR WORK</span><h2>What We Do</h2><div class="about-heading-line"></div>
-    </div>
-    <div class="about-activities-grid">
-        <div class="about-activity"><i class="bi bi-person-arms-up"></i><h3>Athlete Development</h3><p>Supporting athletes as they develop their volleyball skills, confidence and competitive abilities.</p></div>
-        <div class="about-activity"><i class="bi bi-person-video3"></i><h3>Training & Coaching</h3><p>Providing structured training and coaching opportunities to help athletes improve their performance.</p></div>
-        <div class="about-activity"><i class="bi bi-trophy"></i><h3>Competitions</h3><p>Creating opportunities for athletes and teams to compete and showcase their talent.</p></div>
-        <div class="about-activity"><i class="bi bi-globe-africa"></i><h3>Community Development</h3><p>Using sport as a platform to promote inclusion, participation and positive community development.</p></div>
-    </div>
-</section>
+    <!-- =========================
+         VALUES
+    ========================== -->
+    <section class="about-modern-section about-values-modern">
 
-<!-- Why ParaVolley -->
-<section class="about-section">
-    <div class="about-two-column about-why">
-        <div>
-            <span class="about-section-label">WHY PARAVOLLEY?</span>
-            <h2>More Than Just A Sport</h2>
-            <p>ParaVolley creates opportunities that extend beyond the volleyball court. It helps athletes develop confidence, friendships, leadership skills, discipline and a strong sense of belonging.</p>
-            <p>By growing ParaVolley in Mpumalanga, we are working towards a sporting environment where athletes with disabilities are visible, supported and given the opportunity to succeed.</p>
+        <div class="container">
+
+            <div class="about-modern-heading centered-heading">
+
+                <span class="about-modern-label">
+                    WHAT GUIDES US
+                </span>
+
+                <h2>
+                    Our Core
+                    <span>Values</span>
+                </h2>
+
+                <div class="about-modern-line"></div>
+
+                <p class="about-heading-description">
+                    The principles that shape how we support athletes,
+                    work with communities and grow ParaVolley.
+                </p>
+
+            </div>
+
+
+            <div class="row g-4">
+
+                <!-- Inclusion -->
+                <div class="col-md-6 col-xl-3">
+
+                    <div class="about-value-modern">
+
+                        <div class="about-value-icon">
+                            <i class="bi bi-people-fill"></i>
+                        </div>
+
+                        <span class="about-value-number">01</span>
+
+                        <h3>Inclusion</h3>
+
+                        <p>
+                            Creating an environment where every athlete
+                            feels welcomed, respected and valued.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Passion -->
+                <div class="col-md-6 col-xl-3">
+
+                    <div class="about-value-modern">
+
+                        <div class="about-value-icon">
+                            <i class="bi bi-heart-fill"></i>
+                        </div>
+
+                        <span class="about-value-number">02</span>
+
+                        <h3>Passion</h3>
+
+                        <p>
+                            Encouraging athletes and volunteers to pursue
+                            sport with commitment, enthusiasm and purpose.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Integrity -->
+                <div class="col-md-6 col-xl-3">
+
+                    <div class="about-value-modern">
+
+                        <div class="about-value-icon">
+                            <i class="bi bi-shield-check"></i>
+                        </div>
+
+                        <span class="about-value-number">03</span>
+
+                        <h3>Integrity</h3>
+
+                        <p>
+                            Promoting honesty, fairness, accountability and
+                            respect throughout our sporting community.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Teamwork -->
+                <div class="col-md-6 col-xl-3">
+
+                    <div class="about-value-modern">
+
+                        <div class="about-value-icon">
+                            <i class="bi bi-person-hearts"></i>
+                        </div>
+
+                        <span class="about-value-number">04</span>
+
+                        <h3>Teamwork</h3>
+
+                        <p>
+                            Working together to support athletes, coaches,
+                            volunteers and the wider community.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
         </div>
-        <div class="about-stat-panel">
-            <div class="about-stat"><i class="bi bi-universal-access"></i><div><strong>Inclusive</strong><span>Sporting opportunities</span></div></div>
-            <div class="about-stat"><i class="bi bi-trophy"></i><div><strong>Competitive</strong><span>Athlete development</span></div></div>
-            <div class="about-stat"><i class="bi bi-people-fill"></i><div><strong>Community</strong><span>Stronger together</span></div></div>
-        </div>
-    </div>
-</section>
 
-<!-- Get Involved -->
-<section id="get-involved" class="about-cta">
-    <div>
-        <span class="about-section-label">JOIN THE MOVEMENT</span>
-        <h2>Be Part of the ParaVolley Community</h2>
-        <p>Whether you are an athlete, coach, volunteer, supporter or community member, there is a place for you in our journey.</p>
-    </div>
-    <div class="about-cta-actions">
-        <a href="/Home/Contact" class="btn btn-pv-gold">Contact Us</a>
-        <a href="/Home/Index" class="btn btn-about-outline">Explore ParaVolley</a>
-    </div>
-</section>
+    </section>
+
+
+    <!-- =========================
+         WHAT WE DO
+    ========================== -->
+
+    <section id="our-work" class="about-work-section">
+
+        <div class="container">
+
+            <div class="about-modern-heading centered-heading light-heading">
+
+                <span class="about-modern-label">
+                    OUR WORK
+                </span>
+
+                <h2>
+                    What
+                    <span>We Do</span>
+                </h2>
+
+                <div class="about-modern-line"></div>
+
+            </div>
+
+
+            <div class="row g-4">
+
+                <!-- Athlete Development -->
+                <div class="col-md-6 col-lg-3">
+
+                    <a href="#athlete-development"
+                       class="about-work-card-link">
+
+                        <div class="about-work-card">
+
+                            <div class="about-work-icon">
+                                <i class="bi bi-person-arms-up"></i>
+                            </div>
+
+                            <span>01</span>
+
+                            <h3>Athlete Development</h3>
+
+                            <p>
+                                Supporting athletes as they develop their
+                                volleyball skills, confidence and competitive
+                                abilities.
+                            </p>
+
+                            <div class="about-work-card-action">
+                                Learn More
+                                <i class="bi bi-arrow-right"></i>
+                            </div>
+
+                        </div>
+
+                    </a>
+
+                </div>
+
+
+                <!-- Training & Coaching -->
+                <div class="col-md-6 col-lg-3">
+
+                    <a href="#coaching-training"
+                       class="about-work-card-link">
+
+                        <div class="about-work-card">
+
+                            <div class="about-work-icon">
+                                <i class="bi bi-person-video3"></i>
+                            </div>
+
+                            <span>02</span>
+
+                            <h3>Training & Coaching</h3>
+
+                            <p>
+                                Providing structured training and coaching
+                                opportunities to help athletes improve
+                                their performance.
+                            </p>
+
+                            <div class="about-work-card-action">
+                                Learn More
+                                <i class="bi bi-arrow-right"></i>
+                            </div>
+
+                        </div>
+
+                    </a>
+
+                </div>
+
+
+                <!-- Competitions -->
+                <div class="col-md-6 col-lg-3">
+
+                    <a asp-controller="Matches"
+                       asp-action="Index"
+                       class="about-work-card-link">
+
+                        <div class="about-work-card">
+
+                            <div class="about-work-icon">
+                                <i class="bi bi-trophy-fill"></i>
+                            </div>
+
+                            <span>03</span>
+
+                            <h3>Competitions</h3>
+
+                            <p>
+                                Creating opportunities for athletes and teams
+                                to compete and showcase their talent.
+                            </p>
+
+                            <div class="about-work-card-action">
+                                Learn More
+                                <i class="bi bi-arrow-right"></i>
+                            </div>
+
+                        </div>
+
+                    </a>
+
+                </div>
+
+
+                <!-- Community Development -->
+                <div class="col-md-6 col-lg-3">
+
+                    <a href="#community-development"
+                       class="about-work-card-link">
+
+                        <div class="about-work-card">
+
+                            <div class="about-work-icon">
+                                <i class="bi bi-people-fill"></i>
+                            </div>
+
+                            <span>04</span>
+
+                            <h3>Community Development</h3>
+
+                            <p>
+                                Using sport as a platform to promote inclusion,
+                                participation and positive community development.
+                            </p>
+
+                            <div class="about-work-card-action">
+                                Learn More
+                                <i class="bi bi-arrow-right"></i>
+                            </div>
+
+                        </div>
+
+                    </a>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================
+         COACHING & TRAINING
+    ========================== -->
+    <section id="coaching-training" class="about-coaching-section">
+
+        <div class="container">
+
+            <div class="about-coaching-grid">
+
+                <!-- Introduction -->
+                <div class="about-coaching-intro">
+
+                    <span class="about-modern-label">
+                        COACHING & TRAINING
+                    </span>
+
+                    <h2>
+                        Developing
+                        <span>People & Performance.</span>
+                    </h2>
+
+                    <div class="about-modern-line"></div>
+
+                    <p class="about-coaching-lead">
+                        Strong athletes need strong support. ParaVolley
+                        Mpumalanga provides opportunities for athletes,
+                        coaches and volunteers to learn, develop and
+                        grow through sport.
+                    </p>
+
+                    <p>
+                        Through structured training, coaching support and
+                        practical development opportunities, we aim to
+                        create an environment where athletes can improve
+                        their skills while coaches and volunteers can
+                        contribute meaningfully to the sporting community.
+                    </p>
+
+                </div>
+
+
+                <!-- Training Features -->
+                <div class="about-coaching-features">
+
+                    <!-- Feature 1 -->
+                    <div class="about-coaching-feature">
+
+                        <div class="about-coaching-feature-icon">
+                            <i class="bi bi-person-arms-up"></i>
+                        </div>
+
+                        <div>
+                            <span>01</span>
+
+                            <h3>Athlete Training</h3>
+
+                            <p>
+                                Supporting athletes through structured
+                                volleyball training focused on skills,
+                                fitness, confidence and performance.
+                            </p>
+                        </div>
+
+                    </div>
+
+
+                    <!-- Feature 2 -->
+                    <div class="about-coaching-feature">
+
+                        <div class="about-coaching-feature-icon">
+                            <i class="bi bi-person-video3"></i>
+                        </div>
+
+                        <div>
+                            <span>02</span>
+
+                            <h3>Coach Development</h3>
+
+                            <p>
+                                Creating opportunities for coaches to
+                                strengthen their knowledge, leadership
+                                and ability to support athletes.
+                            </p>
+                        </div>
+
+                    </div>
+
+
+                    <!-- Feature 3 -->
+                    <div class="about-coaching-feature">
+
+                        <div class="about-coaching-feature-icon">
+                            <i class="bi bi-people-fill"></i>
+                        </div>
+
+                        <div>
+                            <span>03</span>
+
+                            <h3>Volunteer Support</h3>
+
+                            <p>
+                                Encouraging volunteers to contribute their
+                                time, skills and experience to the growth
+                                of ParaVolley in the community.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- Feature 4 -->
+                    <div class="about-coaching-feature">
+
+                        <div class="about-coaching-feature-icon">
+                            <i class="bi bi-graph-up-arrow"></i>
+                        </div>
+
+                        <div>
+                            <span>04</span>
+
+                            <h3>Continuous Development</h3>
+
+                            <p>
+                                Promoting ongoing learning and development
+                                so that athletes, coaches and volunteers
+                                can continue to reach their potential.
+                            </p>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- Bottom CTA -->
+            <div class="about-coaching-cta">
+
+                <div>
+                    <span>READY TO GET INVOLVED?</span>
+
+                    <h3>
+                        Be Part of the
+                        <strong>Journey.</strong>
+                    </h3>
+                </div>
+
+                <a asp-controller="Home"
+                   asp-action="Contact"
+                   class="about-coaching-cta-button">
+                    Get Involved
+                    <i class="bi bi-arrow-right"></i>
+                </a>
+
+            </div>
+
+        </div>
+
+    </section>
+
+    <!-- =========================
+         COMMUNITY DEVELOPMENT
+    ========================== -->
+    <section id="community-development" class="about-community-section">
+
+        <div class="container">
+
+            <div class="about-community-heading">
+
+                <span class="about-modern-label">
+                    COMMUNITY DEVELOPMENT
+                </span>
+
+                <h2>
+                    Sport
+                    <span>Without Barriers.</span>
+                </h2>
+
+                <div class="about-modern-line"></div>
+
+                <p>
+                    We believe sport has the power to bring people together,
+                    create opportunities and strengthen communities. Through
+                    ParaVolley, we work to make participation more accessible,
+                    inclusive and meaningful.
+                </p>
+
+            </div>
+
+
+            <!-- Community Features -->
+            <div class="row g-4">
+
+                <!-- Inclusive Sport -->
+                <div class="col-md-6 col-lg-3">
+
+                    <div class="about-community-card">
+
+                        <div class="about-community-number">
+                            01
+                        </div>
+
+                        <div class="about-community-icon">
+                            <i class="bi bi-universal-access"></i>
+                        </div>
+
+                        <h3>
+                            Inclusive Sport
+                        </h3>
+
+                        <p>
+                            Creating opportunities for people with disabilities
+                            to participate, compete and enjoy the benefits
+                            of sport.
+                        </p>
+
+                        <div class="about-community-card-line"></div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Community Outreach -->
+                <div class="col-md-6 col-lg-3">
+
+                    <div class="about-community-card">
+
+                        <div class="about-community-number">
+                            02
+                        </div>
+
+                        <div class="about-community-icon">
+                            <i class="bi bi-geo-alt-fill"></i>
+                        </div>
+
+                        <h3>
+                            Community Outreach
+                        </h3>
+
+                        <p>
+                            Connecting with communities and creating awareness
+                            about ParaVolley and opportunities to get involved.
+                        </p>
+
+                        <div class="about-community-card-line"></div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Participation -->
+                <div class="col-md-6 col-lg-3">
+
+                    <div class="about-community-card">
+
+                        <div class="about-community-number">
+                            03
+                        </div>
+
+                        <div class="about-community-icon">
+                            <i class="bi bi-people-fill"></i>
+                        </div>
+
+                        <h3>
+                            Participation
+                        </h3>
+
+                        <p>
+                            Encouraging athletes, families, volunteers and
+                            supporters to become part of an inclusive sporting
+                            community.
+                        </p>
+
+                        <div class="about-community-card-line"></div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Youth & Development -->
+                <div class="col-md-6 col-lg-3">
+
+                    <div class="about-community-card">
+
+                        <div class="about-community-number">
+                            04
+                        </div>
+
+                        <div class="about-community-icon">
+                            <i class="bi bi-graph-up-arrow"></i>
+                        </div>
+
+                        <h3>
+                            Youth & Development
+                        </h3>
+
+                        <p>
+                            Supporting the development of future athletes and
+                            creating pathways for young people to grow through
+                            sport.
+                        </p>
+
+                        <div class="about-community-card-line"></div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- Community Message -->
+            <div class="about-community-message">
+
+                <div class="about-community-message-icon">
+                    <i class="bi bi-heart-fill"></i>
+                </div>
+
+                <div class="about-community-message-content">
+
+                    <span>
+                        OUR COMMUNITY
+                    </span>
+
+                    <h3>
+                        Everyone deserves
+                        <strong>a place to belong.</strong>
+                    </h3>
+
+                    <p>
+                        Whether you're an athlete, coach, volunteer, parent
+                        or supporter, there is a place for you within the
+                        ParaVolley Mpumalanga community.
+                    </p>
+
+                </div>
+
+                <a asp-controller="Home"
+                   asp-action="Contact"
+                   class="about-community-button">
+
+                    Get Involved
+
+                    <i class="bi bi-arrow-right"></i>
+
+                </a>
+
+            </div>
+
+        </div>
+
+    </section>
+
+    <!-- =========================
+         ATHLETE DEVELOPMENT
+    ========================== -->
+
+    <section id="athlete-development" class="about-athlete-section">
+
+        <div class="container">
+
+            <div class="about-athlete-grid">
+
+                <!-- Introduction -->
+                <div class="about-athlete-intro">
+
+                    <span class="about-modern-label">
+                        ATHLETE DEVELOPMENT
+                    </span>
+
+                    <h2>
+                        Building
+                        <span>Stronger Athletes.</span>
+                    </h2>
+
+                    <div class="about-modern-line"></div>
+
+                    <p class="about-athlete-lead">
+                        Every athlete has potential. ParaVolley Mpumalanga
+                        creates opportunities for athletes to develop their
+                        skills, confidence and competitive abilities through
+                        structured sporting opportunities.
+                    </p>
+
+                    <p>
+                        Our athlete development approach focuses on more than
+                        performance. We aim to support athletes as they grow
+                        physically, mentally and socially while creating an
+                        environment where they can participate, compete and
+                        reach their potential.
+                    </p>
+
+                </div>
+
+
+                <!-- Development Areas -->
+                <div class="about-athlete-features">
+
+                    <!-- Skill Development -->
+                    <div class="about-athlete-feature">
+
+                        <div class="about-athlete-feature-icon">
+                            <i class="bi bi-person-arms-up"></i>
+                        </div>
+
+                        <div>
+                            <span>01</span>
+
+                            <h3>
+                                Volleyball Skills
+                            </h3>
+
+                            <p>
+                                Helping athletes develop fundamental volleyball
+                                skills, techniques and game awareness through
+                                practical training.
+                            </p>
+                        </div>
+
+                    </div>
+
+
+                    <!-- Fitness -->
+                    <div class="about-athlete-feature">
+
+                        <div class="about-athlete-feature-icon">
+                            <i class="bi bi-activity"></i>
+                        </div>
+
+                        <div>
+                            <span>02</span>
+
+                            <h3>
+                                Fitness & Performance
+                            </h3>
+
+                            <p>
+                                Supporting athletes in developing their fitness,
+                                physical abilities and overall sporting
+                                performance.
+                            </p>
+                        </div>
+
+                    </div>
+
+
+                    <!-- Confidence -->
+                    <div class="about-athlete-feature">
+
+                        <div class="about-athlete-feature-icon">
+                            <i class="bi bi-star-fill"></i>
+                        </div>
+
+                        <div>
+                            <span>03</span>
+
+                            <h3>
+                                Confidence & Growth
+                            </h3>
+
+                            <p>
+                                Encouraging athletes to build confidence,
+                                resilience and a positive mindset both on and
+                                off the court.
+                            </p>
+                        </div>
+
+                    </div>
+
+
+                    <!-- Competition -->
+                    <div class="about-athlete-feature">
+
+                        <div class="about-athlete-feature-icon">
+                            <i class="bi bi-trophy-fill"></i>
+                        </div>
+
+                        <div>
+                            <span>04</span>
+
+                            <h3>
+                                Competitive Opportunities
+                            </h3>
+
+                            <p>
+                                Creating opportunities for athletes to test
+                                their skills, gain experience and compete
+                                alongside other players and teams.
+                            </p>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- Athlete Development CTA -->
+            <div class="about-athlete-cta">
+
+                <div class="about-athlete-cta-icon">
+                    <i class="bi bi-person-check-fill"></i>
+                </div>
+
+                <div class="about-athlete-cta-content">
+
+                    <span>
+                        ATHLETE JOURNEY
+                    </span>
+
+                    <h3>
+                        Your potential.
+                        <strong>Your journey.</strong>
+                    </h3>
+
+                    <p>
+                        Join a sporting community that supports your growth,
+                        development and opportunity to compete.
+                    </p>
+
+                </div>
+
+                <a asp-controller="Home"
+                   asp-action="Contact"
+                   class="about-athlete-cta-button">
+
+                    Get Involved
+
+                    <i class="bi bi-arrow-right"></i>
+
+                </a>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================
+         WHY PARAVOLLEY
+    ========================== -->
+    <section class="about-modern-section about-why-modern">
+
+        <div class="container">
+
+            <div class="row align-items-center g-5">
+
+                <div class="col-lg-7">
+
+                    <span class="about-modern-label">
+                        WHY PARAVOLLEY?
+                    </span>
+
+                    <h2 class="about-why-title">
+                        More Than
+                        <span>Just a Sport.</span>
+                    </h2>
+
+                    <div class="about-modern-line"></div>
+
+                    <p class="about-why-lead">
+                        ParaVolley creates opportunities that extend beyond
+                        the volleyball court.
+                    </p>
+
+                    <p>
+                        It helps athletes develop confidence, friendships,
+                        leadership skills, discipline and a strong sense
+                        of belonging.
+                    </p>
+
+                    <p>
+                        By growing ParaVolley in Mpumalanga, we are working
+                        towards a sporting environment where athletes with
+                        disabilities are visible, supported and given the
+                        opportunity to succeed.
+                    </p>
+
+                </div>
+
+
+                <div class="col-lg-5">
+
+                    <div class="about-impact-card">
+
+                        <div class="about-impact-header">
+                            <span>OUR IMPACT</span>
+                            <i class="bi bi-bar-chart-fill"></i>
+                        </div>
+
+
+                        <div class="about-impact-item">
+
+                            <div class="about-impact-icon">
+                                <i class="bi bi-universal-access"></i>
+                            </div>
+
+                            <div>
+                                <strong>Inclusive</strong>
+                                <span>Sporting opportunities</span>
+                            </div>
+
+                        </div>
+
+
+                        <div class="about-impact-item">
+
+                            <div class="about-impact-icon">
+                                <i class="bi bi-trophy-fill"></i>
+                            </div>
+
+                            <div>
+                                <strong>Competitive</strong>
+                                <span>Athlete development</span>
+                            </div>
+
+                        </div>
+
+
+                        <div class="about-impact-item">
+
+                            <div class="about-impact-icon">
+                                <i class="bi bi-people-fill"></i>
+                            </div>
+
+                            <div>
+                                <strong>Community</strong>
+                                <span>Stronger together</span>
+                            </div>
+
+                        </div>
+
+
+                        <div class="about-impact-item">
+
+                            <div class="about-impact-icon">
+                                <i class="bi bi-stars"></i>
+                            </div>
+
+                            <div>
+                                <strong>Empowering</strong>
+                                <span>Building confidence</span>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================
+         CALL TO ACTION
+    ========================== -->
+    <section id="get-involved" class="about-cta-modern">
+
+        <div class="about-cta-pattern"></div>
+
+        <div class="container">
+
+            <div class="about-cta-content">
+
+                <div class="about-cta-icon">
+                    <i class="bi bi-people-fill"></i>
+                </div>
+
+                <span class="about-modern-label join-movement-label">
+                    JOIN THE MOVEMENT
+                </span>
+
+                <h2>
+                    <span class="be-part-white">Be Part of the</span>
+                    <span>ParaVolley Community</span>
+                </h2>
+
+                <p>
+                    Whether you are an athlete, coach, volunteer, supporter
+                    or community member, there is a place for you in our journey.
+                </p>
+
+                <div class="about-cta-actions">
+
+                    <a asp-controller="Home"
+                       asp-action="Contact"
+                       class="btn btn-pv-gold">
+                        <i class="bi bi-envelope-fill me-2"></i>
+                        Contact Us
+                    </a>
+
+                    <a href="https://www.facebook.com/people/ParaVolley-Mpumalanga/61571467720896/" class="btn btn-about-outline">
+                        See More on Our Facebook
+                        <i class="bi bi-arrow-right ms-2"></i>
+                    </a>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
 
 </div>

@@ -1,0 +1,427 @@
+﻿@model IEnumerable<Player>
+
+@{
+    ViewData["Title"] = "Our Athletes";
+
+    var athletes = Model?.ToList() ?? new List<Player>();
+
+    var totalMatches = athletes.Sum(p => p.Matches);
+
+    var teamsRepresented = athletes
+        .Where(p => !string.IsNullOrWhiteSpace(p.Team))
+        .Select(p => p.Team)
+        .Distinct()
+        .Count();
+}
+
+
+<!-- =========================================
+     PLAYERS HERO
+========================================= -->
+<section class="players-hero">
+
+    <div class="container">
+
+        <div class="players-hero-content">
+
+            <span class="players-hero-label">
+                PARAVOLLEY MPUMALANGA
+            </span>
+
+            <h1>
+                Meet Our
+                <span>Athletes.</span>
+            </h1>
+
+            <p>
+                Meet the dedicated athletes representing ParaVolley Mpumalanga
+                through inclusive sport, teamwork, development and competitive
+                excellence.
+            </p>
+
+            <div class="players-hero-actions">
+
+                <a href="#our-athletes"
+                   class="btn players-btn-primary">
+
+                    <i class="bi bi-people-fill me-2"></i>
+                    View Athletes
+
+                </a>
+
+
+                <a asp-controller="Home"
+                   asp-action="Join"
+                   class="btn players-btn-outline">
+
+                    <i class="bi bi-person-plus-fill me-2"></i>
+                    Become an Athlete
+
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+
+<!-- =========================================
+     ATHLETE OVERVIEW
+========================================= -->
+<section class="players-overview">
+
+    <div class="container">
+
+        <div class="row g-4">
+
+
+            <!-- ATHLETES -->
+            <div class="col-md-4">
+
+                <div class="player-stat-card">
+
+                    <div class="player-stat-icon">
+                        <i class="bi bi-people-fill"></i>
+                    </div>
+
+                    <div>
+
+                        <strong>
+                            @athletes.Count
+                        </strong>
+
+                        <span>
+                            Featured Athletes
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- MATCHES -->
+            <div class="col-md-4">
+
+                <div class="player-stat-card">
+
+                    <div class="player-stat-icon">
+                        <i class="bi bi-trophy-fill"></i>
+                    </div>
+
+                    <div>
+
+                        <strong>
+                            @totalMatches
+                        </strong>
+
+                        <span>
+                            Matches Played
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- TEAMS -->
+            <div class="col-md-4">
+
+                <div class="player-stat-card">
+
+                    <div class="player-stat-icon">
+                        <i class="bi bi-shield-fill"></i>
+                    </div>
+
+                    <div>
+
+                        <strong>
+                            @teamsRepresented
+                        </strong>
+
+                        <span>
+                            Teams Represented
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+        </div>
+
+    </div>
+
+</section>
+
+
+
+<!-- =========================================
+     ATHLETE CARDS
+========================================= -->
+<section id="our-athletes"
+         class="players-section">
+
+    <div class="container">
+
+
+        <div class="players-section-heading">
+
+            <span class="players-section-label">
+                OUR TEAM
+            </span>
+
+            <h2>
+                Proud to Represent
+                <span>Mpumalanga.</span>
+            </h2>
+
+            <div class="players-heading-line"></div>
+
+            <p>
+                Our athletes demonstrate commitment, teamwork and resilience
+                while helping to grow inclusive volleyball across the province.
+            </p>
+
+        </div>
+
+
+
+        @if (athletes.Any())
+        {
+            <div class="row g-4">
+
+                @foreach (var player in athletes)
+                {
+                    <div class="col-md-6 col-lg-4">
+
+                        <article class="player-card">
+
+
+                            <!-- CARD TOP -->
+                            <div class="player-card-top">
+
+                                <div class="player-avatar">
+
+                                    <i class="bi bi-person-fill"></i>
+
+                                </div>
+
+
+                                @if (!string.IsNullOrWhiteSpace(player.Team))
+                                {
+                                    <div class="player-team-badge">
+
+                                        <i class="bi bi-shield-fill"></i>
+
+                                        @player.Team
+
+                                    </div>
+                                }
+
+                            </div>
+
+
+
+                            <!-- CARD BODY -->
+                            <div class="player-card-body">
+
+
+                                @if (!string.IsNullOrWhiteSpace(player.Position))
+                                {
+                                    <span class="player-position">
+
+                                        @player.Position
+
+                                    </span>
+                                }
+
+
+                            <h3>
+                                @player.Name
+                            </h3>
+
+
+                            <div class="player-classification">
+
+                                <i class="bi bi-trophy-fill"></i>
+
+                                ParaVolley Athlete
+
+                            </div>
+
+
+                            <div class="player-card-divider"></div>
+
+
+                            <div class="player-card-stats">
+
+
+                                <div>
+
+                                    <strong>
+                                        @player.Matches
+                                    </strong>
+
+                                    <span>
+                                        Matches
+                                    </span>
+
+                                </div>
+
+
+                                <div>
+
+                                    <strong>
+                                        @(string.IsNullOrWhiteSpace(player.Team)
+                                                                            ? "—"
+                                                                            : player.Team)
+                                </strong>
+
+                                        <span>
+                                            Team
+                                        </span>
+
+                                    </div>
+
+
+                                </div>
+
+                            </div>
+
+                        </article>
+
+                    </div>
+                        }
+
+            </div>
+        }
+        else
+        {
+            <div class="players-empty-state">
+
+                <div class="players-empty-icon">
+
+                    <i class="bi bi-people-fill"></i>
+
+                </div>
+
+                <h3>
+                    No Athletes Available
+                </h3>
+
+                <p>
+                    Athlete profiles will appear here once they become available.
+                </p>
+
+            </div>
+        }
+
+    </div>
+
+</section>
+
+
+
+<!-- =========================================
+     DEVELOPMENT SECTION
+========================================= -->
+<section class="athlete-development-section">
+
+    <div class="container">
+
+        <div class="athlete-development-box">
+
+
+            <div class="athlete-development-icon">
+
+                <i class="bi bi-person-arms-up"></i>
+
+            </div>
+
+
+            <div class="athlete-development-content">
+
+                <span>
+                    ATHLETE DEVELOPMENT
+                </span>
+
+                <h2>
+                    Building Confidence Through Sport
+                </h2>
+
+                <p>
+                    ParaVolley Mpumalanga supports athlete development through
+                    training, coaching, competition exposure and inclusive
+                    opportunities that help participants grow both on and off
+                    the court.
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+
+<!-- =========================================
+     CTA
+========================================= -->
+<section class="players-cta-section">
+
+    <div class="container">
+
+        <div class="players-cta">
+
+
+            <div>
+
+                <span>
+                    READY TO GET INVOLVED?
+                </span>
+
+                <h2>
+                    Become Part of the
+                    <strong>ParaVolley Team.</strong>
+                </h2>
+
+                <p>
+                    Whether you want to play, volunteer or support our
+                    programmes, we would love to hear from you.
+                </p>
+
+            </div>
+
+
+
+            <a asp-controller="Home"
+               asp-action="Contact"
+               asp-fragment="send-message"
+               class="players-cta-btn">
+
+                Get Involved
+
+                <i class="bi bi-arrow-right"></i>
+
+            </a>
+
+
+        </div>
+
+    </div>
+
+</section>

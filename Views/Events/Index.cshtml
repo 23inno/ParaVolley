@@ -1,229 +1,1173 @@
 @model IEnumerable<Event>
+
 @{
     ViewData["Title"] = "Events";
-    var totalCount = (int)ViewBag.TotalCount;
+
+    var isAuthenticated =
+        User.Identity != null &&
+        User.Identity.IsAuthenticated;
+
+    var totalCount = ViewBag.TotalCount is int count
+        ? count
+        : Model.Count();
+
     var filteredCount = Model.Count();
-    var hasActiveFilters = !string.IsNullOrWhiteSpace((string?)ViewBag.SelectedType)
+
+    var hasActiveFilters =
+        !string.IsNullOrWhiteSpace((string?)ViewBag.SelectedType)
         || !string.IsNullOrWhiteSpace((string?)ViewBag.SelectedStatus);
+
+    /*
+     * Public visitors only need upcoming events.
+     * Admins/Coaches still receive the complete Model below.
+     */
+    var publicEvents = Model
+        .Where(e =>
+            e.Status == EventStatus.Upcoming &&
+            e.Date >= DateTime.Today)
+        .OrderBy(e => e.Date)
+        .ToList();
 }
 
-<div class="pm-header-card mb-3">
-    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
-        <div>
-            <h2 class="pm-title">Event Management</h2>
-            <p class="pm-subtitle"><span id="visibleCount">@filteredCount</span> of @totalCount events</p>
-        </div>
 
-        <div class="d-flex flex-wrap align-items-center gap-2">
-            <div class="search-input-wrap m-0">
-                <i class="bi bi-search"></i>
-                <input type="text" id="liveSearchInput" class="form-control" placeholder="Search by event name or location..." autocomplete="off" />
+@if (!isAuthenticated)
+{
+    <!-- =====================================================
+         PUBLIC EVENTS PAGE
+         ===================================================== -->
+    <!-- Events Hero -->
+    <section class="events-hero">
+
+        <div class="container">
+
+            <div class="events-hero-content">
+
+                <span class="events-hero-label">
+                    PARAVOLLEY MPUMALANGA
+                </span>
+
+                <h1>
+                    Upcoming
+                    <span>Events.</span>
+                </h1>
+
+                <p>
+                    Discover upcoming ParaVolley competitions, training sessions,
+                    workshops and community activities happening across Mpumalanga.
+                </p>
+
+                <div class="events-hero-actions">
+
+                    <a href="#upcoming-events"
+                       class="btn events-btn-primary">
+
+                        <i class="bi bi-calendar-event-fill me-2"></i>
+                        View Upcoming Events
+
+                    </a>
+
+                    <a asp-controller="Home"
+                       asp-action="Contact"
+                       asp-fragment="send-message"
+                       class="btn events-btn-outline">
+
+                        <i class="bi bi-envelope-fill me-2"></i>
+                        Contact Us
+
+                    </a>
+
+                </div>
+
             </div>
 
-            <button type="button" id="filterToggleBtn" class="btn btn-filter-toggle @(hasActiveFilters ? "active" : "")">
-                <i class="bi bi-funnel"></i> Filter
-            </button>
+        </div>
 
-            <a asp-action="Export" id="exportLink" class="btn btn-pm-outline" asp-route-type="@ViewBag.SelectedType" asp-route-status="@ViewBag.SelectedStatus">
-                <i class="bi bi-download"></i> Export
+    </section>
+
+
+    <!-- =====================================================
+         UPCOMING EVENTS
+         ===================================================== -->
+    <section id="upcoming-events"
+             class="events-section">
+
+        <div class="container">
+
+            <div class="events-section-heading">
+
+                <span class="events-section-label">
+                    WHAT'S HAPPENING
+                </span>
+
+                <h2>
+                    Join Our
+                    <span>Upcoming Events</span>
+                </h2>
+
+                <div class="events-heading-line"></div>
+
+                <p>
+                    Take part in ParaVolley activities designed to promote
+                    inclusion, athlete development and competitive opportunities.
+                </p>
+
+            </div>
+
+
+            @if (publicEvents.Any())
+            {
+                <div class="row g-4">
+
+                    @foreach (var eventItem in publicEvents)
+                    {
+                        var publicStatusLabel =
+                        eventItem.Status == EventStatus.InProgress
+                        ? "In Progress"
+                        : eventItem.Status.ToString();
+
+                        <div class="col-md-6 col-lg-4">
+
+                            <div class="event-card">
+
+                                <!-- Date -->
+                                <div class="event-date-block">
+
+                                    <span class="event-date-day">
+                                        @eventItem.Date.Day
+                                    </span>
+
+                                    <span class="event-date-month">
+                                        @eventItem.Date
+                                        .ToString("MMM")
+                                        .ToUpper()
+                                    </span>
+
+                                    <span class="event-date-year">
+                                        @eventItem.Date.Year
+                                    </span>
+
+                                </div>
+
+
+                                <!-- Type and Status -->
+                                <div class="event-card-top">
+
+                                    <div class="event-type-badge">
+
+                                        @if (eventItem.Type == EventType.Tournament)
+                                        {
+                                            <i class="bi bi-trophy-fill"></i>
+                                        }
+                                        else if (eventItem.Type == EventType.Practice)
+                                        {
+                                            <i class="bi bi-person-arms-up"></i>
+                                        }
+                                        else if (eventItem.Type == EventType.Workshop)
+                                        {
+                                            <i class="bi bi-people-fill"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-calendar-event-fill"></i>
+                                        }
+
+                                        <span>
+                                            @eventItem.Type
+                                        </span>
+
+                                    </div>
+
+                                    <span class="event-status-badge">
+                                        @publicStatusLabel
+                                    </span>
+
+                                </div>
+
+
+                                <!-- Event Title -->
+                                <h3>
+                                    @eventItem.Title
+                                </h3>
+
+
+                                <!-- Event Details -->
+                                <div class="event-details">
+
+                                    <div class="event-detail">
+
+                                        <i class="bi bi-clock-fill"></i>
+
+                                        <div>
+                                            <span>Time</span>
+                                            <strong>
+                                                @eventItem.Time
+                                            </strong>
+                                        </div>
+
+                                    </div>
+
+
+                                    <div class="event-detail">
+
+                                        <i class="bi bi-geo-alt-fill"></i>
+
+                                        <div>
+                                            <span>Location</span>
+                                            <strong>
+                                                @eventItem.Location
+                                            </strong>
+                                        </div>
+
+                                    </div>
+
+
+                                    <div class="event-detail">
+
+                                        <i class="bi bi-people-fill"></i>
+
+                                        <div>
+                                            <span>Participants</span>
+                                            <strong>
+                                                @eventItem.Participants
+                                            </strong>
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+
+                                <!-- Public Action -->
+                                <div class="event-card-footer">
+
+                                    <a asp-controller="Home"
+                                       asp-action="Contact"
+                                       asp-fragment="send-message"
+                                       class="event-register-btn">
+
+                                        Register Interest
+
+                                        <i class="bi bi-arrow-right"></i>
+
+                                    </a>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+                    }
+
+                </div>
+            }
+            else
+            {
+                <div class="events-empty-state">
+
+                    <div class="events-empty-icon">
+                        <i class="bi bi-calendar2-x-fill"></i>
+                    </div>
+
+                    <h3>No Upcoming Events</h3>
+
+                    <p>
+                        There are currently no upcoming events available.
+                        Please check back again soon.
+                    </p>
+
+                </div>
+            }
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         EVENT TYPES
+         ===================================================== -->
+    <section class="event-types-section">
+
+        <div class="container">
+
+            <div class="events-section-heading centered">
+
+                <span class="events-section-label">
+                    GET INVOLVED
+                </span>
+
+                <h2>
+                    Something for
+                    <span>Everyone.</span>
+                </h2>
+
+                <div class="events-heading-line"></div>
+
+            </div>
+
+
+            <div class="row g-4">
+
+                <!-- Tournaments -->
+                <div class="col-md-6 col-lg-3">
+
+                    <div class="event-type-card">
+
+                        <div class="event-type-icon">
+                            <i class="bi bi-trophy-fill"></i>
+                        </div>
+
+                        <h3>Tournaments</h3>
+
+                        <p>
+                            Competitive opportunities for athletes and teams
+                            to showcase their skills.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Training -->
+                <div class="col-md-6 col-lg-3">
+
+                    <div class="event-type-card">
+
+                        <div class="event-type-icon">
+                            <i class="bi bi-person-arms-up"></i>
+                        </div>
+
+                        <h3>Training</h3>
+
+                        <p>
+                            Structured training sessions focused on athlete
+                            development and performance.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Workshops -->
+                <div class="col-md-6 col-lg-3">
+
+                    <div class="event-type-card">
+
+                        <div class="event-type-icon">
+                            <i class="bi bi-people-fill"></i>
+                        </div>
+
+                        <h3>Workshops</h3>
+
+                        <p>
+                            Inclusive workshops designed to introduce,
+                            educate and develop participants.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Community Events -->
+                <div class="col-md-6 col-lg-3">
+
+                    <div class="event-type-card">
+
+                        <div class="event-type-icon">
+                            <i class="bi bi-heart-fill"></i>
+                        </div>
+
+                        <h3>Community Events</h3>
+
+                        <p>
+                            Activities that bring people together through
+                            inclusive sport and participation.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         PUBLIC EVENTS CTA
+         ===================================================== -->
+    <section class="events-cta-section">
+
+        <div class="container">
+
+            <div class="events-cta">
+
+                <div>
+
+                    <span>
+                        WANT TO TAKE PART?
+                    </span>
+
+                    <h2>
+                        Join the
+                        <strong>ParaVolley Community.</strong>
+                    </h2>
+
+                    <p>
+                        Contact us to learn more about upcoming events,
+                        participation opportunities and volunteer involvement.
+                    </p>
+
+                </div>
+
+
+                <a asp-controller="Home"
+                   asp-action="Contact"
+                   asp-fragment="send-message"
+                   class="events-cta-btn">
+
+                    Get Involved
+
+                    <i class="bi bi-arrow-right"></i>
+
+                </a>
+
+            </div>
+
+        </div>
+
+    </section>
+}
+else
+{
+    <!-- =====================================================
+         ADMIN / COACH EVENT MANAGEMENT
+         KEEPING REAL APPLICATION FUNCTIONALITY
+         ===================================================== -->
+
+    <div class="pm-header-card mb-3">
+
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+
+            <div>
+
+                <h2 class="pm-title">
+                    Event Management
+                </h2>
+
+                <p class="pm-subtitle">
+                    <span id="visibleCount">
+                        @filteredCount
+                    </span>
+                    of @totalCount events
+                </p>
+
+            </div>
+
+
+            <div class="d-flex flex-wrap align-items-center gap-2">
+
+                <div class="search-input-wrap m-0">
+
+                    <i class="bi bi-search"></i>
+
+                    <input type="text"
+                           id="liveSearchInput"
+                           class="form-control"
+                           placeholder="Search by event name or location..."
+                           autocomplete="off" />
+
+                </div>
+
+
+                <button type="button"
+                        id="filterToggleBtn"
+                        class="btn btn-filter-toggle @(hasActiveFilters ? "active" : "")">
+
+                    <i class="bi bi-funnel"></i>
+                    Filter
+
+                </button>
+
+
+                <a asp-action="Export"
+                   id="exportLink"
+                   class="btn btn-pm-outline"
+                   asp-route-type="@ViewBag.SelectedType"
+                   asp-route-status="@ViewBag.SelectedStatus">
+
+                    <i class="bi bi-download"></i>
+                    Export
+
+                </a>
+
+
+                @if (User.IsInRole("Admin") ||
+                            User.IsInRole("Coach"))
+                {
+                    <a asp-action="Create"
+                       class="btn btn-pm-add js-modal-trigger">
+
+                        <i class="bi bi-plus-lg"></i>
+
+                        @(User.IsInRole("Coach")
+                                        ? "Add Training"
+                                        : "Add Event")
+
             </a>
+                        }
 
-            @if (User.IsInRole("Admin") || User.IsInRole("Coach")) { <a asp-action="Create" class="btn btn-pm-add js-modal-trigger"><i class="bi bi-plus-lg"></i> @(User.IsInRole("Coach") ? "Add Training" : "Add Event")</a> }
-        </div>
-    </div>
-
-    <div id="filterPanel" class="filter-panel @(hasActiveFilters ? "" : "d-none")">
-        <form method="get" id="filterForm">
-            <div class="row g-3 align-items-end">
-                <div class="col-sm-6 col-lg-3">
-                    <label class="d-block">Type</label>
-                    <select name="type" class="form-select" onchange="document.getElementById('filterForm').submit()">
-                        <option value="">All Types</option>
-                        <option value="Tournament" selected="@(ViewBag.SelectedType == "Tournament")">Tournament</option>
-                        <option value="Practice" selected="@(ViewBag.SelectedType == "Practice")">Practice</option>
-                        <option value="Match" selected="@(ViewBag.SelectedType == "Match")">Match</option>
-                        <option value="Workshop" selected="@(ViewBag.SelectedType == "Workshop")">Workshop</option>
-                    </select>
-                </div>
-                <div class="col-sm-6 col-lg-3">
-                    <label class="d-block">Status</label>
-                    <select name="status" class="form-select" onchange="document.getElementById('filterForm').submit()">
-                        <option value="">All Status</option>
-                        <option value="Upcoming" selected="@(ViewBag.SelectedStatus == "Upcoming")">Upcoming</option>
-                        <option value="InProgress" selected="@(ViewBag.SelectedStatus == "InProgress")">In Progress</option>
-                        <option value="Completed" selected="@(ViewBag.SelectedStatus == "Completed")">Completed</option>
-                        <option value="Cancelled" selected="@(ViewBag.SelectedStatus == "Cancelled")">Cancelled</option>
-                    </select>
-                </div>
-                <div class="col-sm-6 col-lg-3">
-                    <a asp-action="Index" class="filter-reset">Reset</a>
-                </div>
             </div>
-        </form>
-    </div>
-</div>
 
-<div class="row g-3" id="eventsGrid">
-    @foreach (var ev in Model)
-    {
-        var typePillClass = ev.Type switch
-        {
-            EventType.Tournament => "em-type-tournament",
-            EventType.Practice => "em-type-practice",
-            EventType.Match => "em-type-match",
-            _ => "em-type-workshop"
-        };
-        var borderClass = ev.Type switch
-        {
-            EventType.Tournament => "border-tournament",
-            EventType.Practice => "border-practice",
-            EventType.Match => "border-match",
-            _ => "border-workshop"
-        };
-        var statusPillClass = ev.Status switch
-        {
-            EventStatus.Upcoming => "em-status-upcoming",
-            EventStatus.InProgress => "em-status-inprogress",
-            EventStatus.Completed => "em-status-completed",
-            _ => "em-status-cancelled"
-        };
-        var statusLabel = ev.Status == EventStatus.InProgress ? "In Progress" : ev.Status.ToString();
+        </div>
 
-        <div class="col-md-6 col-lg-4 event-card-col" data-title="@ev.Title.ToLower()" data-location="@ev.Location.ToLower()">
-            <div class="em-card @borderClass">
-                <div class="em-card-top">
-                    <div class="d-flex gap-2 flex-wrap">
-                        <span class="em-pill @typePillClass">@ev.Type</span>
-                        <span class="em-pill @statusPillClass">@statusLabel</span>
+
+        <!-- Filters -->
+        <div id="filterPanel"
+             class="filter-panel @(hasActiveFilters ? "" : "d-none")">
+
+            <form method="get"
+                  id="filterForm">
+
+                <div class="row g-3 align-items-end">
+
+                    <div class="col-sm-6 col-lg-3">
+
+                        <label class="d-block">
+                            Type
+                        </label>
+
+                        <select name="type"
+                                class="form-select"
+                                onchange="document.getElementById('filterForm').submit()">
+
+                            <option value="">
+                                All Types
+                            </option>
+
+                            <option value="Tournament"
+                                    selected="@(ViewBag.SelectedType == "Tournament")">
+                                Tournament
+                            </option>
+
+                            <option value="Practice"
+                                    selected="@(ViewBag.SelectedType == "Practice")">
+                                Practice
+                            </option>
+
+                            <option value="Match"
+                                    selected="@(ViewBag.SelectedType == "Match")">
+                                Match
+                            </option>
+
+                            <option value="Workshop"
+                                    selected="@(ViewBag.SelectedType == "Workshop")">
+                                Workshop
+                            </option>
+
+                        </select>
+
                     </div>
-                    <div class="d-flex gap-2 flex-shrink-0">
-                            @if (User.IsInRole("Admin") || (User.IsInRole("Coach") && ev.Type == EventType.Practice)) { <a asp-action="Edit" asp-route-id="@ev.Id" class="pm-action-icon edit js-modal-trigger" title="Edit"><i class="bi bi-pencil-square"></i></a><a asp-action="Delete" asp-route-id="@ev.Id" class="pm-action-icon delete js-modal-trigger" title="Delete"><i class="bi bi-trash"></i></a> }
+
+
+                    <div class="col-sm-6 col-lg-3">
+
+                        <label class="d-block">
+                            Status
+                        </label>
+
+                        <select name="status"
+                                class="form-select"
+                                onchange="document.getElementById('filterForm').submit()">
+
+                            <option value="">
+                                All Status
+                            </option>
+
+                            <option value="Upcoming"
+                                    selected="@(ViewBag.SelectedStatus == "Upcoming")">
+                                Upcoming
+                            </option>
+
+                            <option value="InProgress"
+                                    selected="@(ViewBag.SelectedStatus == "InProgress")">
+                                In Progress
+                            </option>
+
+                            <option value="Completed"
+                                    selected="@(ViewBag.SelectedStatus == "Completed")">
+                                Completed
+                            </option>
+
+                            <option value="Cancelled"
+                                    selected="@(ViewBag.SelectedStatus == "Cancelled")">
+                                Cancelled
+                            </option>
+
+                        </select>
+
                     </div>
+
+
+                    <div class="col-sm-6 col-lg-3">
+
+                        <a asp-action="Index"
+                           class="filter-reset">
+
+                            Reset
+
+                        </a>
+
+                    </div>
+
                 </div>
 
-                <div class="em-card-title">@ev.Title</div>
+            </form>
 
-                <div class="em-card-meta"><i class="bi bi-calendar3"></i> @ev.Date.ToString("d MMM yyyy") at @ev.Time</div>
-                <div class="em-card-meta"><i class="bi bi-geo-alt"></i> @ev.Location</div>
-                <div class="em-card-meta mb-3"><i class="bi bi-people"></i> @ev.Participants Participants</div>
-
-                <a asp-action="Details" asp-route-id="@ev.Id" class="btn-view-details js-modal-trigger"><i class="bi bi-eye"></i> View Details</a>
-            </div>
         </div>
-    }
-</div>
-<div class="col-12 d-none" id="noResultsMessage"><div class="pv-card text-center text-muted py-4">No events found.</div></div>
 
-<!-- Shared modal used for View / Edit / Delete - content is loaded via AJAX -->
-<div class="modal fade" id="eventModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content" id="eventModalContent">
-            <div class="modal-body text-center py-5">
-                <div class="spinner-border text-success" role="status"><span class="visually-hidden">Loading...</span></div>
-            </div>
-        </div>
     </div>
-</div>
 
-<partial name="_Pagination" />
+
+    <!-- Event Cards -->
+    <div class="row g-3"
+         id="eventsGrid">
+
+        @foreach (var ev in Model)
+        {
+            var typePillClass = ev.Type switch
+            {
+                EventType.Tournament => "em-type-tournament",
+                EventType.Practice => "em-type-practice",
+                EventType.Match => "em-type-match",
+                _ => "em-type-workshop"
+            };
+
+            var borderClass = ev.Type switch
+            {
+                EventType.Tournament => "border-tournament",
+                EventType.Practice => "border-practice",
+                EventType.Match => "border-match",
+                _ => "border-workshop"
+            };
+
+            var statusPillClass = ev.Status switch
+            {
+                EventStatus.Upcoming => "em-status-upcoming",
+                EventStatus.InProgress => "em-status-inprogress",
+                EventStatus.Completed => "em-status-completed",
+                _ => "em-status-cancelled"
+            };
+
+            var statusLabel =
+            ev.Status == EventStatus.InProgress
+            ? "In Progress"
+            : ev.Status.ToString();
+
+
+            <div class="col-md-6 col-lg-4 event-card-col"
+                 data-title="@ev.Title.ToLower()"
+                 data-location="@ev.Location.ToLower()">
+
+                <div class="em-card @borderClass">
+
+                    <div class="em-card-top">
+
+                        <div class="d-flex gap-2 flex-wrap">
+
+                            <span class="em-pill @typePillClass">
+                                @ev.Type
+                            </span>
+
+                            <span class="em-pill @statusPillClass">
+                                @statusLabel
+                            </span>
+
+                        </div>
+
+
+                        <div class="d-flex gap-2 flex-shrink-0">
+
+                            @if (User.IsInRole("Admin") ||
+                                                (User.IsInRole("Coach") &&
+                                                ev.Type == EventType.Practice))
+                            {
+                                <a asp-action="Edit"
+                                   asp-route-id="@ev.Id"
+                                   class="pm-action-icon edit js-modal-trigger"
+                                   title="Edit">
+
+                                    <i class="bi bi-pencil-square"></i>
+
+                                </a>
+
+                                <a asp-action="Delete"
+                                   asp-route-id="@ev.Id"
+                                   class="pm-action-icon delete js-modal-trigger"
+                                   title="Delete">
+
+                                    <i class="bi bi-trash"></i>
+
+                                </a>
+                            }
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="em-card-title">
+                        @ev.Title
+                    </div>
+
+
+                    <div class="em-card-meta">
+
+                        <i class="bi bi-calendar3"></i>
+
+                        @ev.Date.ToString("d MMM yyyy")
+                        at @ev.Time
+
+                    </div>
+
+
+                    <div class="em-card-meta">
+
+                        <i class="bi bi-geo-alt"></i>
+
+                        @ev.Location
+
+                    </div>
+
+
+                    <div class="em-card-meta mb-3">
+
+                        <i class="bi bi-people"></i>
+
+                        @ev.Participants Participants
+
+                    </div>
+
+
+                    <a asp-action="Details"
+                       asp-route-id="@ev.Id"
+                       class="btn-view-details js-modal-trigger">
+
+                        <i class="bi bi-eye"></i>
+
+                        View Details
+
+                    </a>
+
+                </div>
+
+            </div>
+        }
+
+    </div>
+
+
+    <div class="col-12 d-none"
+         id="noResultsMessage">
+
+        <div class="pv-card text-center text-muted py-4">
+            No events found.
+        </div>
+
+    </div>
+
+
+    <!-- Shared Event Modal -->
+    <div class="modal fade"
+         id="eventModal"
+         tabindex="-1"
+         aria-hidden="true">
+
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+
+            <div class="modal-content"
+                 id="eventModalContent">
+
+                <div class="modal-body text-center py-5">
+
+                    <div class="spinner-border text-success"
+                         role="status">
+
+                        <span class="visually-hidden">
+                            Loading...
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <partial name="_Pagination" />
+}
+
 
 @section Scripts {
-    <script>
-        (function () {
-            var toggleBtn = document.getElementById('filterToggleBtn');
-            var panel = document.getElementById('filterPanel');
-            toggleBtn.addEventListener('click', function () {
-                panel.classList.toggle('d-none');
-                toggleBtn.classList.toggle('active');
-            });
 
-            // ===== Instant, prefix-based client-side search (name OR location) =====
-            var searchInput = document.getElementById('liveSearchInput');
-            var cards = Array.from(document.querySelectorAll('.event-card-col'));
-            var visibleCountEl = document.getElementById('visibleCount');
-            var noResultsMessage = document.getElementById('noResultsMessage');
+    @if (isAuthenticated)
+    {
+        <script>
+            (function () {
 
-            function applySearch() {
-                var query = searchInput.value.trim().toLowerCase();
-                var visible = 0;
+                var toggleBtn =
+                    document.getElementById('filterToggleBtn');
 
-                cards.forEach(function (card) {
-                    var title = card.getAttribute('data-title') || '';
-                    var location = card.getAttribute('data-location') || '';
-                    var matches = query === '' || title.startsWith(query) || location.startsWith(query);
-                    card.style.display = matches ? '' : 'none';
-                    if (matches) visible++;
-                });
+                var panel =
+                    document.getElementById('filterPanel');
 
-                visibleCountEl.textContent = visible;
-                noResultsMessage.classList.toggle('d-none', visible !== 0 || cards.length === 0);
-            }
 
-            searchInput.addEventListener('input', applySearch);
+                if (toggleBtn && panel) {
 
-            var exportLink = document.getElementById('exportLink');
-            var exportBaseHref = exportLink.getAttribute('href');
-            searchInput.addEventListener('input', function () {
-                var url = new URL(exportBaseHref, window.location.origin);
-                if (searchInput.value.trim()) {
-                    url.searchParams.set('search', searchInput.value.trim());
-                } else {
-                    url.searchParams.delete('search');
+                    toggleBtn.addEventListener(
+                        'click',
+                        function () {
+
+                            panel.classList.toggle('d-none');
+
+                            toggleBtn.classList.toggle('active');
+
+                        }
+                    );
+
                 }
-                exportLink.setAttribute('href', url.pathname + url.search);
-            });
 
-            // ===== View / Edit / Delete as an in-page modal card =====
-            var modalEl = document.getElementById('eventModal');
-            var modalContent = document.getElementById('eventModalContent');
-            var bsModal = new bootstrap.Modal(modalEl);
 
-            function loadIntoModal(url) {
-                modalContent.innerHTML = '<div class="modal-body text-center py-5"><div class="spinner-border text-success" role="status"><span class="visually-hidden">Loading...</span></div></div>';
-                bsModal.show();
-                fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                    .then(function (res) { return res.text(); })
-                    .then(function (html) { modalContent.innerHTML = html; })
-                    .catch(function () {
-                        modalContent.innerHTML = '<div class="modal-body"><div class="alert alert-danger mb-0">Could not load that event. Please try again.</div></div>';
-                    });
-            }
+                // =============================================
+                // Instant client-side event search
+                // =============================================
 
-            document.addEventListener('click', function (e) {
-                var link = e.target.closest('.js-modal-trigger');
-                if (link) {
-                    e.preventDefault();
-                    loadIntoModal(link.getAttribute('href'));
-                }
-            });
+                var searchInput =
+                    document.getElementById('liveSearchInput');
 
-            document.addEventListener('submit', function (e) {
-                var form = e.target.closest('.js-ajax-form');
-                if (!form || !modalContent.contains(form)) return;
+                var cards =
+                    Array.from(
+                        document.querySelectorAll(
+                            '.event-card-col'
+                        )
+                    );
 
-                e.preventDefault();
-                var formData = new FormData(form);
+                var visibleCountEl =
+                    document.getElementById('visibleCount');
 
-                fetch(form.getAttribute('action') || window.location.href, {
-                    method: 'POST',
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                    body: formData
-                }).then(function (res) {
-                    var contentType = res.headers.get('content-type') || '';
-                    if (contentType.indexOf('application/json') !== -1) {
-                        return res.json().then(function (data) {
-                            if (data.success) {
-                                bsModal.hide();
-                                window.location.reload();
-                            }
-                        });
-                    } else {
-                        return res.text().then(function (html) { modalContent.innerHTML = html; });
+                var noResultsMessage =
+                    document.getElementById('noResultsMessage');
+
+
+                function applySearch() {
+
+                    if (!searchInput) {
+                        return;
                     }
-                }).catch(function () {
-                    modalContent.innerHTML = '<div class="modal-body"><div class="alert alert-danger mb-0">Something went wrong saving. Please try again.</div></div>';
-                });
-            });
-        })();
-    </script>
+
+                    var query =
+                        searchInput.value
+                            .trim()
+                            .toLowerCase();
+
+                    var visible = 0;
+
+
+                    cards.forEach(function (card) {
+
+                        var title =
+                            card.getAttribute('data-title')
+                            || '';
+
+                        var location =
+                            card.getAttribute('data-location')
+                            || '';
+
+                        var matches =
+                            query === ''
+                            || title.startsWith(query)
+                            || location.startsWith(query);
+
+
+                        card.style.display =
+                            matches ? '' : 'none';
+
+
+                        if (matches) {
+                            visible++;
+                        }
+
+                    });
+
+
+                    if (visibleCountEl) {
+                        visibleCountEl.textContent = visible;
+                    }
+
+
+                    if (noResultsMessage) {
+
+                        noResultsMessage.classList.toggle(
+                            'd-none',
+                            visible !== 0 ||
+                            cards.length === 0
+                        );
+
+                    }
+
+                }
+
+
+                if (searchInput) {
+
+                    searchInput.addEventListener(
+                        'input',
+                        applySearch
+                    );
+
+                }
+
+
+                // =============================================
+                // Export search value
+                // =============================================
+
+                var exportLink =
+                    document.getElementById('exportLink');
+
+
+                if (searchInput && exportLink) {
+
+                    var exportBaseHref =
+                        exportLink.getAttribute('href');
+
+
+                    searchInput.addEventListener(
+                        'input',
+                        function () {
+
+                            var url =
+                                new URL(
+                                    exportBaseHref,
+                                    window.location.origin
+                                );
+
+
+                            if (searchInput.value.trim()) {
+
+                                url.searchParams.set(
+                                    'search',
+                                    searchInput.value.trim()
+                                );
+
+                            }
+                            else {
+
+                                url.searchParams.delete(
+                                    'search'
+                                );
+
+                            }
+
+
+                            exportLink.setAttribute(
+                                'href',
+                                url.pathname + url.search
+                            );
+
+                        }
+                    );
+
+                }
+
+
+                // =============================================
+                // Event management modal
+                // =============================================
+
+                var modalEl =
+                    document.getElementById('eventModal');
+
+                var modalContent =
+                    document.getElementById(
+                        'eventModalContent'
+                    );
+
+
+                if (!modalEl || !modalContent) {
+                    return;
+                }
+
+
+                var bsModal =
+                    new bootstrap.Modal(modalEl);
+
+
+                function loadIntoModal(url) {
+
+                    modalContent.innerHTML =
+                        '<div class="modal-body text-center py-5">' +
+                        '<div class="spinner-border text-success" role="status">' +
+                        '<span class="visually-hidden">Loading...</span>' +
+                        '</div></div>';
+
+
+                    bsModal.show();
+
+
+                    fetch(
+                        url,
+                        {
+                            headers: {
+                                'X-Requested-With':
+                                    'XMLHttpRequest'
+                            }
+                        }
+                    )
+                    .then(function (res) {
+                        return res.text();
+                    })
+                    .then(function (html) {
+                        modalContent.innerHTML = html;
+                    })
+                    .catch(function () {
+
+                        modalContent.innerHTML =
+                            '<div class="modal-body">' +
+                            '<div class="alert alert-danger mb-0">' +
+                            'Could not load that event. Please try again.' +
+                            '</div></div>';
+
+                    });
+
+                }
+
+
+                document.addEventListener(
+                    'click',
+                    function (e) {
+
+                        var link =
+                            e.target.closest(
+                                '.js-modal-trigger'
+                            );
+
+
+                        if (link) {
+
+                            e.preventDefault();
+
+                            loadIntoModal(
+                                link.getAttribute('href')
+                            );
+
+                        }
+
+                    }
+                );
+
+
+                document.addEventListener(
+                    'submit',
+                    function (e) {
+
+                        var form =
+                            e.target.closest(
+                                '.js-ajax-form'
+                            );
+
+
+                        if (!form ||
+                            !modalContent.contains(form)) {
+
+                            return;
+
+                        }
+
+
+                        e.preventDefault();
+
+
+                        var formData =
+                            new FormData(form);
+
+
+                        fetch(
+                            form.getAttribute('action')
+                            || window.location.href,
+                            {
+                                method: 'POST',
+
+                                headers: {
+                                    'X-Requested-With':
+                                        'XMLHttpRequest'
+                                },
+
+                                body: formData
+                            }
+                        )
+                        .then(function (res) {
+
+                            var contentType =
+                                res.headers.get(
+                                    'content-type'
+                                ) || '';
+
+
+                            if (
+                                contentType.indexOf(
+                                    'application/json'
+                                ) !== -1
+                            ) {
+
+                                return res.json()
+                                    .then(function (data) {
+
+                                        if (data.success) {
+
+                                            bsModal.hide();
+
+                                            window.location.reload();
+
+                                        }
+
+                                    });
+
+                            }
+
+
+                            return res.text()
+                                .then(function (html) {
+
+                                    modalContent.innerHTML =
+                                        html;
+
+                                });
+
+                        })
+                        .catch(function () {
+
+                            modalContent.innerHTML =
+                                '<div class="modal-body">' +
+                                '<div class="alert alert-danger mb-0">' +
+                                'Something went wrong saving. Please try again.' +
+                                '</div></div>';
+
+                        });
+
+                    }
+                );
+
+            })();
+        </script>
+    }
 }
