@@ -70,7 +70,7 @@ SportsManagementMVC/
 
 ## Main Features
 
-The final system includes functionality for:
+The system includes functionality for:
 
 - player management
 - coach management
@@ -109,7 +109,7 @@ For local development they are supplied using .NET User Secrets. For the deploye
 
 ## Database
 
-The final application uses PostgreSQL instead of the original in-memory database setup.
+The application uses PostgreSQL instead of the original in-memory database setup.
 
 Entity Framework Core and the Npgsql provider are used to communicate with PostgreSQL.
 
@@ -193,8 +193,6 @@ The implemented mobile functionality includes:
 - QR attendance scanning
 - logout
 
-The official ParaVolley Mpumalanga logo is also used on the final login and dashboard screens.
-
 ## Building the Android App
 
 From the `mobile` directory:
@@ -209,7 +207,7 @@ A successful build produces the debug APK at:
 mobile/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-For production/live testing, the Android application can be built against the deployed Railway API:
+For live beta testing, the Android application can be built against the deployed Railway API:
 
 ```powershell
 .\gradlew.bat assembleDebug -PPARAVOLLEY_API_BASE_URL=https://paravolley-production.up.railway.app/
@@ -219,113 +217,22 @@ For production/live testing, the Android application can be built against the de
 
 The ASP.NET Core website and REST API are deployed together on Railway.
 
-The production setup is:
-
-```text
-Web Browser
-     |
-     v
-ASP.NET Core MVC
-     |
-     +------------------+
-     |                  |
-     |              REST API
-     |                  |
-     |             Android App
-     |
-     v
-Entity Framework Core
-     |
-     v
-Railway PostgreSQL
-```
-
 The Android application does not need to be hosted as a separate web service. It communicates with the deployed API over HTTPS.
-
-## Final Testing
-
-Before the final version was considered complete, the project was tested both locally and against the deployed environment.
-
-The following were successfully verified:
-
-- ASP.NET Core build
-- PostgreSQL connection
-- EF Core migrations
-- Railway deployment
-- public HTTPS website access
-- website login and dashboard
-- Android `assembleDebug`
-- Android unit tests
-- Android lint
-- installation on a physical Samsung Android device
-- player login through the deployed REST API
-- dashboard
-- profile
-- events
-- event registration/cancellation
-- attendance
-- announcements
-- QR functionality
-- logout
-
-The physical-device test confirmed that the Android application can communicate with the Railway-hosted backend and PostgreSQL database over the internet.
 
 ## Environment Setup
 
-The project currently uses two main environments.
-
-### Development
-
-Development and debugging are done locally using ASP.NET Core, PostgreSQL and Android Studio.
-
-Android emulator testing can use:
-
-```text
-http://10.0.2.2:5080/
-```
-
-Physical-device development can also use ADB reverse when required.
-
-### Production
-
-The production version uses:
-
-- Railway ASP.NET Core hosting
-- Railway PostgreSQL
-- HTTPS
-- Railway environment variables for sensitive configuration
-
-The production website/API is available at:
-
-https://paravolley-production.up.railway.app/
-
-A separate staging environment was not created for this project.
+Development and debugging are done locally using ASP.NET Core, PostgreSQL and Android Studio. The live beta environment uses Railway ASP.NET Core hosting, Railway PostgreSQL, HTTPS and Railway environment variables for sensitive configuration.
 
 ## Security
 
-Sensitive information should never be committed to the repository.
-
-This includes:
-
-- PostgreSQL passwords
-- JWT signing keys
-- seeded account passwords
-- production credentials
-- raw JWT tokens
-- local development secrets
-
-Local development secrets are managed using .NET User Secrets and production configuration is stored using Railway environment variables.
+Sensitive information should never be committed to the repository. This includes PostgreSQL passwords, JWT signing keys, seeded account passwords, production credentials, raw JWT tokens and local development secrets. Local development secrets are managed using .NET User Secrets and production configuration is stored using Railway environment variables.
 
 ## Team
 
-The project was completed as a group project, with different members contributing to the website, Android application, backend, database and project management.
-
-The final system brings these parts together through one shared ASP.NET Core backend and PostgreSQL database.
+The project is a group project, with different members contributing to the website, Android application, backend, database and project management.
 
 ## Current Status
 
-The final project is working and has been deployed.
+ParaVolley Mpumalanga is currently in a deployed beta/testing stage. The website and API are publicly accessible through Railway and the PostgreSQL production database is connected. The Android beta communicates with the deployed API and continues to undergo real-device testing and user-interface refinement.
 
-The website is publicly accessible through Railway, the PostgreSQL production database is connected, and the Android application has been successfully installed and tested on a physical Android device using the deployed API.
-
-Further improvements can still be made to the UI, reporting, testing and deployment configuration in future versions.
+The public website frontend is also being refined through reviewed team contributions before changes are incorporated into the deployment branch. Further regression testing, mobile UI refinement and operational checks will continue before the project is treated as a final public release.
