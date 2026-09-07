@@ -1,70 +1,1243 @@
 @{
     ViewData["Title"] = "Home";
+
     var events = (List<Event>)ViewBag.UpcomingEvents;
     var news = (List<Announcement>)ViewBag.RecentAnnouncements;
     var sponsors = (List<Sponsor>)ViewBag.Sponsors;
 }
 
-<section class="paravolley-hero">
-    <div class="container-fluid px-0">
-        <div class="paravolley-hero-image-wrapper">
-            <img src="~/paravolley-hero.png" alt="ParaVolley Mpumalanga seated volleyball athletes" class="paravolley-hero-image" />
+<!-- =========================================
+     HERO
+========================================= -->
+<section class="home-hero">
+
+    <div class="home-hero-image">
+        <img src="~/images/paravolley-hero.png"
+             alt="ParaVolley Mpumalanga seated volleyball athletes" />
+    </div>
+
+    <div class="home-hero-overlay"></div>
+
+    <div class="home-hero-content">
+        <div class="container">
+
+            <div class="home-hero-actions">
+
+                <a asp-controller="Home"
+                   asp-action="About"
+                   class="btn home-btn-primary">
+
+                    <i class="bi bi-info-circle-fill me-2"></i>
+                    Discover Our Story
+                </a>
+
+                <a asp-controller="Home"
+                   asp-action="Contact"
+                   class="btn home-btn-outline">
+
+                    <i class="bi bi-envelope-fill me-2"></i>
+                    Get Involved
+                </a>
+
+            </div>
+
         </div>
     </div>
+
+    <a href="#explore-paravolley"
+       class="home-hero-scroll">
+
+        <span>Explore ParaVolley</span>
+        <i class="bi bi-chevron-down"></i>
+
+    </a>
+
 </section>
 
-<section class="paravolley-contact-bar">
+
+<!-- =========================================
+     CONTACT / QUICK LINKS
+========================================= -->
+<section class="home-contact-strip">
+
     <div class="container">
-        <div class="row align-items-center justify-content-center g-3">
-            <div class="col-md-4 text-center">
-                <a href="mailto:paravolleympumalanga@gmail.com" class="paravolley-contact-link"><span class="contact-icon">✉</span><span><strong>Email Us</strong><br />paravolleympumalanga@gmail.com</span></a>
+
+        <div class="row g-0">
+
+            <div class="col-md-4">
+
+                <a href="mailto:paravolleympumalanga@gmail.com"
+                   class="home-contact-item">
+
+                    <div class="home-contact-icon">
+                        <i class="bi bi-envelope-fill"></i>
+                    </div>
+
+                    <div>
+                        <span>Email Us</span>
+                        <strong>
+                            paravolleympumalanga@gmail.com
+                        </strong>
+                    </div>
+
+                    <i class="bi bi-arrow-up-right home-contact-arrow"></i>
+
+                </a>
+
             </div>
-            <div class="col-md-4 text-center">
-                <a asp-controller="Home" asp-action="Contact" class="paravolley-contact-link"><span class="contact-icon">🌐</span><span><strong>Contact ParaVolley</strong><br />Get in touch with our team</span></a>
+
+
+            <div class="col-md-4">
+
+                <a asp-controller="Home"
+                   asp-action="Contact"
+                   class="home-contact-item">
+
+                    <div class="home-contact-icon">
+                        <i class="bi bi-chat-dots-fill"></i>
+                    </div>
+
+                    <div>
+                        <span>Have an Enquiry?</span>
+                        <strong>Contact Our Team</strong>
+                    </div>
+
+                    <i class="bi bi-arrow-up-right home-contact-arrow"></i>
+
+                </a>
+
             </div>
-            <div class="col-md-4 text-center">
-                <a href="https://www.facebook.com/profile.php?id=61571467720896" target="_blank" rel="noopener noreferrer" class="paravolley-contact-link"><span class="contact-icon">f</span><span><strong>Follow Us on Facebook</strong><br />ParaVolley Mpumalanga</span></a>
+
+
+            <div class="col-md-4">
+
+                <a href="https://www.facebook.com/profile.php?id=61571467720896"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="home-contact-item">
+
+                    <div class="home-contact-icon">
+                        <i class="bi bi-facebook"></i>
+                    </div>
+
+                    <div>
+                        <span>Follow Us on Facebook</span>
+                        <strong>ParaVolley Mpumalanga</strong>
+                    </div>
+
+                    <i class="bi bi-arrow-up-right home-contact-arrow"></i>
+
+                </a>
+
             </div>
+
         </div>
+
     </div>
+
 </section>
 
-<section class="container py-5">
-    <div class="row align-items-center g-4">
-        <div class="col-lg-8">
-            <p class="text-uppercase fw-bold mb-2" style="color: var(--pv-green);">Welcome to ParaVolley Mpumalanga</p>
-            <h2 class="display-6 fw-bold">Sport. Inclusion. Community.</h2>
-            <p class="lead text-muted">ParaVolley Mpumalanga promotes opportunities for people with disabilities to participate in volleyball, develop their skills, compete at different levels and become part of a supportive sporting community.</p>
-            <p class="text-muted">Through athlete development, competitions, coaching and community programmes, we work to create an environment where everyone has the opportunity to play, compete and belong.</p>
-            <div class="mt-4"><a asp-controller="Home" asp-action="About" class="btn btn-success fw-semibold me-2">Learn More About Us</a><a asp-controller="Events" asp-action="Index" class="btn btn-warning fw-semibold">View Events</a></div>
-        </div>
-    </div>
-</section>
 
-<section class="py-5" style="background-color: #f7f9f8;">
+<!-- =========================================
+     INTRODUCTION
+========================================= -->
+<section id="explore-paravolley"
+         class="home-intro">
+
     <div class="container">
-        <div class="text-center mb-5"><p class="text-uppercase fw-bold mb-2" style="color: var(--pv-green);">What We Do</p><h2 class="fw-bold">Creating Opportunities Through Sport</h2><p class="text-muted mx-auto" style="max-width: 700px;">ParaVolley Mpumalanga supports athletes, coaches and volunteers while promoting participation, development and inclusion through seated volleyball.</p></div>
+
+        <div class="row align-items-center g-5">
+
+            <div class="col-lg-7">
+
+                <span class="home-section-label">
+                    WELCOME TO PARAVOLLEY MPUMALANGA
+                </span>
+
+                <h2 class="home-section-title">
+                    Creating Opportunities
+                    <span>Through Sport.</span>
+                </h2>
+
+                <div class="home-section-line"></div>
+
+                <p class="home-intro-lead">
+                    ParaVolley Mpumalanga is committed to creating
+                    meaningful opportunities for athletes with
+                    disabilities to participate, develop and excel
+                    through volleyball.
+                </p>
+
+                <p>
+                    Through training, competitions, coaching and
+                    community programmes, we work towards a sporting
+                    environment where athletes can develop their
+                    abilities, build confidence and experience a
+                    genuine sense of belonging.
+                </p>
+
+                <div class="home-intro-actions">
+
+                    <a asp-controller="Home"
+                       asp-action="About"
+                       asp-fragment="who-we-are"
+                       class="btn home-btn-primary">
+
+                        <i class="bi bi-info-circle-fill me-2"></i>
+                        Learn More About Us
+
+                    </a>
+
+                </div>
+
+            </div>
+
+
+            <div class="col-lg-5">
+
+                <div class="home-belief-card">
+
+                    <div class="home-belief-icon">
+                        <i class="bi bi-universal-access"></i>
+                    </div>
+
+                    <span>OUR BELIEF</span>
+
+                    <h3>
+                        <span style="color:#ffffff;">
+                            Sport
+                        </span>
+
+                        <strong>
+                            Without Barriers.
+                        </strong>
+                    </h3>
+
+                    <p>
+                        Every athlete deserves the opportunity to
+                        participate, compete and pursue their
+                        sporting dreams.
+                    </p>
+
+                    <div class="home-belief-footer">
+
+                        <i class="bi bi-check-circle-fill"></i>
+
+                        <span>
+                            Inclusion through sport
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =========================================
+     IMPACT
+========================================= -->
+<section class="home-impact">
+
+    <div class="container">
+
+        <div class="home-impact-inner">
+
+            <div class="home-impact-heading">
+
+                <span>OUR IMPACT</span>
+
+                <h2>
+                    <span style="color:#ffffff;">
+                        More Than
+                    </span>
+                    <br />
+
+                    <strong>
+                        Just a Sport.
+                    </strong>
+                </h2>
+
+            </div>
+
+
+            <div class="home-impact-item">
+
+                <div class="home-impact-icon">
+                    <i class="bi bi-universal-access"></i>
+                </div>
+
+                <strong>Inclusive</strong>
+
+                <span>
+                    Opportunities for athletes
+                </span>
+
+            </div>
+
+
+            <div class="home-impact-item">
+
+                <div class="home-impact-icon">
+                    <i class="bi bi-trophy-fill"></i>
+                </div>
+
+                <strong>Competitive</strong>
+
+                <span>
+                    Developing sporting talent
+                </span>
+
+            </div>
+
+
+            <div class="home-impact-item">
+
+                <div class="home-impact-icon">
+                    <i class="bi bi-people-fill"></i>
+                </div>
+
+                <strong>Community</strong>
+
+                <span>
+                    Building stronger connections
+                </span>
+
+            </div>
+
+
+            <div class="home-impact-item">
+
+                <div class="home-impact-icon">
+                    <i class="bi bi-stars"></i>
+                </div>
+
+                <strong>Empowering</strong>
+
+                <span>
+                    Building confidence
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =========================================
+     WHAT WE DO
+========================================= -->
+<section class="home-services">
+
+    <div class="container">
+
+        <div class="home-section-heading text-center">
+
+            <span class="home-section-label">
+                WHAT WE DO
+            </span>
+
+            <h2 class="home-section-title">
+                Creating Opportunities
+                <span>Through Sport.</span>
+            </h2>
+
+            <p>
+                We support athletes, coaches and volunteers while
+                promoting participation, development and inclusion
+                through ParaVolley.
+            </p>
+
+        </div>
+
+
         <div class="row g-4">
-            <div class="col-md-6 col-lg-3"><div class="pv-card h-100 text-center p-4"><div class="mb-3"><span class="d-inline-flex align-items-center justify-content-center rounded-circle" style="width:70px;height:70px;background-color:#0B6E4F;color:#FFC72C;font-size:30px;">🏐</span></div><h3 class="h5 fw-bold">Athlete Development</h3><p class="text-muted mb-0">Helping athletes develop their volleyball skills, confidence and competitive experience.</p></div></div>
-            <div class="col-md-6 col-lg-3"><div class="pv-card h-100 text-center p-4"><div class="mb-3"><span class="d-inline-flex align-items-center justify-content-center rounded-circle" style="width:70px;height:70px;background-color:#0B6E4F;color:#FFC72C;font-size:30px;">🏆</span></div><h3 class="h5 fw-bold">Competitions</h3><p class="text-muted mb-0">Creating opportunities for athletes to participate in matches, tournaments and sporting events.</p></div></div>
-            <div class="col-md-6 col-lg-3"><div class="pv-card h-100 text-center p-4"><div class="mb-3"><span class="d-inline-flex align-items-center justify-content-center rounded-circle" style="width:70px;height:70px;background-color:#0B6E4F;color:#FFC72C;font-size:30px;">👥</span></div><h3 class="h5 fw-bold">Coaches & Volunteers</h3><p class="text-muted mb-0">Supporting coaches and volunteers who contribute to athlete development and ParaVolley programmes.</p></div></div>
-            <div class="col-md-6 col-lg-3"><div class="pv-card h-100 text-center p-4"><div class="mb-3"><span class="d-inline-flex align-items-center justify-content-center rounded-circle" style="width:70px;height:70px;background-color:#0B6E4F;color:#FFC72C;font-size:30px;">🤝</span></div><h3 class="h5 fw-bold">Community</h3><p class="text-muted mb-0">Building an inclusive sporting community where athletes can play, compete and belong.</p></div></div>
+
+            <!-- Athlete Development -->
+            <div class="col-md-6 col-lg-3">
+
+                <a asp-controller="Home"
+                   asp-action="About"
+                   asp-fragment="athlete-development"
+                   class="home-service-card-link">
+
+                    <div class="home-service-card">
+
+                        <div class="home-service-number">
+                            01
+                        </div>
+
+                        <div class="home-service-icon">
+                            <i class="bi bi-person-arms-up"></i>
+                        </div>
+
+                        <h3>
+                            Athlete Development
+                        </h3>
+
+                        <p>
+                            Helping athletes develop their volleyball
+                            skills, confidence and competitive experience.
+                        </p>
+
+                        <div class="home-service-link">
+                            Athlete Development
+                            <i class="bi bi-arrow-right"></i>
+                        </div>
+
+                    </div>
+
+                </a>
+
+            </div>
+
+
+            <!-- Competitions -->
+            <div class="col-md-6 col-lg-3">
+
+                <a asp-controller="Matches"
+                   asp-action="Index"
+                   class="home-service-card-link">
+
+                    <div class="home-service-card">
+
+                        <div class="home-service-number">
+                            02
+                        </div>
+
+                        <div class="home-service-icon">
+                            <i class="bi bi-trophy-fill"></i>
+                        </div>
+
+                        <h3>
+                            Competitions
+                        </h3>
+
+                        <p>
+                            Creating opportunities for athletes to
+                            participate in matches, tournaments and events.
+                        </p>
+
+                        <div class="home-service-link">
+                            Sporting Events
+                            <i class="bi bi-arrow-right"></i>
+                        </div>
+
+                    </div>
+
+                </a>
+
+            </div>
+
+
+            <!-- Coaching -->
+            <div class="col-md-6 col-lg-3">
+
+                <a asp-controller="Home"
+                   asp-action="About"
+                   asp-fragment="coaching-training"
+                   class="home-service-card-link">
+
+                    <div class="home-service-card">
+
+                        <div class="home-service-number">
+                            03
+                        </div>
+
+                        <div class="home-service-icon">
+                            <i class="bi bi-person-video3"></i>
+                        </div>
+
+                        <h3>
+                            Coaching & Training
+                        </h3>
+
+                        <p>
+                            Supporting coaches and volunteers who
+                            contribute to athlete development.
+                        </p>
+
+                        <div class="home-service-link">
+                            Coaching Support
+                            <i class="bi bi-arrow-right"></i>
+                        </div>
+
+                    </div>
+
+                </a>
+
+            </div>
+
+
+            <!-- Community -->
+            <div class="col-md-6 col-lg-3">
+
+                <a asp-controller="Home"
+                   asp-action="About"
+                   asp-fragment="community-development"
+                   class="home-service-card-link">
+
+                    <div class="home-service-card">
+
+                        <div class="home-service-number">
+                            04
+                        </div>
+
+                        <div class="home-service-icon">
+                            <i class="bi bi-people-fill"></i>
+                        </div>
+
+                        <h3>
+                            Community Development
+                        </h3>
+
+                        <p>
+                            Building an inclusive sporting community where
+                            everyone can play, compete and belong.
+                        </p>
+
+                        <div class="home-service-link">
+                            Our Community
+                            <i class="bi bi-arrow-right"></i>
+                        </div>
+
+                    </div>
+
+                </a>
+
+            </div>
+
         </div>
+
     </div>
+
 </section>
 
-<section class="container py-5">
-    <div class="row g-4">
-        <div class="col-lg-6"><div class="pv-card h-100 p-4"><div class="d-flex justify-content-between align-items-center mb-3"><h2 class="h4 fw-bold mb-0">Upcoming Events</h2><a asp-controller="Events" asp-action="Index" class="small fw-semibold" style="color:var(--pv-green);">View All</a></div>@foreach (var item in events){<div class="border-bottom py-3"><h3 class="h6 fw-bold mb-1">@item.Title</h3><div class="text-muted small">@item.Date.ToString("d MMM yyyy") · @item.Location</div></div>}@if (!events.Any()){<div class="py-4 text-center"><p class="text-muted mb-0">No upcoming events have been published.</p></div>}</div></div>
-        <div class="col-lg-6"><div class="pv-card h-100 p-4"><h2 class="h4 fw-bold mb-3">Latest News</h2>@foreach (var item in news){<div class="border-bottom py-3"><a asp-controller="Announcements" asp-action="Details" asp-route-id="@item.Id" class="fw-semibold text-decoration-none">@item.Title</a><div class="text-muted small mt-1">@item.Date.ToString("d MMM yyyy")</div></div>}@if (!news.Any()){<div class="py-4 text-center"><p class="text-muted mb-0">No news has been published.</p></div>}</div></div>
+
+<!-- =========================================
+     UPCOMING EVENTS + LATEST NEWS
+     REAL DATABASE DATA
+========================================= -->
+<section class="home-dynamic-section">
+
+    <div class="container">
+
+        <div class="home-section-heading text-center">
+
+            <span class="home-section-label">
+                STAY CONNECTED
+            </span>
+
+            <h2 class="home-section-title">
+                Latest From
+                <span>ParaVolley.</span>
+            </h2>
+
+            <p>
+                Keep up with upcoming activities, competitions and
+                announcements from ParaVolley Mpumalanga.
+            </p>
+
+        </div>
+
+
+        <div class="row g-4">
+
+            <!-- Upcoming Events -->
+            <div class="col-lg-6">
+
+                <div class="home-dynamic-card h-100">
+
+                    <div class="home-dynamic-header">
+
+                        <div>
+                            <span class="home-dynamic-label">
+                                SCHEDULE
+                            </span>
+
+                            <h3>
+                                Upcoming Events
+                            </h3>
+                        </div>
+
+                        <div class="home-dynamic-header-icon">
+                            <i class="bi bi-calendar-event-fill"></i>
+                        </div>
+
+                    </div>
+
+
+                    @if (events.Any())
+                    {
+                        <div class="home-dynamic-list">
+
+                            @foreach (var item in events)
+                            {
+                                <div class="home-event-item">
+
+                                    <div class="home-event-date">
+
+                                        <span>
+                                            @item.Date.ToString("dd")
+                                        </span>
+
+                                        <strong>
+                                            @item.Date.ToString("MMM")
+                                        </strong>
+
+                                    </div>
+
+                                    <div class="home-event-content">
+
+                                        <h4>
+                                            @item.Title
+                                        </h4>
+
+                                        <div class="home-event-meta">
+
+                                            <span>
+                                                <i class="bi bi-calendar3"></i>
+                                                @item.Date.ToString("d MMM yyyy")
+                                            </span>
+
+                                            @if (!string.IsNullOrWhiteSpace(item.Location))
+                                            {
+                                                <span>
+                                                    <i class="bi bi-geo-alt-fill"></i>
+                                                    @item.Location
+                                                </span>
+                                            }
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+                            }
+
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="home-empty-state">
+
+                            <i class="bi bi-calendar2-x"></i>
+
+                            <h4>
+                                No Upcoming Events
+                            </h4>
+
+                            <p>
+                                New events will appear here once they
+                                have been published.
+                            </p>
+
+                        </div>
+                    }
+
+
+                    <div class="home-dynamic-footer">
+
+                        <a asp-controller="Events"
+                           asp-action="Index"
+                           class="home-green-btn">
+
+                            View All Events
+                            <i class="bi bi-arrow-right ms-2"></i>
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- Latest News -->
+            <div class="col-lg-6">
+
+                <div class="home-dynamic-card h-100">
+
+                    <div class="home-dynamic-header">
+
+                        <div>
+                            <span class="home-dynamic-label">
+                                NEWS
+                            </span>
+
+                            <h3>
+                                Latest Announcements
+                            </h3>
+                        </div>
+
+                        <div class="home-dynamic-header-icon">
+                            <i class="bi bi-megaphone-fill"></i>
+                        </div>
+
+                    </div>
+
+
+                    @if (news.Any())
+                    {
+                        <div class="home-dynamic-list">
+
+                            @foreach (var item in news)
+                            {
+                                var modalId = $"announcementModal{item.Id}";
+
+                                <button type="button"
+                                        class="home-news-item border-0 text-start w-100 bg-transparent"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#@modalId">
+
+                                    <div class="home-news-icon">
+                                        <i class="bi bi-newspaper"></i>
+                                    </div>
+
+                                    <div class="home-news-content">
+
+                                        <span class="home-news-date">
+                                            @item.Date.ToString("d MMM yyyy")
+                                        </span>
+
+                                        <h4>
+                                            @item.Title
+                                        </h4>
+
+                                        <span class="home-news-link">
+                                            Read Announcement
+                                            <i class="bi bi-arrow-right"></i>
+                                        </span>
+
+                                    </div>
+
+                                </button>
+
+
+                                <!-- Announcement Details Modal -->
+                                <div class="modal fade"
+                                     id="@modalId"
+                                     tabindex="-1"
+                                     aria-labelledby="@($"{modalId}Label")"
+                                     aria-hidden="true">
+
+                                    <div class="modal-dialog modal-dialog-centered modal-lg">
+
+                                        <div class="modal-content home-announcement-modal">
+
+                                            <div class="modal-header">
+
+                                                <div>
+
+                                                    <span class="home-announcement-modal-label">
+                                                        @item.Category
+                                                    </span>
+
+                                                    <h5 class="modal-title"
+                                                        id="@($"{modalId}Label")">
+
+                                                        @item.Title
+
+                                                    </h5>
+
+                                                </div>
+
+                                                <button type="button"
+                                                        class="btn-close"
+                                                        data-bs-dismiss="modal"
+                                                        aria-label="Close">
+                                                </button>
+
+                                            </div>
+
+
+                                            <div class="modal-body">
+
+                                                <div class="home-announcement-meta">
+
+                                                    <span>
+                                                        <i class="bi bi-calendar3 me-1"></i>
+                                                        @item.Date.ToString("d MMMM yyyy")
+                                                    </span>
+
+                                                    @if (!string.IsNullOrWhiteSpace(item.Author))
+                                                    {
+                                                        <span>
+                                                            <i class="bi bi-person-fill me-1"></i>
+                                                            @item.Author
+                                                        </span>
+                                                    }
+
+                                                    @if (item.IsPinned)
+                                                    {
+                                                        <span class="home-announcement-pinned">
+                                                            <i class="bi bi-pin-angle-fill me-1"></i>
+                                                            Pinned
+                                                        </span>
+                                                    }
+
+                                                </div>
+
+
+                                                <div class="home-announcement-text">
+
+                                                    @if (!string.IsNullOrWhiteSpace(item.Excerpt))
+                                                    {
+                                                        <p>
+                                                            @item.Excerpt
+                                                        </p>
+                                                    }
+                                                    else
+                                                    {
+                                                        <p class="text-muted mb-0">
+                                                            No additional announcement details are available.
+                                                        </p>
+                                                    }
+
+                                                </div>
+
+                                            </div>
+
+
+                                            <div class="modal-footer">
+
+                                                <button type="button"
+                                                        class="btn btn-secondary"
+                                                        data-bs-dismiss="modal">
+
+                                                    Close
+
+                                                </button>
+
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+                            }
+
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="home-empty-state">
+
+                            <i class="bi bi-megaphone"></i>
+
+                            <h4>
+                                No Announcements Yet
+                            </h4>
+
+                            <p>
+                                The latest ParaVolley news and
+                                announcements will appear here.
+                            </p>
+
+                        </div>
+                    }
+
+
+                    <div class="home-dynamic-footer">
+
+                        <a asp-controller="Announcements"
+                           asp-action="Index"
+                           class="home-green-btn">
+
+                            View All News
+                            <i class="bi bi-arrow-right ms-2"></i>
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
     </div>
+
 </section>
 
-<section class="container pb-5"><div class="rounded-4 p-5 text-center text-white" style="background:linear-gradient(135deg,var(--pv-green),var(--pv-green-dark));"><h2 class="fw-bold">Get Involved With ParaVolley Mpumalanga</h2><p class="lead mx-auto mb-4" style="max-width:750px;">Whether you are an athlete, coach, volunteer, supporter or community member, there is a place for you in the ParaVolley Mpumalanga family.</p><a asp-controller="Home" asp-action="Contact" class="btn btn-warning btn-lg fw-bold">Contact Us</a></div></section>
 
+<!-- =========================================
+     OUR FOCUS
+========================================= -->
+<section class="home-focus">
+
+    <div class="container">
+
+        <div class="row align-items-center g-5">
+
+            <div class="col-lg-5">
+
+                <span class="home-section-label">
+                    OUR FOCUS
+                </span>
+
+                <h2 class="home-section-title">
+                    Building a Stronger
+                    <span>Sporting Community.</span>
+                </h2>
+
+                <div class="home-section-line"></div>
+
+                <p>
+                    Our work is centred around creating meaningful
+                    opportunities for athletes and developing a
+                    sustainable ParaVolley community in Mpumalanga.
+                </p>
+
+                <a asp-controller="Home"
+                   asp-action="About"
+                   asp-fragment="our-work"
+                   class="btn home-green-btn">
+
+                    Discover Our Work
+                    <i class="bi bi-arrow-right ms-2"></i>
+
+                </a>
+
+            </div>
+
+
+            <div class="col-lg-7">
+
+                <div class="home-focus-list">
+
+                    <div class="home-focus-item">
+
+                        <div class="home-focus-icon">
+                            <i class="bi bi-person-check-fill"></i>
+                        </div>
+
+                        <div>
+                            <span>01</span>
+
+                            <h3>
+                                Athlete Participation
+                            </h3>
+
+                            <p>
+                                Encouraging athletes to participate,
+                                develop and grow through regular
+                                training and competitive opportunities.
+                            </p>
+                        </div>
+
+                    </div>
+
+
+                    <div class="home-focus-item">
+
+                        <div class="home-focus-icon">
+                            <i class="bi bi-mortarboard-fill"></i>
+                        </div>
+
+                        <div>
+                            <span>02</span>
+
+                            <h3>
+                                Coaching & Development
+                            </h3>
+
+                            <p>
+                                Supporting coaches and volunteers who
+                                help athletes improve their skills and
+                                reach their sporting potential.
+                            </p>
+                        </div>
+
+                    </div>
+
+
+                    <div class="home-focus-item">
+
+                        <div class="home-focus-icon">
+                            <i class="bi bi-heart-fill"></i>
+                        </div>
+
+                        <div>
+                            <span>03</span>
+
+                            <h3>
+                                Inclusion & Belonging
+                            </h3>
+
+                            <p>
+                                Creating a welcoming environment where
+                                athletes, families, volunteers and
+                                supporters can connect and belong.
+                            </p>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =========================================
+     WHY PARAVOLLEY
+========================================= -->
+<section class="home-why">
+
+    <div class="container">
+
+        <div class="row align-items-center g-5">
+
+            <div class="col-lg-6">
+
+                <div class="home-why-card">
+
+                    <div class="home-why-card-top">
+
+                        <span>
+                            WHY PARAVOLLEY?
+                        </span>
+
+                        <i class="bi bi-trophy-fill"></i>
+
+                    </div>
+
+                    <h3>
+                        <span style="color:#ffffff;">
+                            Helping Athletes
+                        </span>
+
+                        <span>
+                            Reach Their Potential.
+                        </span>
+                    </h3>
+
+                    <p>
+                        ParaVolley is more than competition. It is a
+                        platform for confidence, friendship, leadership,
+                        discipline and belonging.
+                    </p>
+
+                    <div class="home-why-points">
+
+                        <div>
+                            <i class="bi bi-check-circle-fill"></i>
+                            Inclusive participation
+                        </div>
+
+                        <div>
+                            <i class="bi bi-check-circle-fill"></i>
+                            Athlete development
+                        </div>
+
+                        <div>
+                            <i class="bi bi-check-circle-fill"></i>
+                            Community connection
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="col-lg-6">
+
+                <span class="home-section-label">
+                    THE PARA VOLLEYBALL COMMUNITY
+                </span>
+
+                <h2 class="home-section-title">
+                    Where Every Athlete
+                    <span>Has a Place.</span>
+                </h2>
+
+                <div class="home-section-line"></div>
+
+                <p class="home-why-lead">
+                    We believe sport can create lasting opportunities
+                    and positive change.
+                </p>
+
+                <p>
+                    By growing ParaVolley in Mpumalanga, we aim to
+                    create an environment where athletes with
+                    disabilities are supported, recognised and
+                    empowered to pursue their sporting goals.
+                </p>
+
+                <a asp-controller="Home"
+                   asp-action="Contact"
+                   class="btn home-green-btn">
+
+                    <i class="bi bi-chat-dots-fill me-2"></i>
+                    Connect With Us
+
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =========================================
+     SPONSORS
+     REAL DATABASE DATA
+========================================= -->
 @if (sponsors.Any())
 {
-<section class="py-5" style="background-color:#f7f9f8;"><div class="container text-center"><p class="text-uppercase fw-bold mb-2" style="color:var(--pv-green);">Supporting ParaVolley</p><h2 class="h4 fw-bold mb-4">Our Sponsors & Partners</h2><div class="d-flex flex-wrap justify-content-center gap-3">@foreach (var sponsor in sponsors){<div class="pv-card px-4 py-3"><span class="fw-semibold">@sponsor.Name</span></div>}</div></div></section>
+    <section class="home-sponsors">
+
+        <div class="container">
+
+            <div class="home-section-heading text-center">
+
+                <span class="home-section-label">
+                    OUR PARTNERS
+                </span>
+
+                <h2 class="home-section-title">
+                    Supporting
+                    <span>ParaVolley Mpumalanga.</span>
+                </h2>
+
+                <p>
+                    We appreciate the organisations and partners
+                    helping us create opportunities through sport.
+                </p>
+
+            </div>
+
+
+            <div class="home-sponsor-grid">
+
+                @foreach (var sponsor in sponsors)
+                {
+                    <div class="home-sponsor-card">
+
+                        <div class="home-sponsor-icon">
+                            <i class="bi bi-heart-fill"></i>
+                        </div>
+
+                        <span>
+                            @sponsor.Name
+                        </span>
+
+                    </div>
+                }
+
+            </div>
+
+
+            <div class="text-center mt-4">
+
+                <a asp-controller="Sponsors"
+                   asp-action="Index"
+                   class="btn home-green-btn">
+
+                    View Our Sponsors
+                    <i class="bi bi-arrow-right ms-2"></i>
+
+                </a>
+
+            </div>
+
+        </div>
+
+    </section>
 }
 
-<section class="container py-5 text-center"><h2 class="fw-bold">Play. Compete. Belong.</h2><p class="text-muted mx-auto" style="max-width:700px;">ParaVolley Mpumalanga is committed to building a stronger, more inclusive sporting environment through seated volleyball.</p></section>
+
+<!-- =========================================
+     GET INVOLVED
+========================================= -->
+<section class="home-cta">
+
+    <div class="home-cta-pattern"></div>
+
+    <div class="container">
+
+        <div class="home-cta-content">
+
+            <div class="home-cta-icon">
+                <i class="bi bi-people-fill"></i>
+            </div>
+
+            <span class="home-section-label">
+                JOIN THE MOVEMENT
+            </span>
+
+            <h2>
+                Be Part of the
+                <span>ParaVolley Community.</span>
+            </h2>
+
+            <p>
+                Whether you are an athlete, coach, volunteer,
+                supporter or community member, there is a place
+                for you in our journey.
+            </p>
+
+            <a asp-controller="Registration"
+               asp-action="Index"
+               class="btn home-cta-btn">
+
+                <i class="bi bi-person-plus-fill me-2"></i>
+                Join ParaVolley Mpumalanga
+
+            </a>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =========================================
+     FINAL MESSAGE
+========================================= -->
+<section class="home-final">
+
+    <div class="container text-center">
+
+        <div class="home-final-icon">
+            <i class="bi bi-stars"></i>
+        </div>
+
+        <h2>
+            Play. Compete.
+            <span>Belong.</span>
+        </h2>
+
+        <p>
+            Building a stronger, more inclusive sporting environment
+            through ParaVolley in Mpumalanga.
+        </p>
+
+    </div>
+
+</section>

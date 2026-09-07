@@ -21,9 +21,7 @@ namespace SportsManagementMVC.Controllers
         {
             var today = DateTime.Today;
             ViewBag.UpcomingEvents = await _context.Events.AsNoTracking()
-                .Where(e =>
-                    e.Status == EventStatus.Upcoming &&
-                    e.Date >= today)
+                .Where(e => e.Status == EventStatus.Upcoming && e.Date >= today)
                 .OrderBy(e => e.Date).Take(3).ToListAsync(cancellationToken);
             ViewBag.RecentAnnouncements = await _context.Announcements.AsNoTracking()
                 .OrderByDescending(a => a.IsPinned).ThenByDescending(a => a.Date)
@@ -39,8 +37,22 @@ namespace SportsManagementMVC.Controllers
         public IActionResult About() => View();
 
         [AllowAnonymous]
+        [HttpGet("/Join")]
+        public IActionResult Join() => View("~/Views/Registration/Index.cshtml");
+
+        [AllowAnonymous]
         [HttpGet("/Contact")]
         public IActionResult Contact() => View();
+
+        [AllowAnonymous]
+        [HttpGet("/Athletes")]
+        public IActionResult Athletes()
+        {
+            // Do not expose internal Player database records on the anonymous website.
+            // Public athlete profiles can be introduced later from an explicitly approved
+            // public-profile data source with consent and publication controls.
+            return View("~/Views/Players/Athletes.cshtml");
+        }
 
         [AllowAnonymous]
         [HttpGet("/Results")]
@@ -51,19 +63,11 @@ namespace SportsManagementMVC.Controllers
         public IActionResult News() => RedirectToAction("Index", "Announcements");
 
         [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
-        public async Task<IActionResult> AdminDashboard(
-            CancellationToken cancellationToken)
+        public async Task<IActionResult> AdminDashboard(CancellationToken cancellationToken)
         {
             var today = DateTime.Today;
-            var playerCounts = await _context.Players
-                .AsNoTracking()
-                .GroupBy(_ => 1)
-                .Select(group => new
-                {
-                    Total = group.Count(),
-                    Active = group.Count(player =>
-                        player.Status == PlayerStatus.Active)
-                })
+            var playerCounts = await _context.Players.AsNoTracking().GroupBy(_ => 1)
+                .Select(group => new { Total = group.Count(), Active = group.Count(player => player.Status == PlayerStatus.Active) })
                 .SingleOrDefaultAsync(cancellationToken);
 
             var vm = new DashboardViewModel
@@ -71,39 +75,12 @@ namespace SportsManagementMVC.Controllers
                 TotalPlayers = playerCounts?.Total ?? 0,
                 ActivePlayers = playerCounts?.Active ?? 0,
                 TotalCoaches = await _context.Coaches.CountAsync(cancellationToken),
-                UpcomingEvents = await _context.Events.CountAsync(
-                    e => e.Status == EventStatus.Upcoming && e.Date >= today,
-                    cancellationToken),
-                UpcomingMatches = await _context.Matches.CountAsync(
-                    m => m.Status == MatchStatus.Scheduled,
-                    cancellationToken),
-                TotalAnnouncements = await _context.Announcements.CountAsync(
-                    cancellationToken),
-
-                NextEvents = await _context.Events.AsNoTracking()
-                    .Where(e =>
-                        e.Status == EventStatus.Upcoming &&
-                        e.Date >= today)
-                    .OrderBy(e => e.Date)
-                    .Take(4)
-                    .ToListAsync(cancellationToken),
-
-                NextMatches = await _context.Matches.AsNoTracking()
-                    .Where(m => m.Status == MatchStatus.Scheduled)
-                    .OrderBy(m => m.Date)
-                    .Take(4)
-                    .ToListAsync(cancellationToken),
-
-                RecentAnnouncements = await _context.Announcements.AsNoTracking()
-                    .OrderByDescending(a => a.IsPinned)
-                    .ThenByDescending(a => a.Date)
-                    .Take(4)
-                    .ToListAsync(cancellationToken),
-
-                // Demo time-series for the "Player Statistics" chart. The data model
-                // doesn't track historical monthly snapshots, so this is illustrative
-                // data for the chart - in a production system this would come from
-                // periodic snapshots of the Players table.
+                UpcomingEvents = await _context.Events.CountAsync(e => e.Status == EventStatus.Upcoming && e.Date >= today, cancellationToken),
+                UpcomingMatches = await _context.Matches.CountAsync(m => m.Status == MatchStatus.Scheduled, cancellationToken),
+                TotalAnnouncements = await _context.Announcements.CountAsync(cancellationToken),
+                NextEvents = await _context.Events.AsNoTracking().Where(e => e.Status == EventStatus.Upcoming && e.Date >= today).OrderBy(e => e.Date).Take(4).ToListAsync(cancellationToken),
+                NextMatches = await _context.Matches.AsNoTracking().Where(m => m.Status == MatchStatus.Scheduled).OrderBy(m => m.Date).Take(4).ToListAsync(cancellationToken),
+                RecentAnnouncements = await _context.Announcements.AsNoTracking().OrderByDescending(a => a.IsPinned).ThenByDescending(a => a.Date).Take(4).ToListAsync(cancellationToken),
                 PlayerStatsChart = new List<MonthlyPlayerStat>
                 {
                     new() { Month = "Jan", Active = 180, New = 15, Inactive = 8 },
@@ -113,43 +90,23 @@ namespace SportsManagementMVC.Controllers
                     new() { Month = "May", Active = 250, New = 22, Inactive = 6 },
                 },
             };
-
             return View("Index", vm);
         }
 
         [Authorize(Policy = AuthorizationPolicies.CoachOnly)]
-        public async Task<IActionResult> CoachDashboard(
-            CancellationToken cancellationToken)
+        public async Task<IActionResult> CoachDashboard(CancellationToken cancellationToken)
         {
             var today = DateTime.Today;
-            var attendanceCounts = await _context.Attendances
-                .AsNoTracking()
-                .GroupBy(_ => 1)
-                .Select(group => new
-                {
-                    Total = group.Count(),
-                    Present = group.Count(item =>
-                        item.Status == AttendanceStatus.Present)
-                })
+            var attendanceCounts = await _context.Attendances.AsNoTracking().GroupBy(_ => 1)
+                .Select(group => new { Total = group.Count(), Present = group.Count(item => item.Status == AttendanceStatus.Present) })
                 .SingleOrDefaultAsync(cancellationToken);
 
             var vm = new CoachDashboardViewModel
             {
-                ActivePlayers = await _context.Players.CountAsync(
-                    p => p.Status == PlayerStatus.Active,
-                    cancellationToken),
-                UpcomingTraining = await _context.Events.AsNoTracking()
-                    .Where(e =>
-                        e.Type == EventType.Practice &&
-                        e.Status == EventStatus.Upcoming &&
-                        e.Date >= today)
-                    .OrderBy(e => e.Date).Take(6).ToListAsync(cancellationToken),
-                UpcomingMatches = await _context.Matches.AsNoTracking()
-                    .Where(m => m.Status == MatchStatus.Scheduled)
-                    .OrderBy(m => m.Date).Take(6).ToListAsync(cancellationToken),
-                RecentAnnouncements = await _context.Announcements.AsNoTracking()
-                    .OrderByDescending(a => a.IsPinned).ThenByDescending(a => a.Date)
-                    .Take(5).ToListAsync(cancellationToken),
+                ActivePlayers = await _context.Players.CountAsync(p => p.Status == PlayerStatus.Active, cancellationToken),
+                UpcomingTraining = await _context.Events.AsNoTracking().Where(e => e.Type == EventType.Practice && e.Status == EventStatus.Upcoming && e.Date >= today).OrderBy(e => e.Date).Take(6).ToListAsync(cancellationToken),
+                UpcomingMatches = await _context.Matches.AsNoTracking().Where(m => m.Status == MatchStatus.Scheduled).OrderBy(m => m.Date).Take(6).ToListAsync(cancellationToken),
+                RecentAnnouncements = await _context.Announcements.AsNoTracking().OrderByDescending(a => a.IsPinned).ThenByDescending(a => a.Date).Take(5).ToListAsync(cancellationToken),
                 AttendanceRecords = attendanceCounts?.Total ?? 0,
                 PresentRecords = attendanceCounts?.Present ?? 0
             };
@@ -157,9 +114,6 @@ namespace SportsManagementMVC.Controllers
         }
 
         [AllowAnonymous]
-        public IActionResult Error()
-        {
-            return View();
-        }
+        public IActionResult Error() => View();
     }
 }

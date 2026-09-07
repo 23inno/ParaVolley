@@ -1,0 +1,56 @@
+@{
+    ViewData["Title"] = "Our Athletes";
+}
+
+<section class="players-hero">
+    <div class="container">
+        <div class="players-hero-content">
+            <span class="players-hero-label">PARAVOLLEY MPUMALANGA</span>
+            <h1>Our <span>Athletes.</span></h1>
+            <p>ParaVolley Mpumalanga celebrates the athletes who grow inclusive sport through teamwork, development and competitive excellence.</p>
+            <div class="players-hero-actions">
+                <a asp-controller="Home" asp-action="Join" class="btn players-btn-primary"><i class="bi bi-person-plus-fill me-2"></i> Become an Athlete</a>
+                <a asp-controller="Home" asp-action="Contact" class="btn players-btn-outline"><i class="bi bi-envelope-fill me-2"></i> Contact Us</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="our-athletes" class="players-section">
+    <div class="container">
+        <div class="players-section-heading">
+            <span class="players-section-label">OUR TEAM</span>
+            <h2>Proud to Represent <span>Mpumalanga.</span></h2>
+            <div class="players-heading-line"></div>
+            <p>Our athletes demonstrate commitment, teamwork and resilience while helping to grow inclusive volleyball across the province.</p>
+        </div>
+
+        <div class="players-empty-state">
+            <div class="players-empty-icon"><i class="bi bi-people-fill"></i></div>
+            <h3>Athlete Profiles Coming Soon</h3>
+            <p>Public athlete profiles will be published here once the organisation has approved the information for public display.</p>
+        </div>
+    </div>
+</section>
+
+<section class="athlete-development-section">
+    <div class="container">
+        <div class="athlete-development-box">
+            <div class="athlete-development-icon"><i class="bi bi-person-arms-up"></i></div>
+            <div class="athlete-development-content">
+                <span>ATHLETE DEVELOPMENT</span>
+                <h2>Building Confidence Through Sport</h2>
+                <p>ParaVolley Mpumalanga supports athlete development through training, coaching, competition exposure and inclusive opportunities that help participants grow both on and off the court.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="players-cta-section">
+    <div class="container">
+        <div class="players-cta">
+            <div><span>READY TO GET INVOLVED?</span><h2>Become Part of the <strong>ParaVolley Team.</strong></h2><p>Whether you want to play, volunteer or support our programmes, we would love to hear from you.</p></div>
+            <a asp-controller="Home" asp-action="Contact" class="players-cta-btn">Get Involved <i class="bi bi-arrow-right"></i></a>
+        </div>
+    </div>
+</section>

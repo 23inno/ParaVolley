@@ -1,3 +1,414 @@
 @model IEnumerable<Sponsor>
-@{ ViewData["Title"] = "Sponsors"; }
-<div class="container py-5"><h1>Our Sponsors</h1><p class="lead">We acknowledge the organisations supporting ParaVolley Mpumalanga.</p><div class="row g-3 mt-2">@foreach(var s in Model){<div class="col-md-4"><div class="pv-card text-center h-100"><h2 class="h5">@s.Name</h2><span class="badge text-bg-warning">@s.Tier Sponsor</span></div></div>}@if(!Model.Any()){<p class="text-muted">No sponsors have been published.</p>}</div></div>
+
+@{
+    ViewData["Title"] = "Sponsors & Partners";
+}
+
+<!-- =========================================
+     SPONSORS HERO
+========================================= -->
+<section class="sponsors-hero">
+
+    <div class="container">
+
+        <div class="sponsors-hero-content">
+
+            <span class="sponsors-hero-label">
+                PARAVOLLEY MPUMALANGA
+            </span>
+
+            <h1>
+                Our Sponsors &
+                <span>Partners.</span>
+            </h1>
+
+            <p>
+                ParaVolley Mpumalanga is strengthened by organisations,
+                partners and supporters who help us grow inclusive sport,
+                athlete development and community participation.
+            </p>
+
+            <div class="sponsors-hero-actions">
+
+                <a href="#our-sponsors"
+                   class="btn sponsors-btn-primary">
+
+                    <i class="bi bi-hand-thumbs-up-fill me-2"></i>
+
+                    View Our Partners
+
+                </a>
+
+                <a asp-controller="Home"
+                   asp-action="Contact"
+                   asp-fragment="send-message"
+                   class="btn sponsors-btn-outline">
+
+                    <i class="bi bi-building-fill-add me-2"></i>
+
+                    Become a Sponsor
+
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =========================================
+     PARTNERSHIP INTRO
+========================================= -->
+<section class="sponsor-intro-section">
+
+    <div class="container">
+
+        <div class="row align-items-center g-5">
+
+            <div class="col-lg-6">
+
+                <span class="sponsors-section-label">
+                    WORKING TOGETHER
+                </span>
+
+                <h2 class="sponsor-intro-title">
+
+                    Supporting Inclusive Sport
+                    <span>Together.</span>
+
+                </h2>
+
+                <div class="sponsors-heading-line"></div>
+
+                <p class="sponsor-intro-text">
+
+                    Our sponsors and partners play an important role in helping
+                    ParaVolley Mpumalanga provide athletes with access to training,
+                    competitions, equipment, coaching and community opportunities.
+
+                </p>
+
+                <p class="sponsor-intro-text">
+
+                    Every partnership contributes toward building a stronger,
+                    more inclusive sporting environment across Mpumalanga.
+
+                </p>
+
+            </div>
+
+
+            <div class="col-lg-6">
+
+                <div class="sponsor-impact-grid">
+
+                    <div class="sponsor-impact-card">
+
+                        <i class="bi bi-person-arms-up"></i>
+
+                        <strong>
+                            Athlete Development
+                        </strong>
+
+                        <span>
+                            Supporting training and competitive opportunities.
+                        </span>
+
+                    </div>
+
+
+                    <div class="sponsor-impact-card">
+
+                        <i class="bi bi-trophy-fill"></i>
+
+                        <strong>
+                            Competitions
+                        </strong>
+
+                        <span>
+                            Helping athletes participate in organised events.
+                        </span>
+
+                    </div>
+
+
+                    <div class="sponsor-impact-card">
+
+                        <i class="bi bi-people-fill"></i>
+
+                        <strong>
+                            Community Inclusion
+                        </strong>
+
+                        <span>
+                            Expanding adaptive sport within local communities.
+                        </span>
+
+                    </div>
+
+
+                    <div class="sponsor-impact-card">
+
+                        <i class="bi bi-megaphone-fill"></i>
+
+                        <strong>
+                            Awareness
+                        </strong>
+
+                        <span>
+                            Helping share ParaVolley opportunities and achievements.
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =========================================
+     OUR SPONSORS
+========================================= -->
+<section id="our-sponsors"
+         class="sponsors-section">
+
+    <div class="container">
+
+        <div class="sponsors-section-heading">
+
+            <span class="sponsors-section-label">
+                OUR SUPPORTERS
+            </span>
+
+            <h2>
+                Proud to Work With
+                <span>Our Partners.</span>
+            </h2>
+
+            <div class="sponsors-heading-line"></div>
+
+            <p>
+                We acknowledge the organisations and partners
+                supporting ParaVolley Mpumalanga.
+            </p>
+
+        </div>
+
+
+        @if (Model.Any())
+        {
+            <div class="row g-4">
+
+                @foreach (var sponsor in Model)
+                {
+                    <div class="col-md-6 col-lg-4">
+
+                        <article class="sponsor-card">
+
+                            <!-- Generic sponsor icon -->
+                            <div class="sponsor-logo-placeholder">
+
+                                @if (sponsor.Tier == SponsorTier.Gold)
+                                {
+                                    <i class="bi bi-award-fill"></i>
+                                }
+                                else if (sponsor.Tier == SponsorTier.Silver)
+                                {
+                                    <i class="bi bi-star-fill"></i>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-building-fill"></i>
+                                }
+
+                            </div>
+
+
+                            <!-- Real Sponsor Tier -->
+                            <span class="sponsor-type">
+
+                                @sponsor.Tier Sponsor
+
+                            </span>
+
+
+                            <!-- Real Sponsor Name -->
+                            <h3>
+
+                                @sponsor.Name
+
+                            </h3>
+
+
+                            <!-- Safe generic description -->
+                            <p>
+
+                                A valued supporter of ParaVolley Mpumalanga,
+                                helping strengthen inclusive sport, athlete
+                                development and community participation.
+
+                            </p>
+
+                        </article>
+
+                    </div>
+                }
+
+            </div>
+        }
+        else
+        {
+            <div class="competition-empty-state">
+
+                <i class="bi bi-building"></i>
+
+                <h3>
+                    No Sponsors Published Yet
+                </h3>
+
+                <p>
+                    Sponsor and partner information will appear here
+                    once organisations are added.
+                </p>
+
+            </div>
+        }
+
+    </div>
+
+</section>
+
+
+<!-- =========================================
+     WHY SPONSOR
+========================================= -->
+<section class="why-sponsor-section">
+
+    <div class="container">
+
+        <div class="why-sponsor-box">
+
+            <div class="why-sponsor-content">
+
+                <span>
+                    PARTNER WITH US
+                </span>
+
+                <h2>
+                    Why Support ParaVolley Mpumalanga?
+                </h2>
+
+                <p>
+                    Sponsorship helps create meaningful sporting opportunities
+                    while supporting inclusion, community development and athlete growth.
+                </p>
+
+
+                <div class="why-sponsor-points">
+
+                    <div>
+
+                        <i class="bi bi-check-circle-fill"></i>
+
+                        Support inclusive sport
+
+                    </div>
+
+
+                    <div>
+
+                        <i class="bi bi-check-circle-fill"></i>
+
+                        Help develop athletes
+
+                    </div>
+
+
+                    <div>
+
+                        <i class="bi bi-check-circle-fill"></i>
+
+                        Strengthen local communities
+
+                    </div>
+
+
+                    <div>
+
+                        <i class="bi bi-check-circle-fill"></i>
+
+                        Build positive social impact
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="why-sponsor-icon">
+
+                <i class="bi bi-heart-fill"></i>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =========================================
+     CTA
+========================================= -->
+<section class="sponsors-cta-section">
+
+    <div class="container">
+
+        <div class="sponsors-cta">
+
+            <div>
+
+                <span>
+                    LET'S WORK TOGETHER
+                </span>
+
+                <h2>
+                    Become a
+                    <strong>ParaVolley Partner.</strong>
+                </h2>
+
+                <p>
+                    Contact ParaVolley Mpumalanga to discuss sponsorship,
+                    partnership and community support opportunities.
+                </p>
+
+            </div>
+
+
+            <a asp-controller="Home"
+               asp-action="Contact"
+               asp-fragment="send-message"
+               class="sponsors-cta-btn">
+
+                Contact Us
+
+                <i class="bi bi-arrow-right"></i>
+
+            </a>
+
+        </div>
+
+    </div>
+
+</section>

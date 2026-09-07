@@ -1,11 +1,802 @@
 @model IEnumerable<Match>
+
 @{
-    ViewData["Title"] = "Matches";
-    var totalCount = (int)ViewBag.TotalCount;
+    ViewData["Title"] = "Competitions & Matches";
+
+    var isAuthenticated =
+        User.Identity != null &&
+        User.Identity.IsAuthenticated;
+
+    var totalCount =
+        ViewBag.TotalCount is int count
+            ? count
+            : Model.Count();
+
     var filteredCount = Model.Count();
-    var hasActiveFilters = !string.IsNullOrWhiteSpace((string?)ViewBag.SelectedTournament)
+
+    var hasActiveFilters =
+        !string.IsNullOrWhiteSpace((string?)ViewBag.SelectedTournament)
         || !string.IsNullOrWhiteSpace((string?)ViewBag.SelectedStatus);
+
+    // Public competition data comes directly from the REAL Match model.
+    var upcomingMatches = Model
+        .Where(m =>
+            m.Status == MatchStatus.Scheduled &&
+            m.Date >= DateTime.Today)
+        .OrderBy(m => m.Date)
+        .ToList();
+
+    var liveMatches = Model
+        .Where(m => m.Status == MatchStatus.InProgress)
+        .OrderBy(m => m.Date)
+        .ToList();
+
+    var matchResults = Model
+        .Where(m => m.Status == MatchStatus.Completed)
+        .OrderByDescending(m => m.Date)
+        .ToList();
+
+    var publicTournamentCount = Model
+        .Where(m => !string.IsNullOrWhiteSpace(m.Tournament))
+        .Select(m => m.Tournament)
+        .Distinct()
+        .Count();
 }
+
+@if (!isAuthenticated)
+{
+    <!-- =====================================================
+         PUBLIC COMPETITIONS & MATCHES
+         ===================================================== -->
+
+    <section class="competition-page">
+
+        <!-- =================================================
+             HERO
+             ================================================= -->
+        <section class="competition-hero">
+
+            <div class="container">
+
+                <div class="competition-hero-content">
+
+                    <div class="competition-hero-label">
+
+                        <i class="bi bi-trophy-fill"></i>
+
+                        <span>
+                            PARAVOLLEY MPUMALANGA
+                        </span>
+
+                    </div>
+
+
+                    <h1>
+                        Competitions
+                        <span>& Matches.</span>
+                    </h1>
+
+
+                    <p>
+                        Follow upcoming tournaments, scheduled matches and
+                        competition results across ParaVolley Mpumalanga.
+                        Stay connected with the athletes and teams representing
+                        our province.
+                    </p>
+
+
+                    <div class="competition-hero-actions">
+
+                        <a asp-controller="Events"
+                           asp-action="Index"
+                           class="competition-hero-btn competition-hero-btn-primary">
+
+                            <i class="bi bi-calendar-event-fill"></i>
+
+                            View Upcoming Events
+
+                        </a>
+
+
+                        <a href="#upcoming-matches"
+                           class="competition-hero-btn competition-hero-btn-outline">
+
+                            <i class="bi bi-trophy-fill"></i>
+
+                            View Matches
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Hero Stats -->
+                <div class="competition-hero-stat-row">
+
+                    <div class="competition-hero-stat">
+
+                        <i class="bi bi-calendar2-event"></i>
+
+                        <div>
+
+                            <strong>
+                                @upcomingMatches.Count
+                            </strong>
+
+                            <span>
+                                Scheduled Matches
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="competition-hero-stat">
+
+                        <i class="bi bi-broadcast"></i>
+
+                        <div>
+
+                            <strong>
+                                @liveMatches.Count
+                            </strong>
+
+                            <span>
+                                In Progress
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="competition-hero-stat">
+
+                        <i class="bi bi-trophy"></i>
+
+                        <div>
+
+                            <strong>
+                                @publicTournamentCount
+                            </strong>
+
+                            <span>
+                                Tournaments
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             COMPETITION INTRODUCTION
+             ================================================= -->
+        <section class="competition-intro">
+
+            <div class="container">
+
+                <div class="competition-section-heading">
+
+                    <span class="competition-label">
+                        COMPETITIONS
+                    </span>
+
+
+                    <h2>
+                        Creating Opportunities
+                        <span>Through Competition.</span>
+                    </h2>
+
+
+                    <div class="competition-line"></div>
+
+
+                    <p>
+                        ParaVolley Mpumalanga creates opportunities for athletes
+                        to participate in tournaments, friendly matches,
+                        training competitions and other sporting events.
+                    </p>
+
+                </div>
+
+
+                <div class="row g-4 mt-4">
+
+                    <!-- Tournaments -->
+                    <div class="col-md-4">
+
+                        <div class="competition-card">
+
+                            <div class="competition-icon">
+                                <i class="bi bi-trophy-fill"></i>
+                            </div>
+
+                            <span class="competition-card-number">
+                                01
+                            </span>
+
+                            <h3>
+                                Tournaments
+                            </h3>
+
+                            <p>
+                                Take part in organised tournaments that provide
+                                athletes with opportunities to compete, develop
+                                their skills and represent ParaVolley Mpumalanga.
+                            </p>
+
+                            <a asp-controller="Events"
+                               asp-action="Index"
+                               class="competition-card-link">
+
+                                View Tournaments
+
+                                <i class="bi bi-arrow-right"></i>
+
+                            </a>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- Matches -->
+                    <div class="col-md-4">
+
+                        <div class="competition-card">
+
+                            <div class="competition-icon">
+                                <i class="bi bi-dribbble"></i>
+                            </div>
+
+                            <span class="competition-card-number">
+                                02
+                            </span>
+
+                            <h3>
+                                Matches
+                            </h3>
+
+                            <p>
+                                Follow scheduled matches, participating teams,
+                                venues, scores and competition results throughout
+                                the season.
+                            </p>
+
+                            <a href="#upcoming-matches"
+                               class="competition-card-link">
+
+                                View Matches
+
+                                <i class="bi bi-arrow-right"></i>
+
+                            </a>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- Athlete Participation -->
+                    <div class="col-md-4">
+
+                        <div class="competition-card">
+
+                            <div class="competition-icon">
+                                <i class="bi bi-person-check-fill"></i>
+                            </div>
+
+                            <span class="competition-card-number">
+                                03
+                            </span>
+
+                            <h3>
+                                Athlete Participation
+                            </h3>
+
+                            <p>
+                                Give athletes meaningful opportunities to compete,
+                                gain experience, build confidence and progress
+                                through the sporting pathway.
+                            </p>
+
+                            <a asp-controller="Home"
+                               asp-action="About"
+                               asp-fragment="athlete-development"
+                               class="competition-card-link">
+
+                                Athlete Development
+
+                                <i class="bi bi-arrow-right"></i>
+
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             UPCOMING MATCHES
+             ================================================= -->
+        <section id="upcoming-matches"
+                 class="competition-matches-section">
+
+            <div class="container">
+
+                <div class="competition-section-heading">
+
+                    <span class="competition-label">
+                        UPCOMING MATCHES
+                    </span>
+
+                    <h2>
+                        Game Day
+                        <span>Starts Here.</span>
+                    </h2>
+
+                    <p>
+                        Follow upcoming ParaVolley matches, including
+                        participating teams, venues, tournament information
+                        and match times.
+                    </p>
+
+                </div>
+
+
+                @if (upcomingMatches.Any())
+                {
+                    <div class="competition-matches-list">
+
+                        @foreach (var match in upcomingMatches)
+                        {
+                            <article class="competition-match-card">
+
+                                <!-- Date -->
+                                <div class="competition-match-date">
+
+                                    <span>
+                                        @match.Date.ToString("MMM")
+                                    </span>
+
+                                    <strong>
+                                        @match.Date.ToString("dd")
+                                    </strong>
+
+                                    <small>
+                                        @match.Date.ToString("yyyy")
+                                    </small>
+
+                                </div>
+
+
+                                <div class="competition-match-main">
+
+                                    <!-- Top -->
+                                    <div class="competition-match-top">
+
+                                        <span class="competition-match-status">
+
+                                            <i class="bi bi-circle-fill"></i>
+
+                                            <span>
+                                                Scheduled
+                                            </span>
+
+                                        </span>
+
+
+                                        <span class="competition-match-tournament">
+
+                                            <i class="bi bi-trophy-fill"></i>
+
+                                            @match.Tournament
+
+                                        </span>
+
+                                    </div>
+
+
+                                    <!-- Teams -->
+                                    <div class="competition-match-teams">
+
+                                        <!-- Team A -->
+                                        <div class="competition-team">
+
+                                            <span class="competition-team-label">
+                                                HOME TEAM
+                                            </span>
+
+                                            <div class="competition-team-name">
+
+                                                <div class="competition-team-icon">
+
+                                                    <i class="bi bi-shield-fill"></i>
+
+                                                </div>
+
+                                                <h3>
+                                                    @match.TeamA
+                                                </h3>
+
+                                            </div>
+
+                                        </div>
+
+
+                                        <!-- VS -->
+                                        <div class="competition-match-vs">
+
+                                            <span>
+                                                VS
+                                            </span>
+
+                                        </div>
+
+
+                                        <!-- Team B -->
+                                        <div class="competition-team competition-team-right">
+
+                                            <span class="competition-team-label">
+                                                AWAY TEAM
+                                            </span>
+
+                                            <div class="competition-team-name competition-team-name-right">
+
+                                                <h3>
+                                                    @match.TeamB
+                                                </h3>
+
+                                                <div class="competition-team-icon">
+
+                                                    <i class="bi bi-shield-fill"></i>
+
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+
+                                    <!-- Match Details -->
+                                    <div class="competition-match-details">
+
+                                        <span>
+
+                                            <i class="bi bi-clock-fill"></i>
+
+                                            <strong>
+                                                Time
+                                            </strong>
+
+                                            @match.Time
+
+                                        </span>
+
+
+                                        <span>
+
+                                            <i class="bi bi-geo-alt-fill"></i>
+
+                                            <strong>
+                                                Venue
+                                            </strong>
+
+                                            @match.Venue
+
+                                        </span>
+
+
+                                        <span>
+
+                                            <i class="bi bi-trophy-fill"></i>
+
+                                            <strong>
+                                                Tournament
+                                            </strong>
+
+                                            @match.Tournament
+
+                                        </span>
+
+                                    </div>
+
+                                </div>
+
+                            </article>
+                        }
+
+                    </div>
+                }
+                else
+                {
+                    <div class="competition-empty-state">
+
+                        <i class="bi bi-calendar-x"></i>
+
+                        <h3>
+                            No Upcoming Matches
+                        </h3>
+
+                        <p>
+                            There are currently no upcoming matches scheduled.
+                        </p>
+
+                    </div>
+                }
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             MATCH RESULTS
+             ================================================= -->
+        <section id="match-results"
+                 class="competition-results-section">
+
+            <div class="container">
+
+                <div class="competition-results-heading">
+
+                    <span class="competition-results-label">
+                        MATCH HISTORY
+                    </span>
+
+
+                    <h2>
+                        Recent Match
+                        <span>Results.</span>
+                    </h2>
+
+
+                    <div class="competition-results-line"></div>
+
+
+                    <p>
+                        View previous ParaVolley match results and recent
+                        competitive activity from across Mpumalanga.
+                    </p>
+
+                </div>
+
+
+                @if (matchResults.Any())
+                {
+                    <div class="competition-results-list">
+
+                        @foreach (var match in matchResults)
+                        {
+                            <article class="competition-result-card">
+
+                                <!-- Result Top -->
+                                <div class="competition-result-top">
+
+                                    <div>
+
+                                        <span class="competition-result-tournament">
+                                            @match.Tournament
+                                        </span>
+
+                                        <div class="competition-result-date">
+
+                                            <i class="bi bi-calendar3 me-1"></i>
+
+                                            @match.Date.ToString("dd MMM yyyy")
+
+                                        </div>
+
+                                    </div>
+
+
+                                    <span class="competition-result-status">
+
+                                        <i class="bi bi-check-circle-fill"></i>
+
+                                        Completed
+
+                                    </span>
+
+                                </div>
+
+
+                                <!-- Match Result -->
+                                <div class="competition-result-match">
+
+                                    <!-- Team A -->
+                                    <div class="competition-result-team">
+
+                                        <div class="competition-result-team-icon">
+
+                                            <i class="bi bi-shield-fill"></i>
+
+                                        </div>
+
+                                        <strong>
+                                            @match.TeamA
+                                        </strong>
+
+                                    </div>
+
+
+                                    <!-- Score -->
+                                    <div class="competition-result-score">
+
+                                        <span>
+                                            FINAL
+                                        </span>
+
+
+                                        @if (match.ScoreA.HasValue &&
+                                            match.ScoreB.HasValue)
+                                        {
+                                            <strong>
+                                                @match.ScoreA - @match.ScoreB
+                                            </strong>
+                                        }
+                                        else
+                                        {
+                                            <strong>
+                                                -
+                                            </strong>
+                                        }
+
+                                    </div>
+
+
+                                    <!-- Team B -->
+                                    <div class="competition-result-team competition-result-team-right">
+
+                                        <div class="competition-result-team-icon">
+
+                                            <i class="bi bi-shield-fill"></i>
+
+                                        </div>
+
+                                        <strong>
+                                            @match.TeamB
+                                        </strong>
+
+                                    </div>
+
+                                </div>
+
+
+                                <!-- Footer -->
+                                <div class="competition-result-footer">
+
+                                    <div>
+
+                                        <i class="bi bi-geo-alt-fill"></i>
+
+                                        @match.Venue
+
+                                    </div>
+
+
+                                    <div>
+
+                                        <i class="bi bi-clock-fill"></i>
+
+                                        @match.Time
+
+                                    </div>
+
+                                </div>
+
+                            </article>
+                        }
+
+                    </div>
+                }
+                else
+                {
+                    <div class="competition-results-empty">
+
+                        <div class="competition-results-empty-icon">
+
+                            <i class="bi bi-trophy-fill"></i>
+
+                        </div>
+
+                        <h3>
+                            No Match Results Yet
+                        </h3>
+
+                        <p>
+                            Completed match results will appear here
+                            once they become available.
+                        </p>
+
+                    </div>
+                }
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             ATHLETE PARTICIPATION CTA
+             ================================================= -->
+        <section id="athlete-participation"
+                 class="competition-athletes-section">
+
+            <div class="container">
+
+                <div class="competition-section-heading">
+
+                    <span class="competition-label">
+                        ATHLETE PARTICIPATION
+                    </span>
+
+                    <h2>
+                        Our Athletes.
+                        <span>Our Strength.</span>
+                    </h2>
+
+                    <p>
+                        Our athletes are at the heart of ParaVolley Mpumalanga.
+                        We create opportunities for players to participate,
+                        compete and develop through sport.
+                    </p>
+
+                </div>
+
+
+                <div class="competition-empty-state">
+
+                    <i class="bi bi-people-fill"></i>
+
+                    <h3>
+                        Discover ParaVolley Athletes
+                    </h3>
+
+                    <p>
+                        Learn more about athlete development, participation
+                        and opportunities within ParaVolley Mpumalanga.
+                    </p>
+
+                    <a asp-controller="Home"
+                       asp-action="About"
+                       asp-fragment="athlete-development"
+                       class="competition-card-link">
+
+                        Athlete Development
+
+                        <i class="bi bi-arrow-right"></i>
+
+                    </a>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </section>
+}
+else
+{
 
 <div class="row g-3 mb-3">
     <div class="col-sm-6 col-lg-3">
@@ -200,7 +991,10 @@
 
 <partial name="_Pagination" />
 
-@section Scripts {
+    @section Scripts
+    {
+        @if (isAuthenticated)
+        {
     <script>
         (function () {
             var toggleBtn = document.getElementById('filterToggleBtn');
@@ -302,5 +1096,6 @@
                 });
             });
         })();
-    </script>
-}
+            </script>
+        }
+    }}
