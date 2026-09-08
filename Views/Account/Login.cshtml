@@ -50,19 +50,10 @@
                     <!-- Logo -->
                     <div class="pv-login-logo-box">
 
-                        @if (!string.IsNullOrWhiteSpace(org.LogoPath))
-                        {
-                            <img src="@org.LogoPath"
-                                 alt="@org.OrganisationName Logo"
-                                 class="pv-login-logo" />
-                        }
-                        else
-                        {
-                            <img src="~/images/paravolley-logo.png"
-                                 asp-append-version="true"
-                                 alt="ParaVolley Mpumalanga Logo"
-                                 class="pv-login-logo" />
-                        }
+                        <img src="~/images/paravolley-logo.png"
+                             asp-append-version="true"
+                             alt="ParaVolley Mpumalanga Logo"
+                             class="pv-login-logo" />
 
                     </div>
 

@@ -13,8 +13,17 @@
     var orgFirstWord = orgWords.Length > 0 ? orgWords[0] : "ParaVolley";
     var orgRest = orgWords.Length > 1 ? orgWords[1] : "";
 
-    var accent = appearance.AccentColor;
-    var accentDark = ShadeColor(accent, -0.18);
+    var isPublicUser =
+    User.Identity == null ||
+    !User.Identity.IsAuthenticated;
+
+    var accent = isPublicUser
+        ? "#0B6E4F"
+        : appearance.AccentColor;
+
+    var accentDark = isPublicUser
+        ? "#085d42"
+        : ShadeColor(accent, -0.18);
     var themeAttr = appearance.Theme.ToString().ToLower();
     var densityAttr = appearance.Density.ToString().ToLower();
 
@@ -139,7 +148,18 @@
     {
         <nav class="navbar navbar-expand-lg navbar-dark" style="background:var(--pv-green-dark)">
           <div class="container">
-          <a class="navbar-brand fw-bold" asp-controller="Home" asp-action="Index">ParaVolley Mpumalanga</a>
+                <a class="navbar-brand fw-bold d-flex align-items-center gap-2"
+                   asp-controller="Home"
+                   asp-action="Index">
+
+                    <img src="~/images/paravolley-logo.png"
+                         asp-append-version="true"
+                         alt="ParaVolley Mpumalanga Logo"
+                         class="pv-navbar-logo" />
+
+                    <span>ParaVolley Mpumalanga</span>
+
+                </a>
           <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#publicNav">
           <span class="navbar-toggler-icon">
           </span>
