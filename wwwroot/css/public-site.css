@@ -10685,3 +10685,55 @@ html {
         font-size: 1.35rem;
     }
 }
+
+/* =========================================================
+   PUBLIC NAVBAR LOGO
+========================================================= */
+
+.pv-navbar-logo {
+    width: 54px;
+    height: 54px;
+    object-fit: contain;
+    border-radius: 12px;
+    border: none;
+    outline: none;
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    box-shadow: none;
+    display: block;
+}
+
+@media (max-width: 767.98px) {
+    .pv-navbar-logo {
+        width: 46px;
+        height: 46px;
+        border-radius: 10px;
+    }
+}
+
+/* =========================================================
+   LOGIN LOGO - CLEAN IMAGE
+========================================================= */
+
+.pv-login-logo-box {
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+}
+
+.pv-login-logo {
+    display: block;
+    max-width: 170px;
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    border-radius: 18px;
+}

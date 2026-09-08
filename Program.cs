@@ -223,18 +223,29 @@ builder.Services.AddRateLimiter(options =>
             }));
 
     options.AddPolicy("registration", context =>
+    RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 5,
+            Window = TimeSpan.FromHours(1),
+            QueueLimit = 0,
+            AutoReplenishment = true
+        }));
+
+    options.AddPolicy("contact", context =>
         RateLimitPartition.GetFixedWindowLimiter(
             context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             _ => new FixedWindowRateLimiterOptions
             {
-                PermitLimit = 5,
+                PermitLimit = 10,
                 Window = TimeSpan.FromHours(1),
                 QueueLimit = 0,
                 AutoReplenishment = true
             }));
 
     options.AddPolicy("sensitive", context =>
-        RateLimitPartition.GetFixedWindowLimiter(
+            RateLimitPartition.GetFixedWindowLimiter(
             context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
                 ?? context.Connection.RemoteIpAddress?.ToString()
                 ?? "unknown",

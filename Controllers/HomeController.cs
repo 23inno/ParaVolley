@@ -1,3 +1,5 @@
+using System.Net;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -10,10 +12,14 @@ namespace SportsManagementMVC.Controllers
     public class HomeController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly EmailService _emailService;
 
-        public HomeController(ApplicationDbContext context)
+        public HomeController(
+            ApplicationDbContext context,
+            EmailService emailService)
         {
             _context = context;
+            _emailService = emailService;
         }
 
         [AllowAnonymous]
@@ -42,16 +48,114 @@ namespace SportsManagementMVC.Controllers
 
         [AllowAnonymous]
         [HttpGet("/Contact")]
-        public IActionResult Contact() => View();
+        public IActionResult Contact()
+        {
+            return View(new ContactMessage());
+        }
+
+
+        [AllowAnonymous]
+        [HttpPost("/Contact")]
+        [ValidateAntiForgeryToken]
+        [EnableRateLimiting("contact")]
+        public async Task<IActionResult> Contact(
+            [Bind("Name,Email,Phone,Subject,Message")]
+    ContactMessage input,
+            CancellationToken cancellationToken)
+        {
+            var allowedSubjects = new[]
+            {
+        "General Enquiry",
+        "Player Registration",
+        "Volunteering",
+        "Events",
+        "Partnership",
+        "Other"
+    };
+
+            if (!allowedSubjects.Contains(input.Subject))
+            {
+                ModelState.AddModelError(
+                    nameof(input.Subject),
+                    "Please select a valid enquiry type.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return View(input);
+            }
+
+            input.SubmittedAtUtc = DateTime.UtcNow;
+
+            _context.ContactMessages.Add(input);
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+
+            var safeName = WebUtility.HtmlEncode(input.Name);
+            var safeEmail = WebUtility.HtmlEncode(input.Email);
+            var safePhone = WebUtility.HtmlEncode(
+                string.IsNullOrWhiteSpace(input.Phone)
+                    ? "Not provided"
+                    : input.Phone);
+
+            var safeSubject = input.Subject
+                .Replace("\r", " ")
+                .Replace("\n", " ");
+
+            var safeMessage = WebUtility
+                .HtmlEncode(input.Message)
+                .Replace("\r\n", "<br />")
+                .Replace("\n", "<br />");
+
+
+            var emailBody = $"""
+        <h2>New ParaVolley Website Enquiry</h2>
+
+        <p><strong>Name:</strong> {safeName}</p>
+
+        <p><strong>Email:</strong> {safeEmail}</p>
+
+        <p><strong>Phone:</strong> {safePhone}</p>
+
+        <p><strong>Enquiry Type:</strong>
+        {WebUtility.HtmlEncode(input.Subject)}</p>
+
+        <hr />
+
+        <p><strong>Message:</strong></p>
+
+        <p>{safeMessage}</p>
+        """;
+
+
+            input.EmailSent = await _emailService.SendAsync(
+                "paravolleympumalanga@gmail.com",
+                $"Website Enquiry: {safeSubject}",
+                emailBody);
+
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+
+            TempData["ContactSuccess"] =
+                "Thank you. Your message has been sent to ParaVolley Mpumalanga.";
+
+            return Redirect("/Contact#send-message");
+        }
 
         [AllowAnonymous]
         [HttpGet("/Athletes")]
-        public IActionResult Athletes()
+        public async Task<IActionResult> Athletes(
+    CancellationToken cancellationToken)
         {
-            // Do not expose internal Player database records on the anonymous website.
-            // Public athlete profiles can be introduced later from an explicitly approved
-            // public-profile data source with consent and publication controls.
-            return View("~/Views/Players/Athletes.cshtml");
+            var players = await _context.Players
+                .AsNoTracking()
+                .Where(p => p.Status == PlayerStatus.Active)
+                .OrderBy(p => p.Name)
+                .ToListAsync(cancellationToken);
+
+            return View("~/Views/Players/Athletes.cshtml", players);
         }
 
         [AllowAnonymous]
