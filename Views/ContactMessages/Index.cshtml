@@ -1,0 +1,154 @@
+﻿@model IEnumerable<ContactMessage>
+
+@{
+    ViewData["Title"] = "Contact Messages";
+
+    var messages = Model?.ToList() ?? new List<ContactMessage>();
+    var unreadCount = messages.Count(m => !m.IsRead);
+    var readCount = messages.Count(m => m.IsRead);
+}
+
+<div class="container-fluid py-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+
+        <div>
+            <h1 class="fw-bold mb-1">Contact Messages</h1>
+            <p class="text-muted mb-0">
+                Manage enquiries submitted from the public ParaVolley website.
+            </p>
+        </div>
+
+        <div class="d-flex gap-2">
+
+            <span class="badge bg-warning text-dark fs-6 px-3 py-2">
+                <i class="bi bi-envelope-fill me-1"></i>
+                @unreadCount Unread
+            </span>
+
+            <span class="badge bg-success fs-6 px-3 py-2">
+                <i class="bi bi-envelope-open-fill me-1"></i>
+                @readCount Read
+            </span>
+
+        </div>
+
+    </div>
+
+
+    @if (messages.Any())
+    {
+        <div class="card border-0 shadow-sm">
+
+            <div class="table-responsive">
+
+                <table class="table align-middle mb-0">
+
+                    <thead class="table-light">
+
+                        <tr>
+                            <th>Status</th>
+                            <th>Name</th>
+                            <th>Subject</th>
+                            <th>Email</th>
+                            <th>Submitted</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        @foreach (var message in messages)
+                        {
+                            <tr class="@(!message.IsRead ? "fw-semibold" : "")">
+
+                                <td>
+
+                                    @if (!message.IsRead)
+                                    {
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="bi bi-envelope-fill me-1"></i>
+                                            New
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-light text-dark border">
+                                            <i class="bi bi-envelope-open me-1"></i>
+                                            Read
+                                        </span>
+                                    }
+
+                                </td>
+
+                                <td>
+                                    @message.Name
+                                </td>
+
+                                <td>
+                                    @message.Subject
+                                </td>
+
+                                <td>
+                                    <a href="mailto:@message.Email"
+                                       class="text-decoration-none">
+
+                                        @message.Email
+
+                                    </a>
+                                </td>
+
+                                <td>
+                                    @message.SubmittedAtUtc
+                                    .ToLocalTime()
+                                    .ToString("dd MMM yyyy HH:mm")
+                                </td>
+
+                                <td class="text-end">
+
+                                    <a asp-controller="ContactMessages"
+                                       asp-action="Details"
+                                       asp-route-id="@message.Id"
+                                       class="btn btn-sm btn-success">
+
+                                        <i class="bi bi-eye-fill me-1"></i>
+                                        View
+
+                                    </a>
+
+                                </td>
+
+                            </tr>
+                        }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+    }
+    else
+    {
+        <div class="card border-0 shadow-sm">
+
+            <div class="card-body text-center py-5">
+
+                <div class="display-5 text-success mb-3">
+                    <i class="bi bi-inbox"></i>
+                </div>
+
+                <h3>No Contact Messages Yet</h3>
+
+                <p class="text-muted mb-0">
+                    Messages submitted through the public Contact page will appear here.
+                </p>
+
+            </div>
+
+        </div>
+    }
+
+</div>

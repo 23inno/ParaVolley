@@ -34,6 +34,8 @@ namespace SportsManagementMVC.Data
         public DbSet<BackupRecord> BackupRecords => Set<BackupRecord>();
         public DbSet<Subscriber> Subscribers => Set<Subscriber>();
         public DbSet<AppUser> AppUsers => Set<AppUser>();
+        public DbSet<ContactMessage> ContactMessages =>
+    Set<ContactMessage>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -170,6 +172,10 @@ namespace SportsManagementMVC.Data
             modelBuilder.Entity<Subscriber>()
                 .Property(x => x.SubscribedAt)
                 .HasColumnType("timestamp without time zone");
+
+            modelBuilder.Entity<ContactMessage>()
+    .Property(message => message.SubmittedAtUtc)
+    .HasColumnType("timestamp with time zone");
         }
     }
 }

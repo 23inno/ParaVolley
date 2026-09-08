@@ -9,6 +9,12 @@
         ? await Db.UserProfiles.FirstOrDefaultAsync()
         : null;
 
+    var unreadContactMessages = User.Identity != null
+        && User.Identity.IsAuthenticated
+        && User.IsInRole("Admin")
+         ? await Db.ContactMessages.CountAsync(m => !m.IsRead)
+        : 0;
+
     var orgWords = org.OrganisationName.Split(' ', 2);
     var orgFirstWord = orgWords.Length > 0 ? orgWords[0] : "ParaVolley";
     var orgRest = orgWords.Length > 1 ? orgWords[1] : "";
@@ -109,17 +115,115 @@
                 <button type="button" class="sidebar-collapse-btn" id="sidebarCollapseBtn" title="Collapse menu"><i class="bi bi-chevron-left"></i></button>
             </div>
             <nav>
-                <a class="pv-nav-link @(currentController == "Home" ? "active" : "")" asp-controller="Home" asp-action="@(isAdmin ? "AdminDashboard" : isCoach ? "CoachDashboard" : "Index")" title="Dashboard"><i class="bi bi-speedometer2"></i> <span>Dashboard</span></a>
-                @if (isAdmin || isCoach) { <a class="pv-nav-link @(currentController == "Players" ? "active" : "")" asp-controller="Players" asp-action="Index" title="Players"><i class="bi bi-people-fill"></i> <span>Players</span></a> }
-                @if (isAdmin || isCoach) { <a class="pv-nav-link @(currentController == "Events" ? "active" : "")" asp-controller="Events" asp-action="Index" title="Events"><i class="bi bi-calendar-event-fill"></i> <span>Events</span></a> }
-                @if (isAdmin || isCoach) { <a class="pv-nav-link @(currentController == "Matches" ? "active" : "")" asp-controller="Matches" asp-action="Index" title="Matches"><i class="bi bi-trophy-fill"></i> <span>Matches</span></a> }
-                @if (isAdmin || isCoach) { <a class="pv-nav-link @(currentController == "Attendance" ? "active" : "")" asp-controller="Attendance" asp-action="Index" title="Attendance"><i class="bi bi-bar-chart-fill"></i> <span>Attendance</span></a> }
-                @if (isAdmin || isCoach) { <a class="pv-nav-link @(currentController == "Announcements" ? "active" : "")" asp-controller="Announcements" asp-action="Index" title="News"><i class="bi bi-megaphone-fill"></i> <span>News</span></a> }
-                @if (isAdmin) {
-                    <a class="pv-nav-link @(currentController == "Reports" ? "active" : "")" asp-controller="Reports" asp-action="Index" title="Reports"><i class="bi bi-file-earmark-text-fill"></i> <span>Reports</span></a>
-                    <a class="pv-nav-link @(currentController == "Coaches" ? "active" : "")" asp-controller="Coaches" asp-action="Index" title="Coaches"><i class="bi bi-person-badge-fill"></i> <span>Coaches</span></a>
-                    <a class="pv-nav-link @(currentController == "Settings" ? "active" : "")" asp-controller="Settings" asp-action="Profile" title="Settings"><i class="bi bi-gear-fill"></i> <span>Settings</span></a>
+
+                <a class="pv-nav-link @(currentController == "Home" ? "active" : "")"
+                   asp-controller="Home"
+                   asp-action="@(isAdmin ? "AdminDashboard" : isCoach ? "CoachDashboard" : "Index")"
+                   title="Dashboard">
+                    <i class="bi bi-speedometer2"></i>
+                    <span>Dashboard</span>
+                </a>
+
+                @if (isAdmin || isCoach)
+                {
+                    <a class="pv-nav-link @(currentController == "Players" ? "active" : "")"
+                       asp-controller="Players"
+                       asp-action="Index"
+                       title="Players">
+                        <i class="bi bi-people-fill"></i>
+                        <span>Players</span>
+                    </a>
                 }
+
+                @if (isAdmin || isCoach)
+                {
+                    <a class="pv-nav-link @(currentController == "Events" ? "active" : "")"
+                       asp-controller="Events"
+                       asp-action="Index"
+                       title="Events">
+                        <i class="bi bi-calendar-event-fill"></i>
+                        <span>Events</span>
+                    </a>
+                }
+
+                @if (isAdmin || isCoach)
+                {
+                    <a class="pv-nav-link @(currentController == "Matches" ? "active" : "")"
+                       asp-controller="Matches"
+                       asp-action="Index"
+                       title="Matches">
+                        <i class="bi bi-trophy-fill"></i>
+                        <span>Matches</span>
+                    </a>
+                }
+
+                @if (isAdmin || isCoach)
+                {
+                    <a class="pv-nav-link @(currentController == "Attendance" ? "active" : "")"
+                       asp-controller="Attendance"
+                       asp-action="Index"
+                       title="Attendance">
+                        <i class="bi bi-bar-chart-fill"></i>
+                        <span>Attendance</span>
+                    </a>
+                }
+
+                @if (isAdmin || isCoach)
+                {
+                    <a class="pv-nav-link @(currentController == "Announcements" ? "active" : "")"
+                       asp-controller="Announcements"
+                       asp-action="Index"
+                       title="News">
+                        <i class="bi bi-megaphone-fill"></i>
+                        <span>News</span>
+                    </a>
+                }
+
+                @if (isAdmin)
+                {
+                    <a class="pv-nav-link @(currentController == "ContactMessages" ? "active" : "")"
+                       asp-controller="ContactMessages"
+                       asp-action="Index"
+                       title="Contact Messages">
+
+                        <i class="bi bi-envelope-fill"></i>
+
+                        <span>Contact Messages</span>
+
+                        @if (unreadContactMessages > 0)
+                        {
+                            <span class="badge bg-warning text-dark ms-auto">
+                                @unreadContactMessages
+                            </span>
+                        }
+
+                    </a>
+
+                    <a class="pv-nav-link @(currentController == "Reports" ? "active" : "")"
+                       asp-controller="Reports"
+                       asp-action="Index"
+                       title="Reports">
+                        <i class="bi bi-file-earmark-text-fill"></i>
+                        <span>Reports</span>
+                    </a>
+
+                    <a class="pv-nav-link @(currentController == "Coaches" ? "active" : "")"
+                       asp-controller="Coaches"
+                       asp-action="Index"
+                       title="Coaches">
+                        <i class="bi bi-person-badge-fill"></i>
+                        <span>Coaches</span>
+                    </a>
+
+                    <a class="pv-nav-link @(currentController == "Settings" ? "active" : "")"
+                       asp-controller="Settings"
+                       asp-action="Profile"
+                       title="Settings">
+                        <i class="bi bi-gear-fill"></i>
+                        <span>Settings</span>
+                    </a>
+                }
+
             </nav>
             <div class="user-box" title="Signed in as @accountDisplayName">
                 <div class="user-summary">
@@ -184,8 +288,14 @@
                            asp-action="Index">
                             Events
                         </a>
-          <a class="nav-link" asp-controller="Matches" asp-action="Index">Results</a>
-          <a class="nav-link" asp-controller="Announcements" asp-action="Index">News</a>
+                        <a class="nav-link" 
+                            asp-controller="Matches" 
+                            asp-action="Index">Results</a>
+
+                        <a class="nav-link" 
+                        asp-controller="Announcements" 
+                        asp-action="Index">News</a>
+
                         <a class="nav-link" 
                             asp-controller="Sponsors" 
                             asp-action="Index">Sponsors</a>
