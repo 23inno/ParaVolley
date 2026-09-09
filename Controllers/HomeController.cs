@@ -44,7 +44,106 @@ namespace SportsManagementMVC.Controllers
 
         [AllowAnonymous]
         [HttpGet("/Join")]
-        public IActionResult Join() => View("~/Views/Registration/Index.cshtml");
+        public IActionResult Join()
+        {
+            return View(
+                "~/Views/Registration/Index.cshtml",
+                new PlayerRegistrationApplication());
+        }
+
+        [AllowAnonymous]
+        [HttpPost("/Join")]
+        [ValidateAntiForgeryToken]
+        [EnableRateLimiting("registration")]
+        public async Task<IActionResult> Join(
+    [Bind(
+        "FullName,Email,Phone,DateOfBirth,Province,Town," +
+        "ExperienceLevel,PreferredPosition,Classification," +
+        "EmergencyContactName,EmergencyContactPhone,MedicalNotes,Consent")]
+    PlayerRegistrationApplication input,
+    CancellationToken cancellationToken)
+
+
+        {
+            if (!input.Consent)
+            {
+                ModelState.AddModelError(
+                    nameof(input.Consent),
+                    "You must agree before submitting.");
+            }
+
+            if (string.IsNullOrWhiteSpace(input.Phone))
+            {
+                ModelState.AddModelError(
+                    nameof(input.Phone),
+                    "Phone number is required.");
+            }
+
+            if (!input.DateOfBirth.HasValue)
+            {
+                ModelState.AddModelError(
+                    nameof(input.DateOfBirth),
+                    "Date of birth is required.");
+            }
+
+            if (string.IsNullOrWhiteSpace(input.Classification))
+            {
+                ModelState.AddModelError(
+                    nameof(input.Classification),
+                    "Disability classification is required.");
+            }
+
+            if (!input.Consent)
+            {
+                ModelState.AddModelError(
+                    nameof(input.Consent),
+                    "You must agree before submitting.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return View(
+                    "~/Views/Registration/Index.cshtml",
+                    input);
+            }
+
+            var email = input.Email.Trim().ToLowerInvariant();
+
+            var alreadyPending = await _context.PlayerRegistrationApplications
+                .AsNoTracking()
+                .AnyAsync(
+                    application =>
+                        application.Email.ToLower() == email &&
+                        application.Status == PlayerApplicationStatus.Pending,
+                    cancellationToken);
+
+            if (alreadyPending)
+            {
+                ModelState.AddModelError(
+                    nameof(input.Email),
+                    "A pending player application already exists for this email address.");
+
+                return View(
+                    "~/Views/Registration/Index.cshtml",
+                    input);
+            }
+
+            input.Email = input.Email.Trim();
+            input.FullName = input.FullName.Trim();
+            input.SubmittedAtUtc = DateTime.UtcNow;
+            input.Status = PlayerApplicationStatus.Pending;
+            input.IsRead = false;
+
+            _context.PlayerRegistrationApplications.Add(input);
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            TempData["RegistrationSuccess"] =
+                "Thank you. Your player application has been submitted successfully. " +
+                "ParaVolley Mpumalanga will contact you after reviewing it.";
+
+            return Redirect("/Join#player-registration-form");
+        }
 
         [AllowAnonymous]
         [HttpGet("/Contact")]

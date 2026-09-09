@@ -1,58 +1,586 @@
+﻿@model PlayerRegistrationApplication
+
 @{
-    ViewData["Title"] = "Join ParaVolley";
+    ViewData["Title"] = "Player Registration";
 }
 
+<!-- =========================================
+     REGISTRATION HERO
+========================================= -->
 <section class="registration-hero">
+
     <div class="container">
+
         <div class="registration-hero-content">
-            <span class="registration-hero-label">JOIN PARAVOLLEY MPUMALANGA</span>
-            <h1>Become a <span>ParaVolley Athlete.</span></h1>
-            <p>Interested in joining ParaVolley Mpumalanga? Contact the team directly so that your enquiry can be handled safely while the online registration workflow is still being tested.</p>
+
+            <span class="registration-hero-label">
+                JOIN PARAVOLLEY MPUMALANGA
+            </span>
+
+            <h1>
+                Become a
+                <span>ParaVolley Athlete.</span>
+            </h1>
+
+            <p>
+                Complete the registration form below to express your interest
+                in joining ParaVolley Mpumalanga as an athlete.
+            </p>
+
             <div class="registration-hero-benefits">
-                <div><i class="bi bi-check-circle-fill"></i> Inclusive sporting opportunities</div>
-                <div><i class="bi bi-check-circle-fill"></i> Athlete development and coaching</div>
-                <div><i class="bi bi-check-circle-fill"></i> Training and competition opportunities</div>
+
+                <div>
+                    <i class="bi bi-check-circle-fill"></i>
+                    Inclusive sporting opportunities
+                </div>
+
+                <div>
+                    <i class="bi bi-check-circle-fill"></i>
+                    Athlete development and coaching
+                </div>
+
+                <div>
+                    <i class="bi bi-check-circle-fill"></i>
+                    Training and competition opportunities
+                </div>
+
             </div>
+
         </div>
+
     </div>
+
 </section>
 
+
+<!-- =========================================
+     REGISTRATION FORM
+========================================= -->
 <section class="registration-section">
+
     <div class="container">
+
         <div class="registration-layout">
+
+            <!-- LEFT INFO -->
             <div class="registration-info">
-                <span class="registration-section-label">PLAYER ENQUIRIES</span>
-                <h2>Start Your <span>ParaVolley Journey.</span></h2>
+
+                <span class="registration-section-label">
+                    PLAYER APPLICATION
+                </span>
+
+                <h2>
+                    Start Your
+                    <span>ParaVolley Journey.</span>
+                </h2>
+
                 <div class="registration-heading-line"></div>
-                <p>The public online player-registration form is not collecting applications yet. Please email ParaVolley Mpumalanga and the team can guide you through the current registration process.</p>
+
+                <p>
+                    Please provide your details below. This information helps
+                    ParaVolley Mpumalanga understand your interests and contact
+                    you about suitable training and participation opportunities.
+                </p>
+
+
                 <div class="registration-info-list">
-                    <div class="registration-info-item"><div class="registration-info-icon"><i class="bi bi-person-fill"></i></div><div><strong>Player Enquiries</strong><span>Ask about joining, training and participation opportunities.</span></div></div>
-                    <div class="registration-info-item"><div class="registration-info-icon"><i class="bi bi-trophy-fill"></i></div><div><strong>Sport Information</strong><span>The team can explain available events, coaching and development opportunities.</span></div></div>
-                    <div class="registration-info-item"><div class="registration-info-icon"><i class="bi bi-shield-check"></i></div><div><strong>Privacy First</strong><span>Personal and support information is not collected through an unconnected demonstration form.</span></div></div>
-                </div>
-            </div>
 
-            <div class="registration-form-card">
-                <div class="registration-form-section">
-                    <div class="registration-form-heading">
-                        <div class="registration-form-number">01</div>
-                        <div><h3>Contact ParaVolley Mpumalanga</h3><p>Send the team an email to express your interest in joining.</p></div>
+                    <div class="registration-info-item">
+
+                        <div class="registration-info-icon">
+                            <i class="bi bi-person-fill"></i>
+                        </div>
+
+                        <div>
+                            <strong>Player Information</strong>
+                            <span>
+                                Tell us who you are and how we can contact you.
+                            </span>
+                        </div>
+
                     </div>
-                    <p>Use the button below. Your email application will open with a ParaVolley player-enquiry subject already filled in.</p>
-                    <a class="registration-submit-btn text-decoration-none" href="mailto:paravolleympumalanga@gmail.com?subject=ParaVolley%20Mpumalanga%20Player%20Enquiry">
-                        <i class="bi bi-envelope-fill"></i> Email Player Enquiry
-                    </a>
+
+
+                    <div class="registration-info-item">
+
+                        <div class="registration-info-icon">
+                            <i class="bi bi-trophy-fill"></i>
+                        </div>
+
+                        <div>
+                            <strong>Sport Information</strong>
+                            <span>
+                                Share your experience and preferred playing position.
+                            </span>
+                        </div>
+
+                    </div>
+
+
+                    <div class="registration-info-item">
+
+                        <div class="registration-info-icon">
+                            <i class="bi bi-shield-check"></i>
+                        </div>
+
+                        <div>
+                            <strong>Safe Participation</strong>
+                            <span>
+                                Emergency contact information helps us support participants responsibly.
+                            </span>
+                        </div>
+
+                    </div>
+
                 </div>
+
             </div>
+
+
+            <!-- FORM CARD -->
+            <div class="registration-form-card"
+                 id="player-registration-form">
+
+                @if (TempData["RegistrationSuccess"] != null)
+                {
+                    <div class="registration-success-message">
+                        <i class="bi bi-check-circle-fill"></i>
+
+                        <div>
+                            <strong>Registration Submitted</strong>
+                            <span>
+                                @TempData["RegistrationSuccess"]
+                            </span>
+                        </div>
+                    </div>
+                }
+
+
+                <form asp-controller="Home"
+                      asp-action="Join"
+                      method="post"
+                      id="player-registration-form-fields">
+
+                    @Html.AntiForgeryToken()
+
+                    <div asp-validation-summary="All"
+                         class="text-danger mb-4"></div>
+
+                 
+
+
+                    <!-- PERSONAL INFORMATION -->
+                    <div class="registration-form-section">
+
+                        <div class="registration-form-heading">
+
+                            <div class="registration-form-number">
+                                01
+                            </div>
+
+                            <div>
+                                <h3>Personal Information</h3>
+                                <p>Please enter your personal and contact details.</p>
+                            </div>
+
+                        </div>
+
+
+                        <div class="row g-4">
+
+                            <div class="col-12">
+
+                                <label asp-for="FullName"
+                                       class="form-label">
+                                    Full Name
+                                    <span>*</span>
+                                </label>
+
+                                <div class="registration-input-group">
+                                    <i class="bi bi-person-fill"></i>
+
+                                    <input asp-for="FullName"
+                                           class="form-control"
+                                           placeholder="Enter your full name" />
+                                </div>
+
+                                <span asp-validation-for="FullName"
+                                      class="text-danger"></span>
+
+                            </div>
+
+
+                            <div class="col-md-6">
+
+                                <label asp-for="Email"
+                                       class="form-label">
+                                    Email Address
+                                    <span>*</span>
+                                </label>
+
+                                <div class="registration-input-group">
+                                    <i class="bi bi-envelope-fill"></i>
+
+                                    <input asp-for="Email"
+                                           class="form-control"
+                                           placeholder="name@example.com" />
+                                </div>
+
+                                <span asp-validation-for="Email"
+                                      class="text-danger"></span>
+
+                            </div>
+
+                            <div class="col-md-6">
+
+                                <label asp-for="Phone"
+                                       class="form-label">
+                                    Phone Number
+                                    <span>*</span>
+                                </label>
+
+                                <div class="registration-input-group">
+                                    <i class="bi bi-telephone-fill"></i>
+
+                                    <input asp-for="Phone"
+                                           class="form-control"
+                                           placeholder="e.g. 071 234 5678"
+                                           required />
+                                </div>
+
+                                <span asp-validation-for="Phone"
+                                      class="text-danger"></span>
+
+                            </div>
+
+
+                            <div class="col-md-6">
+
+                                <label asp-for="DateOfBirth"
+                                       class="form-label">
+                                    Date of Birth
+                                    <span>*</span>
+                                </label>
+
+                                <div class="registration-input-group">
+                                    <i class="bi bi-calendar3"></i>
+
+                                    <input asp-for="DateOfBirth"
+                                           type="date"
+                                           class="form-control"
+                                           required />
+                                </div>
+
+                                <span asp-validation-for="DateOfBirth"
+                                      class="text-danger"></span>
+
+                            </div>
+
+
+                            <div class="col-md-6">
+
+                                <label asp-for="Province"
+                                       class="form-label">
+                                    Province
+                                </label>
+
+                                <select asp-for="Province"
+                                        class="form-select">
+
+                                    <option value="">Select province</option>
+                                    <option value="Mpumalanga">Mpumalanga</option>
+                                    <option value="Gauteng">Gauteng</option>
+                                    <option value="Limpopo">Limpopo</option>
+                                    <option value="KwaZulu-Natal">KwaZulu-Natal</option>
+                                    <option value="Free State">Free State</option>
+                                    <option value="North West">North West</option>
+                                    <option value="Northern Cape">Northern Cape</option>
+                                    <option value="Eastern Cape">Eastern Cape</option>
+                                    <option value="Western Cape">Western Cape</option>
+
+                                </select>
+
+                                <span asp-validation-for="Province"
+                                      class="text-danger"></span>
+
+                            </div>
+
+
+                            <div class="col-12">
+
+                                <label asp-for="Town"
+                                       class="form-label">
+                                    Town / City
+                                </label>
+
+                                <div class="registration-input-group">
+                                    <i class="bi bi-geo-alt-fill"></i>
+
+                                    <input asp-for="Town"
+                                           class="form-control"
+                                           placeholder="Enter your town or city" />
+                                </div>
+
+                                <span asp-validation-for="Town"
+                                      class="text-danger"></span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- SPORT INFORMATION -->
+                    <div class="registration-form-section">
+
+                        <div class="registration-form-heading">
+
+                            <div class="registration-form-number">
+                                02
+                            </div>
+
+                            <div>
+                                <h3>Player Information</h3>
+                                <p>Tell us more about your volleyball experience.</p>
+                            </div>
+
+                        </div>
+
+
+                        <div class="row g-4">
+
+                            <div class="col-md-6">
+
+                                <label asp-for="ExperienceLevel"
+                                       class="form-label">
+                                    Experience Level
+                                </label>
+
+                                <select asp-for="ExperienceLevel"
+                                        class="form-select">
+
+                                    <option value="">Select experience level</option>
+                                    <option value="Beginner">Beginner</option>
+                                    <option value="Intermediate">Intermediate</option>
+                                    <option value="Experienced">Experienced</option>
+                                    <option value="Competitive Athlete">
+                                        Competitive Athlete
+                                    </option>
+
+                                </select>
+
+                                <span asp-validation-for="ExperienceLevel"
+                                      class="text-danger"></span>
+
+                            </div>
+
+
+                            <div class="col-md-6">
+
+                                <label asp-for="PreferredPosition"
+                                       class="form-label">
+                                    Preferred Position
+                                </label>
+
+                                <select asp-for="PreferredPosition"
+                                        class="form-select">
+
+                                    <option value="">Select preferred position</option>
+                                    <option value="Setter">Setter</option>
+                                    <option value="Outside Hitter">Outside Hitter</option>
+                                    <option value="Middle Blocker">Middle Blocker</option>
+                                    <option value="Opposite Hitter">Opposite Hitter</option>
+                                    <option value="Libero">Libero</option>
+                                    <option value="Not Sure Yet">Not Sure Yet</option>
+
+                                </select>
+
+                                <span asp-validation-for="PreferredPosition"
+                                      class="text-danger"></span>
+
+                            </div>
+
+
+                            <div class="col-12">
+
+                                <label asp-for="Classification"
+                                       class="form-label">
+                                    Disability Classification
+                                    <span>*</span>
+                                </label>
+
+                                <input asp-for="Classification"
+                                       class="form-control"
+                                       placeholder="Enter disability classification"
+                                       required />
+
+                               
+
+                                <span asp-validation-for="Classification"
+                                      class="text-danger"></span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- EMERGENCY CONTACT -->
+                    <div class="registration-form-section">
+
+                        <div class="registration-form-heading">
+
+                            <div class="registration-form-number">
+                                03
+                            </div>
+
+                            <div>
+                                <h3>Emergency Contact</h3>
+                                <p>Provide someone we can contact if necessary.</p>
+                            </div>
+
+                        </div>
+
+
+                        <div class="row g-4">
+
+                            <div class="col-md-6">
+
+                                <label asp-for="EmergencyContactName"
+                                       class="form-label">
+                                    Contact Name
+                                </label>
+
+                                <input asp-for="EmergencyContactName"
+                                       class="form-control"
+                                       placeholder="Emergency contact name" />
+
+                                <span asp-validation-for="EmergencyContactName"
+                                      class="text-danger"></span>
+
+                            </div>
+
+
+                            <div class="col-md-6">
+
+                                <label asp-for="EmergencyContactPhone"
+                                       class="form-label">
+                                    Contact Number
+                                </label>
+
+                                <input asp-for="EmergencyContactPhone"
+                                       class="form-control"
+                                       placeholder="Emergency contact number" />
+
+                                <span asp-validation-for="EmergencyContactPhone"
+                                      class="text-danger"></span>
+
+                            </div>
+
+
+                            <div class="col-12">
+
+                                <label asp-for="MedicalNotes"
+                                       class="form-label">
+                                    Additional Support Information
+                                </label>
+
+                                <textarea asp-for="MedicalNotes"
+                                          class="form-control"
+                                          rows="4"
+                                          placeholder="Optional information that may help us support your participation"></textarea>
+
+                                <span asp-validation-for="MedicalNotes"
+                                      class="text-danger"></span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- CONSENT -->
+                    <div class="registration-consent">
+
+                        <input asp-for="Consent"
+                               class="form-check-input"
+                               required />
+
+                        <label asp-for="Consent">
+                            I confirm that the information I have provided is
+                            correct and I agree that ParaVolley Mpumalanga may
+                            contact me regarding my registration.
+                        </label>
+
+                    </div>
+
+                    <span asp-validation-for="Consent"
+                          class="text-danger d-block mb-3"></span>
+
+
+                    <button type="submit"
+                            class="registration-submit-btn">
+
+                        <i class="bi bi-send-fill"></i>
+                        Submit Player Registration
+
+                    </button>
+
+                </form>
+
+            </div>
+
         </div>
+
     </div>
+
 </section>
 
+
+<!-- =========================================
+     EXISTING PLAYER
+========================================= -->
 <section class="registration-login-section">
+
     <div class="container">
+
         <div class="registration-login-box">
-            <div><span>ALREADY REGISTERED?</span><h2>Already Part of ParaVolley?</h2><p>Existing players and authorised users can access their accounts through the login page.</p></div>
-            <a asp-controller="Account" asp-action="Login" class="registration-login-btn">Login <i class="bi bi-box-arrow-in-right"></i></a>
+
+            <div>
+
+                <span>
+                    ALREADY REGISTERED?
+                </span>
+
+                <h2>
+                    Already Part of ParaVolley?
+                </h2>
+
+                <p>
+                    Existing players and authorised users will be able to
+                    access their accounts through the login page.
+                </p>
+
+            </div>
+
+            <a asp-controller="Account"
+               asp-action="Login"
+               class="registration-login-btn">
+
+                Login
+                <i class="bi bi-box-arrow-in-right"></i>
+
+            </a>
+
         </div>
+
     </div>
+
 </section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
