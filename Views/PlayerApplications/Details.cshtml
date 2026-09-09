@@ -515,19 +515,95 @@
                     </div>
 
 
+                    <button type="button"
+                            class="btn btn-outline-danger"
+                            data-bs-toggle="modal"
+                            data-bs-target="#declineApplicationModal">
+
+                        <i class="bi bi-x-circle-fill me-2"></i>
+                        Decline Application
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+    }
+
+    <!-- DECLINE APPLICATION CONFIRMATION MODAL -->
+    <div class="modal fade"
+         id="declineApplicationModal"
+         tabindex="-1"
+         aria-labelledby="declineApplicationModalLabel"
+         aria-hidden="true">
+
+        <div class="modal-dialog modal-dialog-centered">
+
+            <div class="modal-content border-0 shadow">
+
+                <div class="modal-header">
+
+                    <h5 class="modal-title fw-bold"
+                        id="declineApplicationModalLabel">
+
+                        <i class="bi bi-exclamation-triangle-fill
+                              text-danger me-2"></i>
+
+                        Decline Player Application
+
+                    </h5>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close">
+                    </button>
+
+                </div>
+
+
+                <div class="modal-body">
+
+                    <p class="mb-2">
+                        Are you sure you want to decline
+                        <strong>@Model.FullName</strong>'s application?
+                    </p>
+
+                    <p class="text-muted mb-0">
+                        The application will be marked as declined,
+                        but it will not be deleted.
+                    </p>
+
+                </div>
+
+
+                <div class="modal-footer">
+
+                    <button type="button"
+                            class="btn btn-outline-secondary"
+                            data-bs-dismiss="modal">
+
+                        <i class="bi bi-arrow-left me-1"></i>
+                        Cancel
+
+                    </button>
+
+
                     <form asp-controller="PlayerApplications"
                           asp-action="Decline"
                           asp-route-id="@Model.Id"
                           method="post"
-                          onsubmit="return confirm('Are you sure you want to decline this application?');">
+                          class="d-inline">
 
                         @Html.AntiForgeryToken()
 
                         <button type="submit"
-                                class="btn btn-outline-danger">
+                                class="btn btn-danger">
 
                             <i class="bi bi-x-circle-fill me-2"></i>
-                            Decline Application
+                            Yes, Decline Application
 
                         </button>
 
@@ -538,7 +614,8 @@
             </div>
 
         </div>
-    }
+
+    </div>
 
     <!-- CONTACT APPLICANT -->
     <div class="card border-0 shadow-sm mt-4">
