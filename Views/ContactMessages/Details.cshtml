@@ -2,6 +2,15 @@
 
 @{
     ViewData["Title"] = "Contact Message";
+
+    var saTimeZone = TimeZoneInfo.FindSystemTimeZoneById(
+    OperatingSystem.IsWindows()
+        ? "South Africa Standard Time"
+        : "Africa/Johannesburg");
+
+    var submittedSa = TimeZoneInfo
+        .ConvertTimeFromUtc(Model.SubmittedAtUtc, saTimeZone)
+        .ToString("dd MMMM yyyy 'at' HH:mm");
 }
 
 <div class="container-fluid py-4">
@@ -37,10 +46,7 @@
                     </h2>
 
                     <p class="text-muted mb-0">
-                        Submitted
-                        @Model.SubmittedAtUtc
-                        .ToLocalTime()
-                        .ToString("dd MMMM yyyy 'at' HH:mm")
+                        Submitted @submittedSa
                     </p>
 
                 </div>

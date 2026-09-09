@@ -6,6 +6,11 @@
     var messages = Model?.ToList() ?? new List<ContactMessage>();
     var unreadCount = messages.Count(m => !m.IsRead);
     var readCount = messages.Count(m => m.IsRead);
+
+    var saTimeZone = TimeZoneInfo.FindSystemTimeZoneById(
+    OperatingSystem.IsWindows()
+        ? "South Africa Standard Time"
+        : "Africa/Johannesburg");
 }
 
 <div class="container-fluid py-4">
@@ -61,6 +66,10 @@
 
                         @foreach (var message in messages)
                         {
+                            var submittedSa = TimeZoneInfo
+                            .ConvertTimeFromUtc(message.SubmittedAtUtc, saTimeZone)
+                            .ToString("dd MMM yyyy HH:mm");
+
                             <tr class="@(!message.IsRead ? "fw-semibold" : "")">
 
                                 <td>
@@ -99,11 +108,11 @@
                                     </a>
                                 </td>
 
-                                <td>
-                                    @message.SubmittedAtUtc
-                                    .ToLocalTime()
-                                    .ToString("dd MMM yyyy HH:mm")
-                                </td>
+                            <td>
+                                @(TimeZoneInfo
+                                                            .ConvertTimeFromUtc(message.SubmittedAtUtc, saTimeZone)
+                                                            .ToString("dd MMM yyyy HH:mm"))
+                        </td>
 
                                 <td class="text-end">
 
