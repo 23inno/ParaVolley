@@ -11,60 +11,89 @@
 </div>
 
 <div class="row g-3 mb-4">
+
     <div class="col-sm-6 col-lg-3">
         <div class="stat-card">
             <div class="stat-top">
                 <span class="stat-title">Total Players</span>
-                <div class="icon-box icon-box-green"><i class="bi bi-people-fill"></i></div>
+                <div class="icon-box icon-box-green">
+                    <i class="bi bi-people-fill"></i>
+                </div>
             </div>
+
             <div class="value">@Model.TotalPlayers</div>
-            <div class="change">+12% from last month</div>
+
+            <div class="label">
+                All registered players
+            </div>
         </div>
     </div>
+
+
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-top">
+                <span class="stat-title">Active Players</span>
+                <div class="icon-box icon-box-green">
+                    <i class="bi bi-person-check-fill"></i>
+                </div>
+            </div>
+
+            <div class="value">@Model.ActivePlayers</div>
+
+            <div class="label">
+                Currently active
+            </div>
+        </div>
+    </div>
+
+
     <div class="col-sm-6 col-lg-3">
         <div class="stat-card">
             <div class="stat-top">
                 <span class="stat-title">Upcoming Events</span>
-                <div class="icon-box icon-box-gold"><i class="bi bi-calendar-event-fill"></i></div>
+                <div class="icon-box icon-box-gold">
+                    <i class="bi bi-calendar-event-fill"></i>
+                </div>
             </div>
+
             <div class="value">@Model.UpcomingEvents</div>
-            <div class="change">5 this week</div>
+
+            <div class="label">
+                Future scheduled events
+            </div>
         </div>
     </div>
+
+
     <div class="col-sm-6 col-lg-3">
         <div class="stat-card">
             <div class="stat-top">
-                <span class="stat-title">Active Matches</span>
-                <div class="icon-box icon-box-blue"><i class="bi bi-trophy-fill"></i></div>
+                <span class="stat-title">Upcoming Matches</span>
+                <div class="icon-box icon-box-green">
+                    <i class="bi bi-trophy-fill"></i>
+                </div>
             </div>
+
             <div class="value">@Model.UpcomingMatches</div>
-            <div class="change">3 in progress</div>
-        </div>
-    </div>
-    <div class="col-sm-6 col-lg-3">
-        <div class="stat-card">
-            <div class="stat-top">
-                <span class="stat-title">Team Performance</span>
-                <div class="icon-box icon-box-purple"><i class="bi bi-graph-up-arrow"></i></div>
+
+            <div class="label">
+                Future scheduled matches
             </div>
-            <div class="value">92%</div>
-            <div class="change">+5% improvement</div>
         </div>
     </div>
+
 </div>
 
 <div class="row g-3 mb-4">
     <div class="col-lg-8">
         <div class="pv-card h-100" style="position:relative;">
-            <h5 class="fw-bold mb-3">Player Statistics</h5>
+            <h5 class="fw-bold mb-3">
+                Current Player Status
+            </h5>
             <div style="position:relative; height:320px;">
                 <canvas id="playerStatsChart"></canvas>
-                <div id="chartTooltip" class="chart-tooltip">
-                    <div class="tt-month" id="tt-month"></div>
-                    <div class="tt-row tt-active">Active Players : <span id="tt-active"></span></div>
-                    <div class="tt-row tt-new">New Players : <span id="tt-new"></span></div>
-                    <div class="tt-row tt-inactive">Inactive : <span id="tt-inactive"></span></div>
-                </div>
+                
             </div>
         </div>
     </div>
@@ -161,85 +190,95 @@
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
     <script>
-        const chartData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PlayerStatsChart,
-            new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }));
+        const chartData = @Html.Raw(
+                    System.Text.Json.JsonSerializer.Serialize(
+                            Model.PlayerStatsChart,
+                            new System.Text.Json.JsonSerializerOptions
+                            {
+                                    PropertyNamingPolicy =
+                                            System.Text.Json.JsonNamingPolicy.CamelCase
+                            }));
 
-        const ctx = document.getElementById('playerStatsChart').getContext('2d');
-        const tooltipEl = document.getElementById('chartTooltip');
+    const currentStats =
+        chartData.length > 0
+            ? chartData[0]
+            : {
+                active: 0,
+                inactive: 0
+            };
 
-        const chart = new Chart(ctx, {
+        const ctx =
+            document
+                .getElementById('playerStatsChart')
+                .getContext('2d');
+
+        new Chart(ctx, {
             type: 'bar',
+
             data: {
-                labels: chartData.map(d => d.month),
+                labels: ['Active Players', 'Inactive Players'],
+
                 datasets: [
                     {
-                        label: 'Active Players',
-                        data: chartData.map(d => d.active),
-                        backgroundColor: '#0B6E4F',
-                        borderRadius: 4,
-                        maxBarThickness: 34
-                    },
-                    {
-                        label: 'New Players',
-                        data: chartData.map(d => d.new),
-                        backgroundColor: '#FFC72C',
-                        borderRadius: 4,
-                        maxBarThickness: 34
-                    },
-                    {
-                        label: 'Inactive',
-                        data: chartData.map(d => d.inactive),
-                        backgroundColor: '#adb5bd',
-                        borderRadius: 4,
-                        maxBarThickness: 34
+                        label: 'Players',
+
+                        data: [
+                            currentStats.active,
+                            currentStats.inactive
+                        ],
+
+                        backgroundColor: [
+                            '#0B6E4F',
+                            '#adb5bd'
+                        ],
+
+                        borderRadius: 6,
+                        maxBarThickness: 90
                     }
                 ]
             },
+
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                interaction: { mode: 'index', intersect: false },
+
                 plugins: {
                     legend: {
-                        position: 'bottom',
-                        labels: { usePointStyle: true, boxWidth: 8, padding: 20 }
+                        display: false
                     },
+
                     tooltip: {
-                        enabled: false,
-                        external: function (context) {
-                            const tt = context.tooltip;
-                            if (!tt || tt.opacity === 0) {
-                                tooltipEl.style.opacity = 0;
-                                return;
+                        callbacks: {
+                            label: function (context) {
+                                return context.parsed.y + ' players';
                             }
-
-                            const idx = tt.dataPoints && tt.dataPoints.length ? tt.dataPoints[0].dataIndex : 0;
-                            const d = chartData[idx];
-
-                            document.getElementById('tt-month').textContent = d.month;
-                            document.getElementById('tt-active').textContent = d.active;
-                            document.getElementById('tt-new').textContent = d.new;
-                            document.getElementById('tt-inactive').textContent = d.inactive;
-
-                            const canvasRect = context.chart.canvas.getBoundingClientRect();
-                            const containerRect = context.chart.canvas.parentNode.getBoundingClientRect();
-
-                            let left = tt.caretX + (canvasRect.left - containerRect.left) + 12;
-                            let top = tt.caretY + (canvasRect.top - containerRect.top) - 10;
-
-                            tooltipEl.style.left = left + 'px';
-                            tooltipEl.style.top = top + 'px';
-                            tooltipEl.style.opacity = 1;
                         }
                     }
                 },
+
                 scales: {
-                    x: { grid: { display: false } },
-                    y: { beginAtZero: true, grid: { color: '#f1f1f1' } }
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    },
+
+                    y: {
+                        beginAtZero: true,
+
+                        ticks: {
+                            precision: 0
+                        },
+
+                        grid: {
+                            color: '#f1f1f1'
+                        }
+                    }
                 }
             }
         });
     </script>
+
     <script>
         (function () {
             var modalEl = document.getElementById('dashModal');
