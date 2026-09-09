@@ -1,0 +1,258 @@
+﻿@model IEnumerable<PlayerRegistrationApplication>
+
+@{
+    ViewData["Title"] = "Player Applications";
+
+    var applications =
+        Model?.ToList() ?? new List<PlayerRegistrationApplication>();
+
+    var pendingCount =
+        applications.Count(a =>
+            a.Status == PlayerApplicationStatus.Pending);
+
+    var approvedCount =
+        applications.Count(a =>
+            a.Status == PlayerApplicationStatus.Approved);
+
+    var declinedCount =
+        applications.Count(a =>
+            a.Status == PlayerApplicationStatus.Declined);
+
+    var unreadCount =
+        applications.Count(a => !a.IsRead);
+
+    var saTimeZone = TimeZoneInfo.FindSystemTimeZoneById(
+        OperatingSystem.IsWindows()
+            ? "South Africa Standard Time"
+            : "Africa/Johannesburg");
+}
+
+<div class="container-fluid py-4">
+
+    <div class="d-flex flex-wrap
+                justify-content-between
+                align-items-center
+                gap-3 mb-4">
+
+        <div>
+            <h1 class="fw-bold mb-1">
+                Player Applications
+            </h1>
+
+            <p class="text-muted mb-0">
+                Review applications submitted through
+                the public Join ParaVolley form.
+            </p>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2">
+
+            <span class="badge bg-warning text-dark px-3 py-2">
+                <i class="bi bi-hourglass-split me-1"></i>
+                @pendingCount Pending
+            </span>
+
+            <span class="badge bg-success px-3 py-2">
+                <i class="bi bi-check-circle-fill me-1"></i>
+                @approvedCount Approved
+            </span>
+
+            <span class="badge bg-secondary px-3 py-2">
+                <i class="bi bi-x-circle-fill me-1"></i>
+                @declinedCount Declined
+            </span>
+
+            @if (unreadCount > 0)
+            {
+                <span class="badge bg-danger px-3 py-2">
+                    <i class="bi bi-envelope-fill me-1"></i>
+                    @unreadCount New
+                </span>
+            }
+
+        </div>
+
+    </div>
+
+
+    @if (!applications.Any())
+    {
+        <div class="card border-0 shadow-sm">
+
+            <div class="card-body text-center py-5">
+
+                <i class="bi bi-person-plus-fill
+                              fs-1 text-muted"></i>
+
+                <h4 class="mt-3">
+                    No Player Applications Yet
+                </h4>
+
+                <p class="text-muted mb-0">
+                    Applications submitted through the
+                    public Join ParaVolley form will appear here.
+                </p>
+
+            </div>
+
+        </div>
+    }
+    else
+    {
+        <div class="card border-0 shadow-sm">
+
+            <div class="card-body p-0">
+
+                <div class="table-responsive">
+
+                    <table class="table
+                                      table-hover
+                                      align-middle
+                                      mb-0">
+
+                        <thead class="table-light">
+
+                            <tr>
+                                <th class="ps-3">
+                                    Status
+                                </th>
+
+                                <th>
+                                    Name
+                                </th>
+
+                                <th>
+                                    Email
+                                </th>
+
+                                <th>
+                                    Province
+                                </th>
+
+                                <th>
+                                    Position
+                                </th>
+
+                                <th>
+                                    Submitted
+                                </th>
+
+                                <th class="text-end pe-3">
+                                    Action
+                                </th>
+                            </tr>
+
+                        </thead>
+
+                        <tbody>
+
+                            @foreach (var application in applications)
+                            {
+                                var submittedSa = TimeZoneInfo
+                                .ConvertTimeFromUtc(
+                                application.SubmittedAtUtc,
+                                saTimeZone)
+                                .ToString("dd MMM yyyy HH:mm");
+
+                                <tr class="@(!application.IsRead
+                                                                        ? "fw-semibold"
+                                                                        : "")">
+
+                            <td class="ps-3">
+
+                                @if (!application.IsRead)
+                                        {
+                                            <span class="badge
+                                                                     bg-warning
+                                                                     text-dark
+                                                                     me-1">
+                                                <i class="bi
+                                                                      bi-envelope-fill
+                                                                      me-1"></i>
+                                                New
+                                            </span>
+                                        }
+
+                                        @if (application.Status ==
+                                                                        PlayerApplicationStatus.Pending)
+                                        {
+                                            <span class="badge
+                                                                     bg-warning
+                                                                     text-dark">
+                                                Pending
+                                            </span>
+                                        }
+                                        else if (application.Status ==
+                                        PlayerApplicationStatus.Approved)
+                                        {
+                                            <span class="badge bg-success">
+                                                Approved
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">
+                                                Declined
+                                            </span>
+                                        }
+
+                                </td>
+
+                                <td>
+                                    @application.FullName
+                                </td>
+
+                                <td>
+                                    <a href="mailto:@application.Email"
+                                       class="text-decoration-none">
+                                        @application.Email
+                                    </a>
+                                </td>
+
+                                <td>
+                                    @(string.IsNullOrWhiteSpace(
+                                                                    application.Province)
+                                                                    ? "—"
+                                                                    : application.Province)
+                                                                                       </td>
+
+                                <td>
+                                    @(string.IsNullOrWhiteSpace(
+                                                                    application.PreferredPosition)
+                                                                    ? "—"
+                                                                    : application.PreferredPosition)
+                            </td>
+
+                                    <td>
+                                        @submittedSa
+                                    </td>
+
+                                    <td class="text-end pe-3">
+
+                                        <a asp-controller="PlayerApplications"
+                                           asp-action="Details"
+                                           asp-route-id="@application.Id"
+                                           class="btn btn-sm btn-success">
+
+                                            <i class="bi bi-eye-fill me-1"></i>
+                                            View
+
+                                        </a>
+
+                                    </td>
+
+                                </tr>
+                                                }
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </div>
+    }
+
+</div>

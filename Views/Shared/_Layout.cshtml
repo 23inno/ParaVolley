@@ -15,6 +15,13 @@
          ? await Db.ContactMessages.CountAsync(m => !m.IsRead)
         : 0;
 
+    var unreadPlayerApplications = User.Identity != null
+&& User.Identity.IsAuthenticated
+&& User.IsInRole("Admin")
+    ? await Db.PlayerRegistrationApplications
+        .CountAsync(a => !a.IsRead)
+    : 0;
+
     var orgWords = org.OrganisationName.Split(' ', 2);
     var orgFirstWord = orgWords.Length > 0 ? orgWords[0] : "ParaVolley";
     var orgRest = orgWords.Length > 1 ? orgWords[1] : "";
@@ -134,6 +141,23 @@
                         <span>Players</span>
                     </a>
                 }
+
+                <a class="pv-nav-link @(currentController == "PlayerApplications" ? "active" : "")"
+                   asp-controller="PlayerApplications"
+                   asp-action="Index"
+                   title="Player Applications">
+
+                    <i class="bi bi-person-plus-fill"></i>
+                    <span>Player Applications</span>
+
+                    @if (unreadPlayerApplications > 0)
+                    {
+                        <span class="badge bg-warning text-dark ms-auto">
+                            @unreadPlayerApplications
+                        </span>
+                    }
+
+                </a>
 
                 @if (isAdmin || isCoach)
                 {
