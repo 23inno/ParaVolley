@@ -61,11 +61,16 @@ namespace SportsManagementMVC.Controllers
                     eventItem.Date < nextMonth,
                     cancellationToken);
 
-            var perfectAttendanceCount = await _context.Attendances.AsNoTracking()
-                .GroupBy(record => record.PlayerId)
-                .Where(group => group.All(record =>
-                    record.Status == AttendanceStatus.Present))
-                .CountAsync(cancellationToken);
+            var perfectAttendanceCount = await _context.Attendances
+    .AsNoTracking()
+    .Where(record =>
+        record.Date >= monthStart &&
+        record.Date < nextMonth)
+    .GroupBy(record => record.PlayerId)
+    .Where(group =>
+        group.All(record =>
+            record.Status == AttendanceStatus.Present))
+    .CountAsync(cancellationToken);
 
             var reportQuery = _context.Reports.AsNoTracking().AsQueryable();
             if (!string.IsNullOrWhiteSpace(search))
@@ -389,27 +394,59 @@ namespace SportsManagementMVC.Controllers
         // GET: Reports/Download/5
         public async Task<IActionResult> Download(int id)
         {
-            var report = await _context.Reports.FindAsync(id);
-            if (report == null) return NotFound();
+            var report = await _context.Reports
+                .AsNoTracking()
+                .FirstOrDefaultAsync(r => r.Id == id);
 
-            if (!string.IsNullOrEmpty(report.FilePath))
+            if (report == null)
             {
-                var fullPath = Path.Combine(_env.WebRootPath, report.FilePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
-                if (System.IO.File.Exists(fullPath))
-                {
-                    var contentType = "application/octet-stream";
-                    return PhysicalFile(
-                        fullPath,
-                        contentType,
-                        report.FileName ?? Path.GetFileName(fullPath),
-                        enableRangeProcessing: true);
-                }
+                return NotFound();
             }
 
-            // No uploaded file on record - generate a simple text summary instead.
-            var content = $"Report: {report.Title}\nType: {report.Type}\nDate: {report.Date:yyyy-MM-dd}\nStatus: {report.Status}\nSize: {report.SizeLabel}";
-            var textBytes = System.Text.Encoding.UTF8.GetBytes(content);
-            return File(textBytes, "text/plain", $"{report.Title.Replace(' ', '-')}.txt");
+            if (!string.IsNullOrWhiteSpace(report.FilePath))
+            {
+                var fullPath = Path.Combine(
+                    _env.WebRootPath,
+                    report.FilePath
+                        .TrimStart('/')
+                        .Replace(
+                            '/',
+                            Path.DirectorySeparatorChar));
+
+                if (!System.IO.File.Exists(fullPath))
+                {
+                    TempData["Error"] =
+                        "The uploaded attachment for this report is currently unavailable.";
+
+                    return RedirectToAction(nameof(Index));
+                }
+
+                return PhysicalFile(
+                    fullPath,
+                    "application/octet-stream",
+                    report.FileName ?? Path.GetFileName(fullPath),
+                    enableRangeProcessing: true);
+            }
+
+            // Reports created without an attachment can still be downloaded
+            // as a simple generated summary.
+            var content =
+                $"Report: {report.Title}\n" +
+                $"Type: {report.Type}\n" +
+                $"Date: {report.Date:yyyy-MM-dd}\n" +
+                $"Status: {report.Status}";
+
+            var textBytes =
+                System.Text.Encoding.UTF8.GetBytes(content);
+
+            var safeTitle = string.IsNullOrWhiteSpace(report.Title)
+                ? "report"
+                : report.Title.Replace(' ', '-');
+
+            return File(
+                textBytes,
+                "text/plain",
+                $"{safeTitle}.txt");
         }
 
         // GET: Reports/Delete/5
