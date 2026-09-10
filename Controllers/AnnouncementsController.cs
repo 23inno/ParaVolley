@@ -77,7 +77,18 @@ namespace SportsManagementMVC.Controllers
         {
             var items = new List<RecentUpdateItem>();
 
-            var latestAnnouncement = await _context.Announcements.OrderByDescending(a => a.Date).FirstOrDefaultAsync();
+            var today = DateTime.Today;
+            var tomorrow = today.AddDays(1);
+            var recentCutoff = today.AddDays(-30);
+
+            var latestAnnouncement = await _context.Announcements
+                .AsNoTracking()
+                .Where(a =>
+                    a.Date >= recentCutoff &&
+                    a.Date < tomorrow)
+                .OrderByDescending(a => a.Date)
+                .FirstOrDefaultAsync();
+
             if (latestAnnouncement != null)
             {
                 items.Add(new RecentUpdateItem
@@ -85,31 +96,46 @@ namespace SportsManagementMVC.Controllers
                     Title = latestAnnouncement.Title,
                     Date = latestAnnouncement.Date,
                     Tag = latestAnnouncement.Category.ToString(),
-                    Url = Url.Action("Details", "Announcements", new { id = latestAnnouncement.Id }) ?? "#",
-                    IsModal = true,
+                    Url = Url.Action(
+                        "Details",
+                        "Announcements",
+                        new { id = latestAnnouncement.Id }) ?? "#",
+                    IsModal = true
                 });
             }
 
             var latestMatch = await _context.Matches
-                .Where(m => m.Date <= DateTime.Today)
+                .AsNoTracking()
+                .Where(m =>
+                    m.Date >= recentCutoff &&
+                    m.Date < tomorrow)
                 .OrderByDescending(m => m.Date)
                 .FirstOrDefaultAsync();
+
             if (latestMatch != null)
             {
                 items.Add(new RecentUpdateItem
                 {
-                    Title = $"{latestMatch.TeamA} vs {latestMatch.TeamB} - {latestMatch.Status}",
+                    Title =
+                        $"{latestMatch.TeamA} vs {latestMatch.TeamB} - {latestMatch.Status}",
                     Date = latestMatch.Date,
                     Tag = "Match",
-                    Url = Url.Action("Details", "Matches", new { id = latestMatch.Id }) ?? "#",
-                    IsModal = true,
+                    Url = Url.Action(
+                        "Details",
+                        "Matches",
+                        new { id = latestMatch.Id }) ?? "#",
+                    IsModal = true
                 });
             }
 
             var latestEvent = await _context.Events
-                .Where(e => e.Date <= DateTime.Today)
+                .AsNoTracking()
+                .Where(e =>
+                    e.Date >= recentCutoff &&
+                    e.Date < tomorrow)
                 .OrderByDescending(e => e.Date)
                 .FirstOrDefaultAsync();
+
             if (latestEvent != null)
             {
                 items.Add(new RecentUpdateItem
@@ -117,14 +143,24 @@ namespace SportsManagementMVC.Controllers
                     Title = latestEvent.Title,
                     Date = latestEvent.Date,
                     Tag = "Event",
-                    Url = Url.Action("Details", "Events", new { id = latestEvent.Id }) ?? "#",
-                    IsModal = true,
+                    Url = Url.Action(
+                        "Details",
+                        "Events",
+                        new { id = latestEvent.Id }) ?? "#",
+                    IsModal = true
                 });
             }
 
             var latestReport = User.IsInRole(nameof(AppUserRole.Admin))
-                ? await _context.Reports.OrderByDescending(r => r.Date).FirstOrDefaultAsync()
+                ? await _context.Reports
+                    .AsNoTracking()
+                    .Where(r =>
+                        r.Date >= recentCutoff &&
+                        r.Date < tomorrow)
+                    .OrderByDescending(r => r.Date)
+                    .FirstOrDefaultAsync()
                 : null;
+
             if (latestReport != null)
             {
                 items.Add(new RecentUpdateItem
@@ -132,12 +168,18 @@ namespace SportsManagementMVC.Controllers
                     Title = latestReport.Title,
                     Date = latestReport.Date,
                     Tag = "Report",
-                    Url = Url.Action("Details", "Reports", new { id = latestReport.Id }) ?? "#",
-                    IsModal = true,
+                    Url = Url.Action(
+                        "Details",
+                        "Reports",
+                        new { id = latestReport.Id }) ?? "#",
+                    IsModal = true
                 });
             }
 
-            return items.OrderByDescending(i => i.Date).Take(4).ToList();
+            return items
+                .OrderByDescending(item => item.Date)
+                .Take(4)
+                .ToList();
         }
 
         // POST: Announcements/TogglePin/5
@@ -198,9 +240,9 @@ namespace SportsManagementMVC.Controllers
                 await _context.SaveChangesAsync();
                 TempData["Success"] = $"Announcement \"{announcement.Title}\" was published.";
 
-                // Best-effort: notify every subscriber. Failures here (e.g. no SMTP
-                // configured) must never block publishing the announcement itself.
-                _ = NotifySubscribersAsync(announcement);
+                // Notify subscribers after the announcement has been saved.
+                // EmailService handles delivery failures without failing publication.
+                await NotifySubscribersAsync(announcement);
 
                 if (IsAjaxRequest())
                 {
@@ -245,14 +287,28 @@ namespace SportsManagementMVC.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            var existing = await _context.Subscribers.FirstOrDefaultAsync(s => s.Email.ToLower() == email.ToLower());
+            email = email.Trim();
+
+            var normalizedEmail = email.ToLower();
+
+            var existing = await _context.Subscribers
+                .AsNoTracking()
+                .FirstOrDefaultAsync(
+                    s => s.Email.ToLower() == normalizedEmail);
+
             if (existing != null)
             {
-                TempData["Success"] = "You're already subscribed to News & Announcements.";
+                TempData["Success"] =
+                    "You're already subscribed to News & Announcements.";
+
                 return RedirectToAction(nameof(Index));
             }
 
-            _context.Subscribers.Add(new Subscriber { Email = email, SubscribedAt = DateTime.Now });
+            _context.Subscribers.Add(new Subscriber
+            {
+                Email = email,
+                SubscribedAt = DateTime.Now
+            });
             await _context.SaveChangesAsync();
 
             var sent = await _emailService.SendAsync(
@@ -261,8 +317,8 @@ namespace SportsManagementMVC.Controllers
                 "<p>Thanks for subscribing!</p><p>You'll now receive an email every time we publish a new announcement, event, or news update.</p>");
 
             TempData["Success"] = sent
-                ? "Subscribed! Check your inbox for a confirmation email."
-                : "Subscribed! (Confirmation email not sent - this demo has no SMTP server configured yet. See appsettings.json > EmailSettings.)";
+    ? "Subscribed successfully. Check your inbox for a confirmation email."
+    : "Subscribed successfully.";
 
             return RedirectToAction(nameof(Index));
         }
