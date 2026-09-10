@@ -48,20 +48,35 @@ namespace SportsManagementMVC.Controllers
                 query = query.Where(m => m.Status == parsedStatus);
             }
 
-            var matchCounts = await _context.Matches.AsNoTracking()
-                .GroupBy(_ => 1)
-                .Select(group => new
-                {
-                    Total = group.Count(),
-                    Upcoming = group.Count(match => match.Status == MatchStatus.Scheduled),
-                    Completed = group.Count(match => match.Status == MatchStatus.Completed),
-                    InProgress = group.Count(match => match.Status == MatchStatus.InProgress)
-                })
-                .SingleOrDefaultAsync(cancellationToken);
+            var today = DateTime.Today;
+            var tomorrow = today.AddDays(1);
+
+            var matchCounts = await _context.Matches
+    .AsNoTracking()
+    .GroupBy(_ => 1)
+    .Select(group => new
+    {
+        Total = group.Count(),
+
+        Upcoming = group.Count(match =>
+            match.Status == MatchStatus.Scheduled &&
+            match.Date >= today),
+
+        Completed = group.Count(match =>
+            match.Status == MatchStatus.Completed),
+
+        InProgress = group.Count(match =>
+            match.Status == MatchStatus.InProgress &&
+            match.Date >= today &&
+            match.Date < tomorrow)
+    })
+    .SingleOrDefaultAsync(cancellationToken);
+
             ViewBag.TotalCount = matchCounts?.Total ?? 0;
             ViewBag.UpcomingCount = matchCounts?.Upcoming ?? 0;
             ViewBag.CompletedCount = matchCounts?.Completed ?? 0;
             ViewBag.InProgressCount = matchCounts?.InProgress ?? 0;
+
             var tournaments = await _context.Matches.AsNoTracking()
                 .Where(match => !string.IsNullOrWhiteSpace(match.Tournament))
                 .Select(match => match.Tournament)
@@ -88,7 +103,7 @@ namespace SportsManagementMVC.Controllers
         }
 
         // GET: Matches/Export - downloads the current filtered list as a CSV file
-        [AllowAnonymous]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public async Task<IActionResult> Export(string? search, string? tournament, string? status)
         {
             var query = _context.Matches.AsQueryable();
