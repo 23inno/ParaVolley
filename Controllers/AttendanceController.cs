@@ -51,55 +51,64 @@ namespace SportsManagementMVC.Controllers
                     1);
 
             var playerStatistics = attendanceRecords
-                .Where(record => record.Player != null)
-                .GroupBy(record => new
-                {
-                    record.PlayerId,
-                    record.Player!.Name
-                })
-                .Select(group => new
-                {
-                    group.Key.PlayerId,
-                    group.Key.Name,
-                    Sessions = group.Count(),
-                    Rate = (int)Math.Round(
-                        group.Count(record =>
-                            record.Status == AttendanceStatus.Present) *
-                        100.0 / group.Count(),
-                        0)
-                })
+    .Where(record => record.Player != null)
+    .GroupBy(record => new
+    {
+        record.PlayerId,
+        record.Player!.Name
+    })
+    .Select(group => new
+    {
+        group.Key.PlayerId,
+        group.Key.Name,
+        Sessions = group.Count(),
+        Rate = (int)Math.Round(
+            group.Count(record =>
+                record.Status == AttendanceStatus.Present) *
+            100.0 / group.Count(),
+            0)
+    })
+    .ToList();
+
+            var topPerformer = playerStatistics
                 .OrderByDescending(item => item.Rate)
                 .ThenByDescending(item => item.Sessions)
                 .ThenBy(item => item.Name)
-                .ToList();
+                .FirstOrDefault();
 
-            var topPerformer = playerStatistics.FirstOrDefault();
+            var today = DateTime.Today;
+
+            var monthStart =
+                new DateTime(today.Year, today.Month, 1);
+
+            var nextMonth =
+                monthStart.AddMonths(1);
 
             var sessionRecords = attendanceRecords
-                .Where(record =>
-                    record.Event != null &&
-                    record.Player != null)
-                .GroupBy(record => new
-                {
-                    record.EventId,
-                    record.Event!.Title,
-                    record.Event.Date,
-                    Team = record.Player!.Team
-                })
-                .Select(group => new SessionRecordRow
-                {
-                    Date = group.Key.Date,
-                    Session = group.Key.Title,
-                    Team = group.Key.Team,
-                    Present = group.Count(record =>
-                        record.Status == AttendanceStatus.Present),
-                    Absent = group.Count(record =>
-                        record.Status == AttendanceStatus.Absent)
-                })
-                .OrderByDescending(record => record.Date)
-                .ThenBy(record => record.Session)
-                .ThenBy(record => record.Team)
-                .ToList();
+    .Where(record =>
+        record.Event != null &&
+        record.Player != null)
+    .GroupBy(record => new
+    {
+        record.EventId,
+        record.Event!.Title,
+        record.Event.Date,
+        Team = record.Player!.Team
+    })
+    .Select(group => new SessionRecordRow
+    {
+        Date = group.Key.Date,
+        Session = group.Key.Title,
+        Team = group.Key.Team,
+        Present = group.Count(record =>
+            record.Status == AttendanceStatus.Present),
+        Absent = group.Count(record =>
+            record.Status == AttendanceStatus.Absent)
+    })
+    .OrderByDescending(record => record.Date)
+    .ThenBy(record => record.Session)
+    .ThenBy(record => record.Team)
+    .ToList();
 
             var playerAttendanceLookup = attendanceRecords
                 .GroupBy(record => record.PlayerId)
@@ -110,9 +119,12 @@ namespace SportsManagementMVC.Controllers
                 TotalAttendance = attendanceRecords.Count,
                 AttendanceRate = attendanceRate,
                 ActiveSessions = attendanceRecords
-                    .Select(record => record.EventId)
-                    .Distinct()
-                    .Count(),
+    .Where(record =>
+        record.Date >= monthStart &&
+        record.Date < nextMonth)
+    .Select(record => record.EventId)
+    .Distinct()
+    .Count(),
                 TopPerformerName = topPerformer?.Name ?? "No attendance yet",
                 TopPerformerRate = topPerformer?.Rate ?? 0,
 
@@ -209,7 +221,10 @@ namespace SportsManagementMVC.Controllers
                     .ToList(),
 
                 MostActivePlayers = playerStatistics
-                    .Take(5)
+    .OrderByDescending(item => item.Sessions)
+    .ThenByDescending(item => item.Rate)
+    .ThenBy(item => item.Name)
+    .Take(5)
                     .Select((item, index) => new TopPlayerStat
                     {
                         Rank = index + 1,

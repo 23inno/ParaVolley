@@ -3184,3 +3184,16 @@ padding: 3rem 1.5rem;
         grid-column: 1 / -1;
     }
 }
+
+.status-badge-needs-attention {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.35rem 0.7rem;
+    border-radius: 999px;
+    background: #f8d7da;
+    color: #842029;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
