@@ -2,6 +2,14 @@
 
 @{
     ViewData["Title"] = "Player Registration";
+
+    var today = DateOnly.FromDateTime(DateTime.Today);
+
+    var minimumBirthDate =
+        today.AddYears(-100).ToString("yyyy-MM-dd");
+
+    var maximumBirthDate =
+        today.AddYears(-5).ToString("yyyy-MM-dd");
 }
 
 <!-- =========================================
@@ -262,13 +270,75 @@
                                     <span>*</span>
                                 </label>
 
-                                <div class="registration-input-group">
-                                    <i class="bi bi-calendar3"></i>
+                                <input type="hidden"
+                                       name="DateOfBirth"
+                                       id="DateOfBirth"
+                                       value="@(Model.DateOfBirth?.ToString("yyyy-MM-dd") ?? "")" />
 
-                                    <input asp-for="DateOfBirth"
-                                           type="date"
-                                           class="form-control"
-                                           required />
+                                <div class="pv-dob-picker"
+                                     data-min-year="@minimumBirthDate.Substring(0, 4)"
+                                     data-max-year="@maximumBirthDate.Substring(0, 4)">
+
+                                    <div class="pv-dob-fields">
+
+                                        <select id="dobDay"
+                                                class="form-select"
+                                                aria-label="Day">
+                                            <option value="">Day</option>
+                                        </select>
+
+                                        <select id="dobMonth"
+                                                class="form-select"
+                                                aria-label="Month">
+                                            <option value="">Month</option>
+                                            <option value="1">January</option>
+                                            <option value="2">February</option>
+                                            <option value="3">March</option>
+                                            <option value="4">April</option>
+                                            <option value="5">May</option>
+                                            <option value="6">June</option>
+                                            <option value="7">July</option>
+                                            <option value="8">August</option>
+                                            <option value="9">September</option>
+                                            <option value="10">October</option>
+                                            <option value="11">November</option>
+                                            <option value="12">December</option>
+                                        </select>
+
+                                        <!-- Desktop year picker -->
+                                        <div class="pv-year-desktop">
+
+                                            <button type="button"
+                                                    id="dobYearButton"
+                                                    class="form-select text-start pv-year-trigger"
+                                                    aria-expanded="false">
+                                                Year
+                                            </button>
+
+                                            <div id="dobYearPanel"
+                                                 class="pv-year-panel d-none">
+
+                                                <div id="dobYearGrid"
+                                                     class="pv-year-grid">
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+
+                                        <!-- Mobile year picker -->
+                                        <div class="pv-year-mobile">
+
+                                            <select id="dobYearMobile"
+                                                    class="form-select"
+                                                    aria-label="Year">
+                                                <option value="">Year</option>
+                                            </select>
+
+                                        </div>
+
+                                    </div>
+
                                 </div>
 
                                 <span asp-validation-for="DateOfBirth"
@@ -580,6 +650,395 @@
     </div>
 
 </section>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const hiddenDob =
+            document.getElementById("DateOfBirth");
+
+        const daySelect =
+            document.getElementById("dobDay");
+
+        const monthSelect =
+            document.getElementById("dobMonth");
+
+        const yearButton =
+            document.getElementById("dobYearButton");
+
+        const yearPanel =
+            document.getElementById("dobYearPanel");
+
+        const yearGrid =
+            document.getElementById("dobYearGrid");
+
+        const mobileYearSelect =
+            document.getElementById("dobYearMobile");
+
+        const picker =
+            document.querySelector(".pv-dob-picker");
+
+        if (!picker) {
+            return;
+        }
+
+        const minYear =
+            parseInt(picker.dataset.minYear);
+
+        const maxYear =
+            parseInt(picker.dataset.maxYear);
+
+        let selectedYear = null;
+
+
+        // -----------------------------------------
+        // CREATE YEAR OPTIONS
+        // -----------------------------------------
+
+        for (let year = maxYear; year >= minYear; year--) {
+
+            const button =
+                document.createElement("button");
+
+            button.type = "button";
+
+            button.className =
+                "pv-year-option";
+
+            button.textContent = year;
+
+            button.dataset.year = year;
+
+
+            button.addEventListener(
+                "click",
+                function () {
+
+                    selectedYear = year;
+
+                    yearButton.textContent =
+                        year;
+
+                    mobileYearSelect.value =
+                        year;
+
+                    updateSelectedYear();
+
+                    updateDays();
+
+                    updateHiddenDate();
+
+                    yearPanel.classList.add(
+                        "d-none"
+                    );
+
+                    yearButton.setAttribute(
+                        "aria-expanded",
+                        "false"
+                    );
+                }
+            );
+
+            yearGrid.appendChild(button);
+
+
+            const option =
+                document.createElement("option");
+
+            option.value = year;
+            option.textContent = year;
+
+            mobileYearSelect.appendChild(
+                option
+            );
+        }
+
+
+        // -----------------------------------------
+        // OPEN / CLOSE DESKTOP YEAR GRID
+        // -----------------------------------------
+
+        yearButton.addEventListener(
+            "click",
+            function () {
+
+                yearPanel.classList.toggle(
+                    "d-none"
+                );
+
+                const isOpen =
+                    !yearPanel.classList.contains(
+                        "d-none"
+                    );
+
+                yearButton.setAttribute(
+                    "aria-expanded",
+                    isOpen.toString()
+                );
+            }
+        );
+
+
+        document.addEventListener(
+            "click",
+            function (event) {
+
+                if (
+                    !yearPanel.contains(event.target) &&
+                    !yearButton.contains(event.target)
+                ) {
+                    yearPanel.classList.add(
+                        "d-none"
+                    );
+
+                    yearButton.setAttribute(
+                        "aria-expanded",
+                        "false"
+                    );
+                }
+            }
+        );
+
+
+        // -----------------------------------------
+        // MOBILE YEAR
+        // -----------------------------------------
+
+        mobileYearSelect.addEventListener(
+            "change",
+            function () {
+
+                selectedYear =
+                    this.value
+                        ? parseInt(this.value)
+                        : null;
+
+                yearButton.textContent =
+                    selectedYear ?? "Year";
+
+                updateSelectedYear();
+
+                updateDays();
+
+                updateHiddenDate();
+            }
+        );
+
+
+        // -----------------------------------------
+        // MONTH / DAY
+        // -----------------------------------------
+
+        monthSelect.addEventListener(
+            "change",
+            function () {
+
+                updateDays();
+
+                updateHiddenDate();
+            }
+        );
+
+
+        daySelect.addEventListener(
+            "change",
+            updateHiddenDate
+        );
+
+
+        // -----------------------------------------
+        // DAYS IN MONTH
+        // -----------------------------------------
+
+        function updateDays() {
+
+            const previousDay =
+                parseInt(daySelect.value) || null;
+
+            const month =
+                parseInt(monthSelect.value);
+
+            daySelect.innerHTML =
+                '<option value="">Day</option>';
+
+
+            if (!month) {
+
+                for (
+                    let day = 1;
+                    day <= 31;
+                    day++
+                ) {
+
+                    addDayOption(day);
+                }
+
+                return;
+            }
+
+
+            const year =
+                selectedYear ||
+                new Date().getFullYear();
+
+
+            const numberOfDays =
+                new Date(
+                    year,
+                    month,
+                    0
+                ).getDate();
+
+
+            for (
+                let day = 1;
+                day <= numberOfDays;
+                day++
+            ) {
+
+                addDayOption(day);
+            }
+
+
+            if (
+                previousDay &&
+                previousDay <= numberOfDays
+            ) {
+                daySelect.value =
+                    previousDay;
+            }
+        }
+
+
+        function addDayOption(day) {
+
+            const option =
+                document.createElement("option");
+
+            option.value = day;
+            option.textContent = day;
+
+            daySelect.appendChild(option);
+        }
+
+
+        // -----------------------------------------
+        // UPDATE HIDDEN MVC FIELD
+        // -----------------------------------------
+
+        function updateHiddenDate() {
+
+            const day =
+                parseInt(daySelect.value);
+
+            const month =
+                parseInt(monthSelect.value);
+
+            if (
+                !day ||
+                !month ||
+                !selectedYear
+            ) {
+
+                hiddenDob.value = "";
+                return;
+            }
+
+
+            const formattedMonth =
+                String(month).padStart(
+                    2,
+                    "0"
+                );
+
+            const formattedDay =
+                String(day).padStart(
+                    2,
+                    "0"
+                );
+
+
+            hiddenDob.value =
+                `${selectedYear}-${formattedMonth}-${formattedDay}`;
+        }
+
+
+        // -----------------------------------------
+        // SHOW SELECTED YEAR
+        // -----------------------------------------
+
+        function updateSelectedYear() {
+
+            document
+                .querySelectorAll(
+                    ".pv-year-option"
+                )
+                .forEach(function (button) {
+
+                    button.classList.toggle(
+                        "active",
+                        parseInt(
+                            button.dataset.year
+                        ) === selectedYear
+                    );
+                });
+        }
+
+
+        // -----------------------------------------
+        // RESTORE DATE AFTER VALIDATION ERROR
+        // -----------------------------------------
+
+        function restoreExistingDate() {
+
+            if (!hiddenDob.value) {
+
+                updateDays();
+                return;
+            }
+
+
+            const parts =
+                hiddenDob.value.split("-");
+
+            if (parts.length !== 3) {
+                updateDays();
+                return;
+            }
+
+
+            selectedYear =
+                parseInt(parts[0]);
+
+            const month =
+                parseInt(parts[1]);
+
+            const day =
+                parseInt(parts[2]);
+
+
+            yearButton.textContent =
+                selectedYear;
+
+            mobileYearSelect.value =
+                selectedYear;
+
+            monthSelect.value =
+                month;
+
+            updateDays();
+
+            daySelect.value =
+                day;
+
+            updateSelectedYear();
+        }
+
+
+        restoreExistingDate();
+
+    });
+</script>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />

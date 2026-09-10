@@ -62,8 +62,6 @@ namespace SportsManagementMVC.Controllers
         "EmergencyContactName,EmergencyContactPhone,MedicalNotes,Consent")]
     PlayerRegistrationApplication input,
     CancellationToken cancellationToken)
-
-
         {
             if (!input.Consent)
             {
@@ -85,19 +83,40 @@ namespace SportsManagementMVC.Controllers
                     nameof(input.DateOfBirth),
                     "Date of birth is required.");
             }
+            else
+            {
+                var today = DateOnly.FromDateTime(DateTime.Today);
+                var dateOfBirth = input.DateOfBirth.Value;
+
+                if (dateOfBirth > today)
+                {
+                    ModelState.AddModelError(
+                        nameof(input.DateOfBirth),
+                        "Date of birth cannot be in the future.");
+                }
+                else
+                {
+                    var age = today.Year - dateOfBirth.Year;
+
+                    if (dateOfBirth > today.AddYears(-age))
+                    {
+                        age--;
+                    }
+
+                    if (age < 5 || age > 100)
+                    {
+                        ModelState.AddModelError(
+                            nameof(input.DateOfBirth),
+                            "Player age must be between 5 and 100 years.");
+                    }
+                }
+            }
 
             if (string.IsNullOrWhiteSpace(input.Classification))
             {
                 ModelState.AddModelError(
                     nameof(input.Classification),
                     "Disability classification is required.");
-            }
-
-            if (!input.Consent)
-            {
-                ModelState.AddModelError(
-                    nameof(input.Consent),
-                    "You must agree before submitting.");
             }
 
             if (!ModelState.IsValid)
@@ -108,6 +127,23 @@ namespace SportsManagementMVC.Controllers
             }
 
             var email = input.Email.Trim().ToLowerInvariant();
+
+            var playerAlreadyExists = await _context.Players
+                .AsNoTracking()
+                .AnyAsync(
+                    player => player.Email.ToLower() == email,
+                    cancellationToken);
+
+            if (playerAlreadyExists)
+            {
+                ModelState.AddModelError(
+                    nameof(input.Email),
+                    "A registered ParaVolley player already exists with this email address.");
+
+                return View(
+                    "~/Views/Registration/Index.cshtml",
+                    input);
+            }
 
             var alreadyPending = await _context.PlayerRegistrationApplications
                 .AsNoTracking()
@@ -130,6 +166,9 @@ namespace SportsManagementMVC.Controllers
 
             input.Email = input.Email.Trim();
             input.FullName = input.FullName.Trim();
+            input.Phone = input.Phone?.Trim();
+            input.Classification = input.Classification?.Trim();
+
             input.SubmittedAtUtc = DateTime.UtcNow;
             input.Status = PlayerApplicationStatus.Pending;
             input.IsRead = false;
