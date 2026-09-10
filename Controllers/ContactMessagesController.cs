@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SportsManagementMVC.Data;
+using SportsManagementMVC.Infrastructure;
 using SportsManagementMVC.Models;
 using SportsManagementMVC.Security;
 
@@ -18,13 +19,41 @@ namespace SportsManagementMVC.Controllers
         }
 
         // GET: ContactMessages
+        // GET: ContactMessages
         public async Task<IActionResult> Index(
-            CancellationToken cancellationToken)
+            int page = 1,
+            CancellationToken cancellationToken = default)
         {
-            var messages = await _context.ContactMessages
-                .AsNoTracking()
-                .OrderBy(m => m.IsRead)
-                .ThenByDescending(m => m.SubmittedAtUtc)
+            page = Paging.Page(page);
+
+            var query = _context.ContactMessages
+                .AsNoTracking();
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var unreadCount = await query
+                .CountAsync(
+                    message => !message.IsRead,
+                    cancellationToken);
+
+            var readCount = totalCount - unreadCount;
+
+            var pageCount = Paging.PageCount(
+                totalCount,
+                Paging.DefaultPageSize);
+
+            page = Math.Min(page, pageCount);
+
+            ViewBag.UnreadCount = unreadCount;
+            ViewBag.ReadCount = readCount;
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = pageCount;
+
+            var messages = await query
+                .OrderBy(message => message.IsRead)
+                .ThenByDescending(message => message.SubmittedAtUtc)
+                .Skip((page - 1) * Paging.DefaultPageSize)
+                .Take(Paging.DefaultPageSize)
                 .ToListAsync(cancellationToken);
 
             return View(messages);
