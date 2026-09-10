@@ -36,7 +36,12 @@ namespace SportsManagementMVC.Models
         public int Present { get; set; }
         public int Absent { get; set; }
         public double Rate => (Present + Absent) == 0 ? 0 : Math.Round(100.0 * Present / (Present + Absent), 0);
-        public string Status => Rate >= 90 ? "Excellent" : "Good";
+        public string Status =>
+    Rate >= 90
+        ? "Excellent"
+        : Rate >= 75
+            ? "Good"
+            : "Needs Attention";
     }
 
     public class AttendanceDashboardViewModel

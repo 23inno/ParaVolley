@@ -13,7 +13,7 @@
                 <div class="icon-box icon-box-green"><i class="bi bi-people-fill"></i></div>
             </div>
             <div class="value">@Model.TotalAttendance</div>
-            <div class="change">+8.5% from last month</div>
+            <div class="change">Recorded check-ins</div>
         </div>
     </div>
     <div class="col-sm-6 col-lg-3">
@@ -23,7 +23,7 @@
                 <div class="icon-box icon-box-gold"><i class="bi bi-graph-up-arrow"></i></div>
             </div>
             <div class="value">@Model.AttendanceRate%</div>
-            <div class="change">+3% improvement</div>
+            <div class="change">Across all records</div>
         </div>
     </div>
     <div class="col-sm-6 col-lg-3">
@@ -63,8 +63,8 @@
                 <canvas id="trendsChart"></canvas>
                 <div id="trendsTooltip" class="chart-tooltip">
                     <div class="tt-month" id="tt-trend-label"></div>
-                    <div class="tt-row tt-active">Actual : <span id="tt-trend-actual"></span></div>
-                    <div class="tt-row tt-new">Target : <span id="tt-trend-target"></span></div>
+                    <div class="tt-row tt-active">Present : <span id="tt-trend-actual"></span></div>
+                    <div class="tt-row tt-new">Total : <span id="tt-trend-target"></span></div>
                 </div>
             </div>
         </div>
@@ -172,8 +172,20 @@
                     <label class="d-block">Status</label>
                     <select name="status" class="form-select" onchange="document.getElementById('filterForm').submit()">
                         <option value="">All Status</option>
-                        <option value="Excellent" selected="@(ViewBag.SelectedStatus == "Excellent")">Excellent</option>
-                        <option value="Good" selected="@(ViewBag.SelectedStatus == "Good")">Good</option>
+                        <option value="Excellent"
+                                selected="@(ViewBag.SelectedStatus == "Excellent")">
+                            Excellent
+                        </option>
+
+                        <option value="Good"
+                                selected="@(ViewBag.SelectedStatus == "Good")">
+                            Good
+                        </option>
+
+                        <option value="Needs Attention"
+                                selected="@(ViewBag.SelectedStatus == "Needs Attention")">
+                            Needs Attention
+                        </option>
                     </select>
                 </div>
                 <div class="col-sm-6 col-lg-3">
@@ -216,7 +228,16 @@
                             </div>
                         </td>
                         <td>
-                            <span class="@(r.Status == "Excellent" ? "status-badge-excellent" : "status-badge-good")">@r.Status</span>
+                            @{
+                                var statusClass = r.Status switch
+                                {
+                                    "Excellent" => "status-badge-excellent",
+                                    "Good" => "status-badge-good",
+                                    _ => "status-badge-needs-attention"
+                                };
+                            }
+
+                            <span class="@statusClass">@r.Status</span>
                         </td>
                     </tr>
                 }
@@ -289,8 +310,8 @@
                 data: {
                     labels: d.map(x => x.label),
                     datasets: [
-                        { label: 'Actual', data: d.map(x => x.actual), backgroundColor: '#0B6E4F', borderRadius: 4, maxBarThickness: 34 },
-                        { label: 'Target', data: d.map(x => x.target), backgroundColor: '#FFC72C', borderRadius: 4, maxBarThickness: 34 }
+                                { label: 'Present', data: d.map(x => x.actual), backgroundColor: '#0B6E4F', borderRadius: 4, maxBarThickness: 34 },
+        { label: 'Total', data: d.map(x => x.target), backgroundColor: '#FFC72C', borderRadius: 4, maxBarThickness: 34 }
                     ]
                 },
                 options: {
