@@ -2,9 +2,13 @@
 @{
     ViewData["Title"] = "Coaches";
     var totalCount = (int)ViewBag.TotalCount;
-    var filteredCount = Model.Count();
+    var filteredCount = (int)ViewBag.FilteredCount;
     var hasActiveFilters = !string.IsNullOrWhiteSpace((string?)ViewBag.SelectedTeam)
         || !string.IsNullOrWhiteSpace((string?)ViewBag.SelectedStatus);
+
+    var teams =
+ViewBag.Teams as List<string>
+?? new List<string>();
 }
 
 <div class="row g-3 mb-3">
@@ -58,34 +62,73 @@
         </div>
 
         <div class="d-flex flex-wrap align-items-center gap-2">
-            <div class="search-input-wrap m-0">
+            <form method="get"
+                  id="searchForm"
+                  class="search-input-wrap m-0">
+
+                <input type="hidden"
+                       name="team"
+                       value="@ViewBag.SelectedTeam" />
+
+                <input type="hidden"
+                       name="status"
+                       value="@ViewBag.SelectedStatus" />
+
                 <i class="bi bi-search"></i>
-                <input type="text" id="liveSearchInput" class="form-control" placeholder="Search coaches..." autocomplete="off" />
-            </div>
+
+                <input type="text"
+                       name="search"
+                       value="@ViewBag.Search"
+                       class="form-control"
+                       placeholder="Search coaches..."
+                       autocomplete="off" />
+            </form>
 
             <button type="button" id="filterToggleBtn" class="btn btn-filter-toggle @(hasActiveFilters ? "active" : "")">
                 <i class="bi bi-funnel"></i> Filter
             </button>
 
-            <a asp-action="Export" id="exportLink" class="btn btn-pm-outline" asp-route-team="@ViewBag.SelectedTeam" asp-route-status="@ViewBag.SelectedStatus">
+            <a asp-action="Export"
+               class="btn btn-pm-outline"
+               asp-route-search="@ViewBag.Search"
+               asp-route-team="@ViewBag.SelectedTeam"
+               asp-route-status="@ViewBag.SelectedStatus">
                 <i class="bi bi-download"></i> Export
             </a>
 
-            <a asp-action="Create" class="btn btn-pm-add-gold js-modal-trigger"><i class="bi bi-plus-lg"></i> Add Coach</a>
+            <a asp-action="Create"
+               class="btn btn-pm-add-gold js-modal-trigger">
+
+                <i class="bi bi-plus-lg"></i>
+                Add Coach
+
+            </a>
         </div>
     </div>
 
     <div id="filterPanel" class="filter-panel @(hasActiveFilters ? "" : "d-none")">
         <form method="get" id="filterForm">
+            <input type="hidden"
+                   name="search"
+                   value="@ViewBag.Search" />
+
             <div class="row g-3 align-items-end">
                 <div class="col-sm-6 col-lg-3">
                     <label class="d-block">Team</label>
-                    <select name="team" class="form-select" onchange="document.getElementById('filterForm').submit()">
+                    <select name="team"
+                            class="form-select"
+                            onchange="document.getElementById('filterForm').submit()">
+
                         <option value="">All Teams</option>
-                        <option value="Team A" selected="@(ViewBag.SelectedTeam == "Team A")">Team A</option>
-                        <option value="Team B" selected="@(ViewBag.SelectedTeam == "Team B")">Team B</option>
-                        <option value="Team C" selected="@(ViewBag.SelectedTeam == "Team C")">Team C</option>
-                        <option value="Team D" selected="@(ViewBag.SelectedTeam == "Team D")">Team D</option>
+
+                        @foreach (var teamName in teams)
+                        {
+                            <option value="@teamName"
+                                    selected="@(ViewBag.SelectedTeam == teamName)">
+                                @teamName
+                            </option>
+                        }
+
                     </select>
                 </div>
                 <div class="col-sm-6 col-lg-3">
@@ -167,7 +210,14 @@
                         </td>
                         <td class="text-end">
                             <a asp-action="Details" asp-route-id="@coach.Id" class="pm-action-icon view js-modal-trigger" title="View"><i class="bi bi-eye"></i></a>
-                            <a asp-action="AssignTeam" asp-route-id="@coach.Id" class="pm-action-icon assign js-modal-trigger" title="Assign Team"><i class="bi bi-person-fill-add"></i></a>
+                            <a asp-action="AssignTeam"
+                               asp-route-id="@coach.Id"
+                               class="pm-action-icon assign js-modal-trigger"
+                               title="Assign Team">
+
+                                <i class="bi bi-person-fill-add"></i>
+
+                            </a>
                             <a asp-action="Edit" asp-route-id="@coach.Id" class="pm-action-icon edit js-modal-trigger" title="Edit"><i class="bi bi-pencil-square"></i></a>
                             <a asp-action="Delete" asp-route-id="@coach.Id" class="pm-action-icon delete js-modal-trigger" title="Delete"><i class="bi bi-trash"></i></a>
                         </td>
@@ -201,99 +251,302 @@
 @section Scripts {
     <script>
         (function () {
-            var toggleBtn = document.getElementById('filterToggleBtn');
-            var panel = document.getElementById('filterPanel');
-            toggleBtn.addEventListener('click', function () {
-                panel.classList.toggle('d-none');
-                toggleBtn.classList.toggle('active');
-            });
 
-            // Instant, client-side search by coach name or specialty - no page
-            // reload, so results update as you type with no scroll/focus loss.
-            var searchInput = document.getElementById('liveSearchInput');
-            var rows = Array.from(document.querySelectorAll('.coach-row'));
-            var visibleCountEl = document.getElementById('visibleCount');
-            var noResultsRow = document.getElementById('noCoachResults');
+            // =========================================================
+            // COACH MODAL
+            // Add Coach / View / Edit / Delete / Assign Team
+            // =========================================================
 
-            searchInput.addEventListener('input', function () {
-                var query = searchInput.value.trim().toLowerCase();
-                var visible = 0;
+            var modalEl =
+                document.getElementById('coachModal');
 
-                rows.forEach(function (row) {
-                    var name = row.getAttribute('data-name') || '';
-                    var specialty = row.getAttribute('data-specialty') || '';
-                    var matches = query === '' || name.indexOf(query) !== -1 || specialty.indexOf(query) !== -1;
-                    row.style.display = matches ? '' : 'none';
-                    if (matches) visible++;
+            var modalContent =
+                document.getElementById('coachModalContent');
+
+            var coachModal = null;
+
+            if (modalEl && modalContent) {
+                coachModal =
+                    bootstrap.Modal.getOrCreateInstance(modalEl);
+            }
+
+
+            function showLoading() {
+                modalContent.innerHTML =
+                    '<div class="modal-body text-center py-5">' +
+                    '<div class="spinner-border text-success" role="status">' +
+                    '<span class="visually-hidden">Loading...</span>' +
+                    '</div>' +
+                    '</div>';
+            }
+
+
+            function showModalError(message) {
+                modalContent.innerHTML =
+                    '<div class="modal-body">' +
+                    '<div class="alert alert-danger mb-0">' +
+                    message +
+                    '</div>' +
+                    '</div>';
+            }
+
+
+            async function loadCoachModal(url) {
+
+                if (!modalEl ||
+                    !modalContent ||
+                    !coachModal) {
+                    return;
+                }
+
+                showLoading();
+
+                coachModal.show();
+
+                try {
+
+                    var response =
+                        await fetch(url, {
+                            method: 'GET',
+                            headers: {
+                                'X-Requested-With':
+                                    'XMLHttpRequest'
+                            }
+                        });
+
+
+                    if (!response.ok) {
+                        throw new Error(
+                            'Unable to load coach form.');
+                    }
+
+
+                    var html =
+                        await response.text();
+
+
+                    modalContent.innerHTML =
+                        html;
+
+                }
+                catch (error) {
+
+                    console.error(error);
+
+                    showModalError(
+                        'Could not load the coach form. Please try again.');
+                }
+            }
+
+
+            // Intercept all coach modal links
+            document.addEventListener(
+                'click',
+                function (event) {
+
+                    var link =
+                        event.target.closest(
+                            '.js-modal-trigger');
+
+                    if (!link) {
+                        return;
+                    }
+
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    var url =
+                        link.getAttribute('href');
+
+                    if (!url) {
+                        return;
+                    }
+
+                    loadCoachModal(url);
                 });
 
-                visibleCountEl.textContent = visible;
-                noResultsRow.classList.toggle('d-none', visible !== 0);
-            });
 
-            var exportLink = document.getElementById('exportLink');
-            var exportBaseHref = exportLink.getAttribute('href');
-            searchInput.addEventListener('input', function () {
-                var url = new URL(exportBaseHref, window.location.origin);
-                if (searchInput.value.trim()) {
-                    url.searchParams.set('search', searchInput.value.trim());
-                } else {
-                    url.searchParams.delete('search');
-                }
-                exportLink.setAttribute('href', url.pathname + url.search);
-            });
+            // Handle all forms loaded inside the modal
+            document.addEventListener(
+                'submit',
+                async function (event) {
 
-            // ===== Add Coach / View / Edit / Delete / Assign Team as an in-page modal card =====
-            var modalEl = document.getElementById('coachModal');
-            var modalContent = document.getElementById('coachModalContent');
-            var bsModal = new bootstrap.Modal(modalEl);
+                    var form =
+                        event.target.closest(
+                            '.js-ajax-form');
 
-            function loadIntoModal(url) {
-                modalContent.innerHTML = '<div class="modal-body text-center py-5"><div class="spinner-border text-success" role="status"><span class="visually-hidden">Loading...</span></div></div>';
-                bsModal.show();
-                fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                    .then(function (res) { return res.text(); })
-                    .then(function (html) { modalContent.innerHTML = html; })
-                    .catch(function () {
-                        modalContent.innerHTML = '<div class="modal-body"><div class="alert alert-danger mb-0">Could not load that coach. Please try again.</div></div>';
+                    if (!form ||
+                        !modalContent ||
+                        !modalContent.contains(form)) {
+                        return;
+                    }
+
+
+                    event.preventDefault();
+
+
+                    var submitButton =
+                        form.querySelector(
+                            'button[type="submit"]');
+
+                    var originalButtonHtml =
+                        submitButton
+                            ? submitButton.innerHTML
+                            : '';
+
+
+                    if (submitButton) {
+                        submitButton.disabled = true;
+
+                        submitButton.innerHTML =
+                            '<span class="spinner-border spinner-border-sm me-2"></span>' +
+                            'Saving...';
+                    }
+
+
+                    try {
+
+                        var formData =
+                            new FormData(form);
+
+
+                        var response =
+                            await fetch(
+                                form.getAttribute('action')
+                                    || window.location.href,
+                                {
+                                    method: 'POST',
+
+                                    headers: {
+                                        'X-Requested-With':
+                                            'XMLHttpRequest'
+                                    },
+
+                                    body: formData
+                                });
+
+
+                        var contentType =
+                            response.headers.get(
+                                'content-type') || '';
+
+
+                        // Successful create/edit/delete/assign
+                        if (contentType.includes(
+                            'application/json')) {
+
+                            var data =
+                                await response.json();
+
+
+                            if (data.success) {
+
+                                coachModal.hide();
+
+                                window.location.reload();
+
+                                return;
+                            }
+                        }
+
+
+                        // Validation failed:
+                        // server returned the partial again
+                        var html =
+                            await response.text();
+
+
+                        modalContent.innerHTML =
+                            html;
+
+                    }
+                    catch (error) {
+
+                        console.error(error);
+
+                        showModalError(
+                            'Something went wrong while saving. Please try again.');
+                    }
+                    finally {
+
+                        if (submitButton &&
+                            document.body.contains(
+                                submitButton)) {
+
+                            submitButton.disabled =
+                                false;
+
+                            submitButton.innerHTML =
+                                originalButtonHtml;
+                        }
+                    }
+                });
+
+
+            // =========================================================
+            // FILTER PANEL
+            // =========================================================
+
+            var toggleBtn =
+                document.getElementById(
+                    'filterToggleBtn');
+
+            var filterPanel =
+                document.getElementById(
+                    'filterPanel');
+
+
+            if (toggleBtn && filterPanel) {
+
+                toggleBtn.addEventListener(
+                    'click',
+                    function () {
+
+                        filterPanel.classList.toggle(
+                            'd-none');
+
+                        toggleBtn.classList.toggle(
+                            'active');
                     });
             }
 
-            document.addEventListener('click', function (e) {
-                var link = e.target.closest('.js-modal-trigger');
-                if (link) {
-                    e.preventDefault();
-                    loadIntoModal(link.getAttribute('href'));
-                }
-            });
 
-            document.addEventListener('submit', function (e) {
-                var form = e.target.closest('.js-ajax-form');
-                if (!form || !modalContent.contains(form)) return;
+            // =========================================================
+            // SERVER-SIDE COACH SEARCH
+            // =========================================================
 
-                e.preventDefault();
-                var formData = new FormData(form);
+            var searchForm =
+                document.getElementById(
+                    'searchForm');
 
-                fetch(form.getAttribute('action') || window.location.href, {
-                    method: 'POST',
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                    body: formData
-                }).then(function (res) {
-                    var contentType = res.headers.get('content-type') || '';
-                    if (contentType.indexOf('application/json') !== -1) {
-                        return res.json().then(function (data) {
-                            if (data.success) {
-                                bsModal.hide();
-                                window.location.reload();
-                            }
-                        });
-                    } else {
-                        return res.text().then(function (html) { modalContent.innerHTML = html; });
-                    }
-                }).catch(function () {
-                    modalContent.innerHTML = '<div class="modal-body"><div class="alert alert-danger mb-0">Something went wrong saving. Please try again.</div></div>';
-                });
-            });
+            var searchInput =
+                document.querySelector(
+                    '#searchForm input[name="search"]');
+
+            var searchTimer;
+
+
+            if (searchForm && searchInput) {
+
+                searchInput.addEventListener(
+                    'input',
+                    function () {
+
+                        clearTimeout(
+                            searchTimer);
+
+
+                        searchTimer =
+                            setTimeout(
+                                function () {
+
+                                    searchForm.submit();
+
+                                },
+                                1200);
+                    });
+            }
+
         })();
     </script>
 }

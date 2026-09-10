@@ -1,4 +1,9 @@
 @model Coach
+@{
+    var teams =
+        ViewBag.Teams as List<string>
+        ?? new List<string>();
+}
 
 <div class="modal-header">
     <h5 class="modal-title fw-bold">Edit Coach</h5>
@@ -58,12 +63,19 @@
         <div class="row">
             <div class="col-md-6 mb-3">
                 <label asp-for="AssignedTeam" class="form-label fw-semibold"></label>
-                <select asp-for="AssignedTeam" class="form-select">
+                <select asp-for="AssignedTeam"
+                        class="form-select">
+
                     <option value="">Unassigned</option>
-                    <option value="Team A">Team A</option>
-                    <option value="Team B">Team B</option>
-                    <option value="Team C">Team C</option>
-                    <option value="Team D">Team D</option>
+
+                    @foreach (var teamName in teams)
+                    {
+                        <option value="@teamName"
+                                selected="@(Model.AssignedTeam == teamName)">
+                            @teamName
+                        </option>
+                    }
+
                 </select>
             </div>
             <div class="col-md-6 mb-3">
