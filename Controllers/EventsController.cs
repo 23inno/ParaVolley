@@ -27,7 +27,23 @@ namespace SportsManagementMVC.Controllers
             CancellationToken cancellationToken = default)
         {
             page = Paging.Page(page);
-            var query = _context.Events.AsNoTracking().AsQueryable();
+
+            var query = _context.Events
+                .AsNoTracking()
+                .AsQueryable();
+
+            var canManageEvents =
+                User.IsInRole(nameof(AppUserRole.Admin)) ||
+                User.IsInRole(nameof(AppUserRole.Coach));
+
+            if (!canManageEvents)
+            {
+                var today = DateTime.Today;
+
+                query = query.Where(e =>
+                    e.Status == EventStatus.Upcoming &&
+                    e.Date >= today);
+            }
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -61,7 +77,7 @@ namespace SportsManagementMVC.Controllers
         }
 
         // GET: Events/Export - downloads the current filtered list as a CSV file
-        [AllowAnonymous]
+        [Authorize(Policy = AuthorizationPolicies.AdminOrCoach)]
         public async Task<IActionResult> Export(string? search, string? type, string? status)
         {
             var query = _context.Events.AsQueryable();
