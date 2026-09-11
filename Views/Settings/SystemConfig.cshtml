@@ -1,109 +1,357 @@
 @model OrganisationSettings
 @{
     ViewData["Title"] = "System";
+
+    var provinces = new[]
+    {
+        "Mpumalanga",
+        "Gauteng",
+        "Limpopo",
+        "KwaZulu-Natal",
+        "Free State",
+        "North West",
+        "Northern Cape",
+        "Eastern Cape",
+        "Western Cape"
+    };
 }
 
 <h2 class="settings-page-title">System</h2>
-<p class="settings-page-subtitle mb-3">Organisation-wide configuration options.</p>
+<p class="settings-page-subtitle mb-3">
+    Manage organisation-wide settings that control real ParaVolley application behaviour.
+</p>
 
 <div class="settings-layout">
     <partial name="_SettingsNav" />
 
-    <div class="settings-content-card">
-        <div class="settings-section-header">
-            <h5>System Configuration</h5>
-            <p>Configure organisation-wide settings that apply to all users.</p>
-        </div>
+    <div>
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                @TempData["Success"]
+            </div>
+        }
 
-        <div class="settings-section-body pt-4">
-            <form asp-action="SystemConfig" method="post" enctype="multipart/form-data">
-                <input type="hidden" asp-for="Id" />
-                <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+        <form asp-action="SystemConfig"
+              method="post"
+              enctype="multipart/form-data">
 
-                <div class="settings-row">
-                    <div class="settings-row-label">Company Logo</div>
-                    <div class="settings-row-control">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="avatar-upload-preview" id="logoPreview" style="border-radius:0.75rem; background:#f8f9fa;">
-                                @if (!string.IsNullOrEmpty(Model.LogoPath))
-                                {
-                                    <img src="@Model.LogoPath" alt="Logo" id="logoImg" style="object-fit:contain;" />
-                                }
-                                else
-                                {
-                                    <i class="bi bi-image text-muted" style="font-size:1.5rem;"></i>
-                                }
+            <div asp-validation-summary="ModelOnly"
+                 class="alert alert-danger"></div>
+
+            <!-- ORGANISATION -->
+            <div class="settings-content-card mb-4">
+                <div class="settings-section-header">
+                    <h5>Organisation Profile</h5>
+                    <p>Official organisation identity and contact information.</p>
+                </div>
+
+                <div class="settings-section-body pt-3 pb-3">
+                    <div class="settings-row">
+                        <div class="settings-row-label">Organisation Logo</div>
+                        <div class="settings-row-control">
+                            <div class="d-flex align-items-center gap-3 flex-wrap">
+                                <div class="avatar-upload-preview"
+                                     id="logoPreview"
+                                     style="border-radius:.75rem;background:#f8f9fa;">
+                                    @if (!string.IsNullOrWhiteSpace(Model.LogoPath))
+                                    {
+                                        <img src="@Model.LogoPath"
+                                             alt="Organisation logo"
+                                             style="object-fit:contain;" />
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-image text-muted fs-4"></i>
+                                    }
+                                </div>
+
+                                <div>
+                                    <label for="logoInput"
+                                           class="btn btn-outline-secondary btn-sm mb-0">
+                                        <i class="bi bi-upload me-1"></i>
+                                        Upload Logo
+                                    </label>
+
+                                    @if (!string.IsNullOrWhiteSpace(Model.LogoPath))
+                                    {
+                                        <button type="button"
+                                                id="removeLogoBtn"
+                                                class="btn btn-outline-danger btn-sm">
+                                            Remove
+                                        </button>
+                                    }
+
+                                    <div class="form-text">
+                                        JPG, PNG or WebP, maximum 2 MB.
+                                    </div>
+                                </div>
                             </div>
-                            <div>
-                                <label for="logoInput" class="btn btn-outline-secondary btn-sm mb-0" style="cursor:pointer;">
-                                    <i class="bi bi-upload"></i> Upload Logo
-                                </label>
-                                @if (!string.IsNullOrEmpty(Model.LogoPath))
-                                {
-                                    <button type="button" id="removeLogoBtn" class="btn btn-outline-danger btn-sm">Remove</button>
-                                }
-                                <div class="text-muted small mt-1">Shown on the login page. JPG, PNG or WebP, max 2 MB.</div>
+
+                            <input type="file"
+                                   name="logo"
+                                   id="logoInput"
+                                   accept=".jpg,.jpeg,.png,.webp"
+                                   class="d-none" />
+                            <input type="hidden"
+                                   name="removeLogo"
+                                   id="removeLogoInput"
+                                   value="false" />
+                        </div>
+                    </div>
+
+                    <div class="settings-row">
+                        <div class="settings-row-label">Organisation Name</div>
+                        <div class="settings-row-control">
+                            <input asp-for="OrganisationName" class="form-control" />
+                            <span asp-validation-for="OrganisationName" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="settings-row">
+                        <div class="settings-row-label">Official Email</div>
+                        <div class="settings-row-control">
+                            <input asp-for="OfficialEmail"
+                                   class="form-control"
+                                   placeholder="paravolleympumalanga@gmail.com" />
+                            <span asp-validation-for="OfficialEmail" class="text-danger small"></span>
+                            <div class="form-text">Website contact enquiries are sent to this address.</div>
+                        </div>
+                    </div>
+
+                    <div class="settings-row">
+                        <div class="settings-row-label">Official Website</div>
+                        <div class="settings-row-control">
+                            <input asp-for="OfficialWebsite"
+                                   class="form-control"
+                                   placeholder="https://example.com/" />
+                            <span asp-validation-for="OfficialWebsite" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="settings-row">
+                        <div class="settings-row-label">Contact Phone</div>
+                        <div class="settings-row-control">
+                            <input asp-for="OfficialPhone"
+                                   class="form-control"
+                                   placeholder="Optional contact number" />
+                            <span asp-validation-for="OfficialPhone" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="settings-row">
+                        <div class="settings-row-label">Office / Location</div>
+                        <div class="settings-row-control">
+                            <input asp-for="OfficeLocation"
+                                   class="form-control"
+                                   placeholder="Mpumalanga, South Africa" />
+                            <span asp-validation-for="OfficeLocation" class="text-danger small"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- OPERATIONAL SETTINGS -->
+            <div class="settings-content-card mb-4">
+                <div class="settings-section-header">
+                    <h5>Operational Settings</h5>
+                    <p>Control the active sporting season, attendance policy and registrations.</p>
+                </div>
+
+                <div class="settings-section-body pt-3 pb-3">
+                    <div class="settings-row">
+                        <div class="settings-row-label">Active Season</div>
+                        <div class="settings-row-control">
+                            <input asp-for="ActiveSeason"
+                                   type="number"
+                                   min="2020"
+                                   max="2100"
+                                   class="form-control"
+                                   style="max-width:180px;" />
+                            <span asp-validation-for="ActiveSeason" class="text-danger small d-block"></span>
+                            <div class="form-text">
+                                Used by Admin/Coach dashboard event and match summaries and by attendance/report season views.
                             </div>
                         </div>
-                        <input type="file" name="logo" id="logoInput" accept=".jpg,.jpeg,.png,.webp,.svg" class="d-none" />
-                        <input type="hidden" name="removeLogo" id="removeLogoInput" value="false" />
                     </div>
+
+                    <div class="settings-row">
+                        <div class="settings-row-label">Minimum Attendance</div>
+                        <div class="settings-row-control">
+                            <div class="d-flex align-items-center gap-3">
+                                <input type="range"
+                                       asp-for="MinAttendancePercent"
+                                       min="0"
+                                       max="100"
+                                       class="form-range flex-grow-1"
+                                       oninput="document.getElementById('attendanceValue').textContent=this.value+'%'" />
+                                <strong id="attendanceValue"
+                                        style="color:var(--pv-green);min-width:52px;">
+                                    @Model.MinAttendancePercent%
+                                </strong>
+                            </div>
+                            <span asp-validation-for="MinAttendancePercent" class="text-danger small"></span>
+                            <div class="form-text">
+                                Attendance below this percentage is treated as needing attention.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-row">
+                        <div class="settings-row-label">Player Applications</div>
+                        <div class="settings-row-control">
+                            <div class="form-check form-switch">
+                                <input asp-for="AcceptPlayerApplications"
+                                       class="form-check-input settings-toggle" />
+                                <label asp-for="AcceptPlayerApplications"
+                                       class="form-check-label fw-semibold">
+                                    Accept public player applications
+                                </label>
+                            </div>
+                            <div class="form-text">When disabled, the public Join page shows applications as closed.</div>
+                        </div>
+                    </div>
+
+                    <div class="settings-row">
+                        <div class="settings-row-label">Event Registration</div>
+                        <div class="settings-row-control">
+                            <div class="form-check form-switch">
+                                <input asp-for="AllowEventRegistration"
+                                       class="form-check-input settings-toggle" />
+                                <label asp-for="AllowEventRegistration"
+                                       class="form-check-label fw-semibold">
+                                    Allow players to register for events
+                                </label>
+                            </div>
+                            <div class="form-text">When disabled, new mobile event registrations are blocked; existing registrations can still be cancelled.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DEFAULTS -->
+            <div class="settings-content-card mb-4">
+                <div class="settings-section-header">
+                    <h5>Organisation Defaults</h5>
+                    <p>Default values used when creating common ParaVolley records.</p>
                 </div>
 
-                <div class="settings-row">
-                    <div class="settings-row-label">Organisation Name</div>
-                    <div class="settings-row-control">
-                        <input asp-for="OrganisationName" class="form-control" />
-                        <span asp-validation-for="OrganisationName" class="text-danger small"></span>
+                <div class="settings-section-body pt-3 pb-3">
+                    <div class="settings-row">
+                        <div class="settings-row-label">Default Team / Club</div>
+                        <div class="settings-row-control">
+                            <input asp-for="DefaultTeamName" class="form-control" />
+                            <span asp-validation-for="DefaultTeamName" class="text-danger small"></span>
+                            <div class="form-text">Used to prefill Team A when an Admin creates a match.</div>
+                        </div>
+                    </div>
+
+                    <div class="settings-row">
+                        <div class="settings-row-label">Default Province</div>
+                        <div class="settings-row-control">
+                            <select asp-for="DefaultProvince" class="form-select">
+                                @foreach (var province in provinces)
+                                {
+                                    <option value="@province">@province</option>
+                                }
+                            </select>
+                            <div class="form-text">Used to prefill the public player application form.</div>
+                        </div>
+                    </div>
+
+                    <div class="settings-row">
+                        <div class="settings-row-label">Default Country</div>
+                        <div class="settings-row-control">
+                            <input asp-for="DefaultCountry" class="form-control" />
+                            <span asp-validation-for="DefaultCountry" class="text-danger small"></span>
+                        </div>
                     </div>
                 </div>
-                <div class="settings-row">
-                    <div class="settings-row-label">Timezone</div>
-                    <div class="settings-row-control">
-                        <select asp-for="Timezone" class="form-select">
-                            <option value="Africa/Johannesburg (SAST, UTC+2)">Africa/Johannesburg (SAST, UTC+2)</option>
-                            <option value="UTC">UTC</option>
-                            <option value="Europe/London (GMT)">Europe/London (GMT)</option>
-                            <option value="America/New_York (EST)">America/New_York (EST)</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="settings-row">
-                    <div class="settings-row-label">Active Season</div>
-                    <div class="settings-row-control">
-                        <select asp-for="ActiveSeason" class="form-select">
-                            <option value="2024">2024</option>
-                            <option value="2025">2025</option>
-                            <option value="2026">2026</option>
-                            <option value="2027">2027</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="settings-row">
-                    <div class="settings-row-label">Min. Attendance (%)</div>
-                    <div class="settings-row-control d-flex align-items-center gap-3">
-                        <input type="range" asp-for="MinAttendancePercent" min="0" max="100" class="form-range flex-grow-1"
-                               oninput="document.getElementById('minAttendanceVal').textContent = this.value + '%'" />
-                        <span id="minAttendanceVal" class="fw-bold" style="color:var(--pv-green); min-width:3.5rem;">@Model.MinAttendancePercent%</span>
-                    </div>
-                </div>
-                <div class="settings-row">
-                    <div class="settings-row-label">Language</div>
-                    <div class="settings-row-control">
-                        <select asp-for="Language" class="form-select">
-                            <option value="English">English</option>
-                            <option value="Afrikaans">Afrikaans</option>
-                            <option value="isiZulu">isiZulu</option>
-                            <option value="Sesotho">Sesotho</option>
-                        </select>
-                    </div>
+            </div>
+
+            <!-- MAINTENANCE -->
+            <div class="settings-content-card mb-4">
+                <div class="settings-section-header">
+                    <h5>Maintenance Mode</h5>
+                    <p>Temporarily hide the public website while keeping Admin access available.</p>
                 </div>
 
-                <div class="text-end pt-3 pb-2">
-                    <button type="submit" class="btn btn-pv"><i class="bi bi-save"></i> Save Configuration</button>
+                <div class="settings-section-body pt-3 pb-3">
+                    <div class="settings-row">
+                        <div class="settings-row-label">Maintenance Mode</div>
+                        <div class="settings-row-control">
+                            <div class="form-check form-switch">
+                                <input asp-for="MaintenanceMode"
+                                       class="form-check-input settings-toggle" />
+                                <label asp-for="MaintenanceMode"
+                                       class="form-check-label fw-semibold">
+                                    Enable public-site maintenance mode
+                                </label>
+                            </div>
+                            <div class="form-text">
+                                Public pages show the maintenance screen. Admin login and the mobile API remain available.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-row">
+                        <div class="settings-row-label">Maintenance Message</div>
+                        <div class="settings-row-control">
+                            <textarea asp-for="MaintenanceMessage"
+                                      class="form-control"
+                                      rows="3"
+                                      maxlength="300"></textarea>
+                            <span asp-validation-for="MaintenanceMessage" class="text-danger small"></span>
+                        </div>
+                    </div>
                 </div>
-            </form>
-        </div>
+            </div>
+
+            <!-- SYSTEM INFO -->
+            <div class="settings-content-card mb-4">
+                <div class="settings-section-header">
+                    <h5>System Information</h5>
+                    <p>Read-only information about the running application.</p>
+                </div>
+
+                <div class="settings-section-body pt-3 pb-3">
+                    <div class="row g-3 py-2">
+                        <div class="col-md-6">
+                            <div class="border rounded-3 p-3 h-100">
+                                <div class="text-muted small">Environment</div>
+                                <div class="fw-bold">@ViewBag.EnvironmentName</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="border rounded-3 p-3 h-100">
+                                <div class="text-muted small">Database</div>
+                                <div class="fw-bold">@ViewBag.DatabaseProvider</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="border rounded-3 p-3 h-100">
+                                <div class="text-muted small">Timezone</div>
+                                <div class="fw-bold">@ViewBag.ServerTimezone</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="border rounded-3 p-3 h-100">
+                                <div class="text-muted small">Application Version</div>
+                                <div class="fw-bold">@ViewBag.ApplicationVersion</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-end pb-3">
+                <button type="submit" class="btn btn-pv px-4">
+                    <i class="bi bi-save me-1"></i>
+                    Save System Settings
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -111,27 +359,31 @@
     <partial name="_ValidationScriptsPartial" />
     <script>
         (function () {
-            var logoInput = document.getElementById('logoInput');
-            var logoPreview = document.getElementById('logoPreview');
-            var removeBtn = document.getElementById('removeLogoBtn');
-            var removeInput = document.getElementById('removeLogoInput');
+            const logoInput = document.getElementById('logoInput');
+            const logoPreview = document.getElementById('logoPreview');
+            const removeBtn = document.getElementById('removeLogoBtn');
+            const removeInput = document.getElementById('removeLogoInput');
 
-            logoInput.addEventListener('change', function () {
-                if (logoInput.files && logoInput.files[0]) {
-                    removeInput.value = 'false';
-                    var reader = new FileReader();
-                    reader.onload = function (e) {
-                        logoPreview.innerHTML = '<img src="' + e.target.result + '" alt="Logo" style="object-fit:contain;" />';
-                    };
-                    reader.readAsDataURL(logoInput.files[0]);
-                }
-            });
+            if (logoInput) {
+                logoInput.addEventListener('change', function () {
+                    if (logoInput.files && logoInput.files[0]) {
+                        removeInput.value = 'false';
+                        const reader = new FileReader();
+                        reader.onload = function (e) {
+                            logoPreview.innerHTML =
+                                '<img src="' + e.target.result + '" alt="Organisation logo" style="object-fit:contain;" />';
+                        };
+                        reader.readAsDataURL(logoInput.files[0]);
+                    }
+                });
+            }
 
             if (removeBtn) {
                 removeBtn.addEventListener('click', function () {
                     removeInput.value = 'true';
                     logoInput.value = '';
-                    logoPreview.innerHTML = '<i class="bi bi-image text-muted" style="font-size:1.5rem;"></i>';
+                    logoPreview.innerHTML =
+                        '<i class="bi bi-image text-muted fs-4"></i>';
                     removeBtn.remove();
                 });
             }

@@ -48,7 +48,10 @@
             </div>
 
             <form asp-action="Profile" method="post">
-                <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+                <div asp-validation-summary="All"
+                     class="alert alert-danger validation-summary-valid"
+                     role="alert">
+                </div>
 
                 <div class="settings-row">
                     <div class="settings-row-label">Full Name</div>
@@ -58,18 +61,36 @@
                     </div>
                 </div>
                 <div class="settings-row">
-                    <div class="settings-row-label">Email Address</div>
+                    <div class="settings-row-label">
+                        Email Address
+                    </div>
+
                     <div class="settings-row-control">
-                        <input asp-for="Email" class="form-control" />
-                        <span asp-validation-for="Email" class="text-danger small"></span>
+                        <input asp-for="Email"
+                               class="form-control"
+                               readonly
+                               aria-readonly="true"
+                               style="background:#f8f9fa;" />
+
+                        <div class="form-text">
+                            This is your sign-in email and cannot be changed
+                            from the Profile page.
+                        </div>
                     </div>
                 </div>
                 <div class="settings-row">
                     <div class="settings-row-label">Phone Number</div>
+
                     <div class="settings-row-control">
-                        <input asp-for="Phone" class="form-control" />
+                        <input asp-for="Phone"
+                               class="form-control"
+                               placeholder="e.g. +27 71 234 5678" />
+
+                        <span asp-validation-for="Phone"
+                              class="text-danger small">
+                        </span>
                     </div>
-                </div>
+                </div>>
                 <div class="settings-row">
                     <div class="settings-row-label">Role</div>
                     <div class="settings-row-control">

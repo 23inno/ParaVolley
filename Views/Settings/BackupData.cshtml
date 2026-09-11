@@ -1,115 +1,782 @@
-@model List<BackupRecord>
+@model BackupDataViewModel
+
 @{
     ViewData["Title"] = "Backup & Data";
+    var settings = Model.Settings;
 }
 
-<h2 class="settings-page-title">Backup &amp; Data</h2>
-<p class="settings-page-subtitle mb-3">Manage your data backups and exports.</p>
+<h2 class="settings-page-title">
+    Backup &amp; Data
+</h2>
+
+<p class="settings-page-subtitle mb-3">
+    Create, verify, export and manage administrative data snapshots.
+</p>
 
 <div class="settings-layout">
+
     <partial name="_SettingsNav" />
 
     <div>
-        <div class="settings-content-card mb-3">
-            <div class="settings-section-header">
-                <h5>Data Backup</h5>
-                <p>Download or manage backups of your system data.</p>
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success">
+                @TempData["Success"]
+            </div>
+        }
+
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger">
+                @TempData["Error"]
+            </div>
+        }
+
+        <div class="row g-3 mb-4">
+
+            <div class="col-md-4">
+                <div class="settings-content-card h-100">
+                    <div class="settings-section-body">
+                        <div class="small text-muted">
+                            Total records
+                        </div>
+                        <div class="fs-3 fw-bold">
+                            @Model.TotalCount
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div class="settings-section-body pt-4 pb-4">
-                <div class="d-flex gap-2 mb-4 flex-wrap">
-                    <form asp-action="CreateBackup" method="post">
-                        <button type="submit" class="btn btn-pv"><i class="bi bi-server"></i> Create Backup Now</button>
-                    </form>
+            <div class="col-md-4">
+                <div class="settings-content-card h-100">
+                    <div class="settings-section-body">
+                        <div class="small text-muted">
+                            Successful
+                        </div>
+                        <div class="fs-3 fw-bold text-success">
+                            @Model.SuccessfulCount
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-                    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#restoreModal">
-                        <i class="bi bi-upload"></i> Restore from File
+            <div class="col-md-4">
+                <div class="settings-content-card h-100">
+                    <div class="settings-section-body">
+                        <div class="small text-muted">
+                            Failed
+                        </div>
+                        <div class="fs-3 fw-bold text-danger">
+                            @Model.FailedCount
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+
+        <div class="settings-content-card mb-4">
+
+            <form asp-action="CreateBackup"
+                  method="post">
+
+                <div class="settings-section-header
+                    d-flex
+                    justify-content-between
+                    align-items-center
+                    flex-wrap
+                    gap-3">
+
+                    <div>
+                        <h5 class="mb-1">
+                            Create Snapshot
+                        </h5>
+
+                        <p class="mb-0">
+                            Create a JSON snapshot and keep a readable
+                            Excel export available from the same archived data.
+                        </p>
+                    </div>
+
+                    <button type="submit"
+                            class="btn btn-pv px-4">
+
+                        <i class="bi bi-database-add me-1"></i>
+                        Create Snapshot
+
                     </button>
+
                 </div>
 
-                <h6 class="fw-bold mb-2">Backup History</h6>
+
+                <div class="settings-section-body pt-3 pb-4">
+
+                    <label for="backupNote"
+                           class="form-label fw-semibold">
+
+                        Note
+                        <span class="fw-normal text-muted">
+                            (optional)
+                        </span>
+
+                    </label>
+
+                    <input type="text"
+                           id="backupNote"
+                           name="note"
+                           maxlength="200"
+                           class="form-control"
+                           placeholder="Example: Before September event updates" />
+
+                    <div class="form-text">
+                        Add a short reason so you can identify this snapshot later.
+                    </div>
+
+                </div>
+
+            </form>
+
+        </div>
+
+
+        <div class="settings-content-card mb-4">
+
+            <div class="settings-section-header">
+                <h5>Automatic Snapshots &amp; Retention</h5>
+                <p>
+                    Schedule automatic snapshots and control how many successful
+                    snapshots are retained.
+                </p>
+            </div>
+
+            <div class="settings-section-body">
+
+                <form asp-action="SaveBackupSchedule"
+                      method="post"
+                      class="row g-3">
+
+                    <div class="col-12">
+                        <div class="form-check form-switch">
+                            <input id="automaticEnabled"
+                                   name="automaticEnabled"
+                                   value="true"
+                                   class="form-check-input"
+                                   type="checkbox"
+                                   @(settings.AutomaticEnabled ? "checked" : null) />
+
+                            <label class="form-check-label fw-semibold"
+                                   for="automaticEnabled">
+                                Enable automatic snapshots
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">
+                            Frequency
+                        </label>
+
+                        <select name="frequency"
+                                class="form-select">
+                            <option value="@BackupScheduleFrequency.Daily"
+                                    selected="@(settings.Frequency == BackupScheduleFrequency.Daily ? "selected" : null)">
+                                Daily
+                            </option>
+                            <option value="@BackupScheduleFrequency.Weekly"
+                                    selected="@(settings.Frequency == BackupScheduleFrequency.Weekly ? "selected" : null)">
+                                Weekly
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">
+                            Weekly day
+                        </label>
+
+                        <select name="weeklyDay"
+                                class="form-select">
+                            @foreach (DayOfWeek day in Enum.GetValues(typeof(DayOfWeek)))
+                            {
+                                <option value="@day"
+                                        selected="@(settings.WeeklyDay == day ? "selected" : null)">
+                                    @day
+                                </option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">
+                            Run hour (SAST)
+                        </label>
+
+                        <select name="hourSast"
+                                class="form-select">
+                            @for (var hour = 0; hour < 24; hour++)
+                            {
+                                <option value="@hour"
+                                        selected="@(settings.HourSast == hour ? "selected" : null)">
+                                    @($"{hour:00}:00")
+                                </option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">
+                            Keep latest successful snapshots
+                        </label>
+
+                        <input name="retentionCount"
+                               type="number"
+                               min="5"
+                               max="100"
+                               value="@settings.RetentionCount"
+                               class="form-control" />
+                    </div>
+
+                    <div class="col-md-8 d-flex align-items-end">
+                        <div class="small text-muted">
+                            @if (settings.AutomaticEnabled &&
+                                 Model.NextScheduledRunAt.HasValue)
+                            {
+                                <span>
+                                    Next scheduled run:
+                                    <strong>
+                                        @Model.NextScheduledRunAt.Value.ToString("yyyy-MM-dd HH:mm") SAST
+                                    </strong>
+                                </span>
+                            }
+                            else
+                            {
+                                <span>
+                                    Automatic snapshots are currently disabled.
+                                </span>
+                            }
+
+                            <div class="mt-1">
+                                The scheduler checks while the web service is running.
+                                If the service is offline at the scheduled time, the
+                                snapshot is created after the service is available again.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 d-flex flex-wrap gap-2">
+
+                        <button type="submit"
+                                class="btn btn-pv">
+                            <i class="bi bi-save"></i>
+                            Save Schedule
+                        </button>
+
+                    </div>
+
+                </form>
+
+                <hr />
+
+                <div class="d-flex flex-wrap gap-2">
+
+                    <form asp-action="RunRetentionCleanup"
+                          method="post"
+                          class="js-backup-confirm"
+                          data-confirm-title="Run retention cleanup?"
+                          data-confirm-message="Successful snapshots beyond the configured retention limit will be permanently removed. The snapshots kept within the limit will not be affected."
+                          data-confirm-button="Run Cleanup"
+                          data-confirm-class="btn-warning"
+                          data-confirm-icon="bi-trash3">
+
+                        <button type="submit"
+                                class="btn btn-outline-secondary">
+                            <i class="bi bi-trash3"></i>
+                            Run Retention Cleanup
+                        </button>
+
+                    </form>
+
+                    <form asp-action="CleanFailedBackups"
+                          method="post"
+                          class="js-backup-confirm"
+                          data-confirm-title="Remove failed records?"
+                          data-confirm-message="All failed snapshot history records will be permanently removed. Successful snapshots and their files will not be affected."
+                          data-confirm-button="Remove Failed Records"
+                          data-confirm-class="btn-danger"
+                          data-confirm-icon="bi-x-circle">
+
+                        <button type="submit"
+                                class="btn btn-outline-danger"
+                                @(Model.FailedCount == 0 ? "disabled" : null)>
+                            <i class="bi bi-x-circle"></i>
+                            Remove Failed Records
+                        </button>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="settings-content-card mb-4">
+
+            <div class="settings-section-body">
+
+                <div class="alert alert-light border mb-0">
+
+                    <div class="d-flex gap-3 align-items-start">
+
+                        <i class="bi bi-shield-check text-success fs-5"></i>
+
+                        <div class="small">
+
+                            <strong>
+                                Administrative snapshot vs PostgreSQL backup
+                            </strong>
+
+                            <div class="text-muted mt-1">
+                                JSON, Excel and ZIP exports are administrative copies of
+                                ParaVolley application data. They are useful for review,
+                                reporting and archiving.
+                            </div>
+
+                            <div class="text-muted mt-1">
+                                They are not a complete PostgreSQL disaster-recovery
+                                backup. Production database restoration should use a
+                                separate provider/database-native backup and restore
+                                process managed by an administrator.
+                            </div>
+
+                            <div class="text-muted mt-1">
+                                Snapshot files may contain personal and operational data.
+                                Store downloaded copies securely. Password hashes,
+                                application secrets and connection strings are not
+                                included in these snapshots.
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="settings-content-card">
+
+            <div class="settings-section-header">
+                <h5>Snapshot History</h5>
+                <p>
+                    Search, filter, inspect, verify and download archived snapshots.
+                </p>
+            </div>
+
+            <div class="settings-section-body">
+
+                <form method="get"
+                      asp-action="BackupData"
+                      class="row g-2 mb-4">
+
+                    <div class="col-md-7">
+                        <input type="search"
+                               name="search"
+                               value="@Model.Search"
+                               class="form-control"
+                               placeholder="Search by snapshot ID or note" />
+                    </div>
+
+                    <div class="col-md-3">
+                        <select name="status"
+                                class="form-select">
+
+                            <option value="all"
+                                    selected="@(Model.Status == "all" ? "selected" : null)">
+                                All snapshots
+                            </option>
+
+                            <option value="success"
+                                    selected="@(Model.Status == "success" ? "selected" : null)">
+                                Successful
+                            </option>
+
+                            <option value="failed"
+                                    selected="@(Model.Status == "failed" ? "selected" : null)">
+                                Failed
+                            </option>
+
+                            <option value="manual"
+                                    selected="@(Model.Status == "manual" ? "selected" : null)">
+                                Manual
+                            </option>
+
+                            <option value="automatic"
+                                    selected="@(Model.Status == "automatic" ? "selected" : null)">
+                                Automatic
+                            </option>
+
+                        </select>
+                    </div>
+
+                    <div class="col-md-2 d-grid">
+                        <button type="submit"
+                                class="btn btn-outline-secondary">
+                            <i class="bi bi-search"></i>
+                            Filter
+                        </button>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(Model.Search) ||
+                         Model.Status != "all")
+                    {
+                        <div class="col-12">
+                            <a asp-action="BackupData"
+                               class="small">
+                                Clear filters
+                            </a>
+                        </div>
+                    }
+
+                </form>
+
+
                 <div class="table-responsive">
+
                     <table class="table pv-table align-middle">
+
                         <thead>
                             <tr>
+                                <th>ID</th>
                                 <th>Date &amp; Time</th>
+                                <th>Type</th>
+                                <th>Note</th>
                                 <th>Size</th>
                                 <th>Status</th>
-                                <th class="text-end">Action</th>
+                                <th>Integrity</th>
+                                <th class="text-end">
+                                    Actions
+                                </th>
                             </tr>
                         </thead>
+
                         <tbody>
-                            @foreach (var b in Model)
+
+                            @if (!Model.Backups.Any())
                             {
                                 <tr>
-                                    <td>@b.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
-                                    <td>@(b.SizeBytes >= 1024 * 1024 ? $"{b.SizeBytes / 1024.0 / 1024.0:0.0} MB" : $"{b.SizeBytes / 1024.0:0.0} KB")</td>
-                                    <td>
-                                        @if (b.Success)
-                                        {
-                                            <span class="backup-status-success">Success</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="backup-status-failed">Failed</span>
-                                        }
-                                    </td>
-                                    <td class="text-end">
-                                        @if (b.Success)
-                                        {
-                                            <a asp-action="DownloadBackup" asp-route-id="@b.Id" class="btn btn-sm btn-outline-secondary"><i class="bi bi-download"></i> Download</a>
-                                        }
+                                    <td colspan="8"
+                                        class="text-center text-muted py-4">
+                                        No snapshots match the current filters.
                                     </td>
                                 </tr>
                             }
-                            @if (!Model.Any())
+                            else
                             {
-                                <tr><td colspan="4" class="text-center text-muted py-3">No backups yet.</td></tr>
+                                @foreach (var backup in Model.Backups)
+                                {
+                                    <tr>
+
+                                        <td>
+                                            #@backup.Id
+                                        </td>
+
+                                        <td>
+                                            @backup.CreatedAt.ToString("yyyy-MM-dd HH:mm")
+                                        </td>
+
+                                        <td>
+                                            @if (backup.IsAutomatic)
+                                            {
+                                                <span class="badge text-bg-info">
+                                                    Automatic
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge text-bg-secondary">
+                                                    Manual
+                                                </span>
+                                            }
+                                        </td>
+
+                                        <td style="min-width: 180px;">
+                                            @if (string.IsNullOrWhiteSpace(backup.Note))
+                                            {
+                                                <span class="text-muted">
+                                                    —
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                @backup.Note
+                                            }
+                                        </td>
+
+                                        <td>
+                                            @if (backup.SizeBytes >= 1024 * 1024)
+                                            {
+                                                @($"{backup.SizeBytes / 1024.0 / 1024.0:0.0} MB")
+                                            }
+                                            else
+                                            {
+                                                @($"{backup.SizeBytes / 1024.0:0.0} KB")
+                                            }
+                                        </td>
+
+                                        <td>
+                                            @if (backup.Success)
+                                            {
+                                                <span class="backup-status-success">
+                                                    Success
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="backup-status-failed">
+                                                    Failed
+                                                </span>
+                                            }
+                                        </td>
+
+                                        <td>
+                                            @if (!backup.Success)
+                                            {
+                                                <span class="text-muted small">
+                                                    N/A
+                                                </span>
+                                            }
+                                            else if (string.IsNullOrWhiteSpace(backup.Sha256))
+                                            {
+                                                <span class="badge text-bg-secondary">
+                                                    Legacy
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge text-bg-success">
+                                                    SHA-256
+                                                </span>
+                                            }
+                                        </td>
+
+                                        <td class="text-end"
+                                            style="min-width: 360px;">
+
+                                            <div class="d-flex flex-wrap justify-content-end gap-1">
+
+                                                <a asp-action="BackupDetails"
+                                                   asp-route-id="@backup.Id"
+                                                   class="btn btn-sm btn-outline-secondary">
+                                                    <i class="bi bi-info-circle"></i>
+                                                    Details
+                                                </a>
+
+                                                @if (backup.Success)
+                                                {
+                                                    <a asp-action="DownloadBackup"
+                                                       asp-route-id="@backup.Id"
+                                                       class="btn btn-sm btn-outline-secondary">
+                                                        <i class="bi bi-filetype-json"></i>
+                                                        JSON
+                                                    </a>
+
+                                                    <a asp-action="DownloadExcelBackup"
+                                                       asp-route-id="@backup.Id"
+                                                       class="btn btn-sm btn-outline-success">
+                                                        <i class="bi bi-file-earmark-excel"></i>
+                                                        Excel
+                                                    </a>
+
+                                                    <a asp-action="DownloadBackupBundle"
+                                                       asp-route-id="@backup.Id"
+                                                       class="btn btn-sm btn-outline-primary">
+                                                        <i class="bi bi-file-zip"></i>
+                                                        ZIP
+                                                    </a>
+
+                                                    <form asp-action="VerifyBackup"
+                                                          asp-route-id="@backup.Id"
+                                                          method="post"
+                                                          class="d-inline">
+
+                                                        <button type="submit"
+                                                                class="btn btn-sm btn-outline-dark">
+                                                            <i class="bi bi-shield-check"></i>
+                                                            Verify
+                                                        </button>
+
+                                                    </form>
+                                                }
+
+                                                <form asp-action="DeleteBackup"
+                                                      asp-route-id="@backup.Id"
+                                                      method="post"
+                                                      class="d-inline js-backup-confirm"
+                                                      data-confirm-title="Delete snapshot #@backup.Id?"
+                                                      data-confirm-message="This will permanently delete snapshot #@backup.Id and its stored snapshot file. This action cannot be undone."
+                                                      data-confirm-button="Delete Snapshot"
+                                                      data-confirm-class="btn-danger"
+                                                      data-confirm-icon="bi-trash">
+
+                                                    <button type="submit"
+                                                            class="btn btn-sm btn-outline-danger">
+                                                        <i class="bi bi-trash"></i>
+                                                        Delete
+                                                    </button>
+
+                                                </form>
+
+                                            </div>
+
+                                        </td>
+
+                                    </tr>
+                                }
                             }
+
                         </tbody>
+
                     </table>
+
                 </div>
+
+                <div class="small text-muted mt-2">
+                    Up to the latest 100 matching history records are shown.
+                </div>
+
             </div>
+
         </div>
 
-        <div class="settings-content-card danger-zone-card">
-            <div class="settings-section-header" style="border-color:#f5c2c7;">
-                <h5 class="text-danger">Danger Zone</h5>
-                <p>Irreversible actions that affect all system data.</p>
-            </div>
-            <div class="settings-section-body pt-3 pb-3">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <div>
-                        <div class="fw-semibold">Reset to Demo Data</div>
-                        <div class="text-muted small">Wipes everything and reloads the original demo dataset. Safe to use freely - this is an in-memory demo database.</div>
+    </div>
+
+</div>
+
+<!-- Reusable ParaVolley confirmation modal -->
+<div class="modal fade"
+     id="backupConfirmModal"
+     tabindex="-1"
+     aria-labelledby="backupConfirmModalLabel"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+
+            <div class="modal-header border-0 pb-0">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-warning-subtle text-warning"
+                         style="width:44px;height:44px;flex:0 0 44px;">
+                        <i id="backupConfirmIcon"
+                           class="bi bi-exclamation-triangle-fill fs-5"></i>
                     </div>
-                    <form asp-action="ResetDemoData" method="post" onsubmit="return confirm('This will erase all current data and reload the original demo dataset. Continue?');">
-                        <button type="submit" class="btn btn-outline-danger"><i class="bi bi-arrow-counterclockwise"></i> Reset All Data</button>
-                    </form>
+
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0"
+                            id="backupConfirmModalLabel">
+                            Confirm action
+                        </h5>
+                    </div>
                 </div>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close"></button>
             </div>
+
+            <div class="modal-body pt-3">
+                <p id="backupConfirmMessage"
+                   class="mb-0 text-muted">
+                    Are you sure you want to continue?
+                </p>
+            </div>
+
+            <div class="modal-footer border-0 pt-2">
+                <button type="button"
+                        class="btn btn-outline-secondary"
+                        data-bs-dismiss="modal">
+                    Cancel
+                </button>
+
+                <button type="button"
+                        id="backupConfirmButton"
+                        class="btn btn-danger">
+                    Confirm
+                </button>
+            </div>
+
         </div>
     </div>
 </div>
 
-<div class="modal fade" id="restoreModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form asp-action="RestoreFromFile" method="post" enctype="multipart/form-data">
-                <div class="modal-header">
-                    <h5 class="modal-title">Restore from File</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <label class="form-label fw-semibold">Backup file (.json)</label>
-                    <input type="file" name="file" accept=".json" class="form-control" required />
-                    <div class="form-text">Upload a .json backup previously downloaded from this system.</div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-pv">Restore</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const modalElement = document.getElementById('backupConfirmModal');
+        const titleElement = document.getElementById('backupConfirmModalLabel');
+        const messageElement = document.getElementById('backupConfirmMessage');
+        const confirmButton = document.getElementById('backupConfirmButton');
+        const iconElement = document.getElementById('backupConfirmIcon');
+
+        if (!modalElement || !titleElement || !messageElement ||
+            !confirmButton || !iconElement || typeof bootstrap === 'undefined') {
+            return;
+        }
+
+        const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+        let pendingForm = null;
+
+        document.querySelectorAll('.js-backup-confirm').forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                event.preventDefault();
+
+                pendingForm = form;
+
+                titleElement.textContent =
+                    form.dataset.confirmTitle || 'Confirm action';
+
+                messageElement.textContent =
+                    form.dataset.confirmMessage || 'Are you sure you want to continue?';
+
+                confirmButton.textContent =
+                    form.dataset.confirmButton || 'Confirm';
+
+                confirmButton.className =
+                    'btn ' + (form.dataset.confirmClass || 'btn-danger');
+
+                iconElement.className =
+                    'bi ' + (form.dataset.confirmIcon || 'bi-exclamation-triangle-fill') + ' fs-5';
+
+                modal.show();
+            });
+        });
+
+        confirmButton.addEventListener('click', function () {
+            if (!pendingForm) {
+                return;
+            }
+
+            confirmButton.disabled = true;
+            confirmButton.innerHTML =
+                '<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Working...';
+
+            const formToSubmit = pendingForm;
+            pendingForm = null;
+
+            HTMLFormElement.prototype.submit.call(formToSubmit);
+        });
+
+        modalElement.addEventListener('hidden.bs.modal', function () {
+            pendingForm = null;
+            confirmButton.disabled = false;
+            confirmButton.textContent = 'Confirm';
+            confirmButton.className = 'btn btn-danger';
+        });
+    });
+</script>

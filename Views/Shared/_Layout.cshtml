@@ -37,8 +37,13 @@
     var accentDark = isPublicUser
         ? "#085d42"
         : ShadeColor(accent, -0.18);
-    var themeAttr = appearance.Theme.ToString().ToLower();
-    var densityAttr = appearance.Density.ToString().ToLower();
+    var themeAttr = isPublicUser
+    ? "light"
+    : appearance.Theme.ToString().ToLowerInvariant();
+
+    var densityAttr = isPublicUser
+        ? "comfortable"
+        : appearance.Density.ToString().ToLowerInvariant();
 
     var accountDisplayName = profile?.FullName ?? User.Identity?.Name ?? "Admin User";
     var accountEmail = profile?.Email ?? User.FindFirstValue(ClaimTypes.Email) ?? User.Identity?.Name ?? "";

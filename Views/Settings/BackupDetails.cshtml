@@ -1,0 +1,254 @@
+@model BackupSnapshotDetailsViewModel
+
+@{
+    ViewData["Title"] = $"Snapshot #{Model.Backup.Id}";
+    var backup = Model.Backup;
+}
+
+<h2 class="settings-page-title">
+    Snapshot #@backup.Id
+</h2>
+
+<p class="settings-page-subtitle mb-3">
+    Review the contents and integrity information for this archived snapshot.
+</p>
+
+<div class="settings-layout">
+
+    <partial name="_SettingsNav" />
+
+    <div>
+
+        <div class="mb-3">
+            <a asp-action="BackupData"
+               class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i>
+                Back to Backup &amp; Data
+            </a>
+        </div>
+
+        <div class="settings-content-card mb-4">
+
+            <div class="settings-section-header">
+                <h5>Snapshot Information</h5>
+            </div>
+
+            <div class="settings-section-body">
+
+                <div class="row g-3">
+
+                    <div class="col-md-4">
+                        <div class="small text-muted">
+                            Created
+                        </div>
+                        <div class="fw-semibold">
+                            @backup.CreatedAt.ToString("yyyy-MM-dd HH:mm") SAST
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="small text-muted">
+                            Type
+                        </div>
+                        <div class="fw-semibold">
+                            @(backup.IsAutomatic ? "Automatic" : "Manual")
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="small text-muted">
+                            Status
+                        </div>
+                        <div class="fw-semibold">
+                            @(backup.Success ? "Success" : "Failed")
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="small text-muted">
+                            Size
+                        </div>
+                        <div class="fw-semibold">
+                            @if (backup.SizeBytes >= 1024 * 1024)
+                            {
+                                @($"{backup.SizeBytes / 1024.0 / 1024.0:0.0} MB")
+                            }
+                            else
+                            {
+                                @($"{backup.SizeBytes / 1024.0:0.0} KB")
+                            }
+                        </div>
+                    </div>
+
+                    <div class="col-md-8">
+                        <div class="small text-muted">
+                            Note
+                        </div>
+                        <div class="fw-semibold">
+                            @(string.IsNullOrWhiteSpace(backup.Note)
+                                ? "No note"
+                                : backup.Note)
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <div class="small text-muted">
+                            SHA-256 checksum
+                        </div>
+                        <div class="font-monospace small text-break">
+                            @(string.IsNullOrWhiteSpace(backup.Sha256)
+                                ? "Unavailable for this legacy snapshot"
+                                : backup.Sha256)
+                        </div>
+                    </div>
+
+                </div>
+
+                <hr />
+
+                <div class="d-flex flex-wrap gap-2">
+
+                    @if (backup.Success && Model.FileExists)
+                    {
+                        <a asp-action="DownloadBackup"
+                           asp-route-id="@backup.Id"
+                           class="btn btn-outline-secondary">
+                            <i class="bi bi-filetype-json"></i>
+                            Download JSON
+                        </a>
+
+                        <a asp-action="DownloadExcelBackup"
+                           asp-route-id="@backup.Id"
+                           class="btn btn-outline-success">
+                            <i class="bi bi-file-earmark-excel"></i>
+                            Download Excel
+                        </a>
+
+                        <a asp-action="DownloadBackupBundle"
+                           asp-route-id="@backup.Id"
+                           class="btn btn-outline-primary">
+                            <i class="bi bi-file-zip"></i>
+                            Download ZIP
+                        </a>
+
+                        <form asp-action="VerifyBackup"
+                              asp-route-id="@backup.Id"
+                              method="post">
+
+                            <button type="submit"
+                                    class="btn btn-outline-dark">
+                                <i class="bi bi-shield-check"></i>
+                                Verify Integrity
+                            </button>
+
+                        </form>
+                    }
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="settings-content-card mb-4">
+
+            <div class="settings-section-header">
+                <h5>Integrity</h5>
+            </div>
+
+            <div class="settings-section-body">
+
+                @if (!backup.Success)
+                {
+                    <div class="alert alert-warning mb-0">
+                        This snapshot failed during creation, so there is no valid
+                        archived data file to verify.
+                    </div>
+                }
+                else if (!Model.FileExists)
+                {
+                    <div class="alert alert-danger mb-0">
+                        The database history record exists, but the snapshot file
+                        cannot be found on storage.
+                    </div>
+                }
+                else if (string.IsNullOrWhiteSpace(backup.Sha256))
+                {
+                    <div class="alert alert-secondary mb-0">
+                        This snapshot was created before SHA-256 integrity checking
+                        was enabled. Create a new snapshot to get a verifiable checksum.
+                    </div>
+                }
+                else if (Model.IntegrityValid == true)
+                {
+                    <div class="alert alert-success mb-0">
+                        The current file matches its stored SHA-256 checksum.
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-danger mb-0">
+                        The current file does not match its stored SHA-256 checksum.
+                        Do not rely on this snapshot until the storage issue is reviewed.
+                    </div>
+                }
+
+            </div>
+
+        </div>
+
+
+        <div class="settings-content-card">
+
+            <div class="settings-section-header">
+                <h5>Record Counts</h5>
+                <p>
+                    Number of records stored in each dataset in this exact snapshot.
+                </p>
+            </div>
+
+            <div class="settings-section-body">
+
+                @if (!Model.RecordCounts.Any())
+                {
+                    <div class="text-muted">
+                        Record counts are unavailable for this snapshot.
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table pv-table align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Dataset</th>
+                                    <th class="text-end">
+                                        Records
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.RecordCounts)
+                                {
+                                    <tr>
+                                        <td>
+                                            @item.Key
+                                        </td>
+                                        <td class="text-end fw-semibold">
+                                            @item.Value
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>

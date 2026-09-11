@@ -1,94 +1,233 @@
 @model UserProfile
+
 @{
     ViewData["Title"] = "Security";
 }
 
 <h2 class="settings-page-title">Security</h2>
-<p class="settings-page-subtitle mb-3">Keep your account secure with strong authentication settings.</p>
+
+<p class="settings-page-subtitle mb-3">
+    Keep your account secure with a strong password.
+</p>
 
 <div class="settings-layout">
+
     <partial name="_SettingsNav" />
 
     <div>
-        <div class="settings-content-card mb-3">
-            <div class="settings-section-header">
-                <h5>Change Password</h5>
-                <p>Use a strong, unique password to keep your account secure.</p>
-            </div>
-            <div class="settings-section-body pt-4 pb-4">
-                <form asp-action="ChangePassword" method="post">
-                    <div class="settings-row">
-                        <div class="settings-row-label">Current Password</div>
-                        <div class="settings-row-control position-relative">
-                            <input type="password" name="currentPassword" class="form-control pe-5" placeholder="Enter current password" id="pwCurrent" />
-                            <button type="button" class="btn btn-sm position-absolute top-50 end-0 translate-middle-y me-1 border-0 text-muted toggle-pw" data-target="pwCurrent"><i class="bi bi-eye"></i></button>
-                        </div>
-                    </div>
-                    <div class="settings-row">
-                        <div class="settings-row-label">New Password</div>
-                        <div class="settings-row-control position-relative">
-                            <input type="password" name="newPassword" class="form-control pe-5" placeholder="At least 8 characters" id="pwNew" />
-                            <button type="button" class="btn btn-sm position-absolute top-50 end-0 translate-middle-y me-1 border-0 text-muted toggle-pw" data-target="pwNew"><i class="bi bi-eye"></i></button>
-                        </div>
-                    </div>
-                    <div class="settings-row">
-                        <div class="settings-row-label">Confirm Password</div>
-                        <div class="settings-row-control position-relative">
-                            <input type="password" name="confirmPassword" class="form-control pe-5" placeholder="Repeat new password" id="pwConfirm" />
-                            <button type="button" class="btn btn-sm position-absolute top-50 end-0 translate-middle-y me-1 border-0 text-muted toggle-pw" data-target="pwConfirm"><i class="bi bi-eye"></i></button>
-                        </div>
-                    </div>
-
-                    <div class="text-end pt-3">
-                        <button type="submit" class="btn btn-pv"><i class="bi bi-save"></i> Update Password</button>
-                    </div>
-                </form>
-            </div>
-        </div>
 
         <div class="settings-content-card">
+
             <div class="settings-section-header">
-                <h5>Security Options</h5>
-                <p>Manage additional security settings for your account.</p>
+                <h5>Change Password</h5>
+
+                <p>
+                    Update the password used to sign in to your
+                    ParaVolley administrator account.
+                </p>
             </div>
-            <div class="settings-section-body pt-3 pb-3">
-                <div class="settings-row">
-                    <div>
-                        <div class="fw-semibold">Two-Factor Authentication</div>
-                        <div class="text-muted small">Add an extra layer of security via SMS or authenticator app</div>
-                    </div>
-                    <div class="ms-auto">
-                        <div class="form-check form-switch m-0">
-                            <input class="form-check-input settings-toggle" type="checkbox" role="switch" id="twoFactorToggle" @(Model.TwoFactorEnabled ? "checked" : "")>
+
+            <div class="settings-section-body pt-4 pb-4">
+
+                <form asp-action="ChangePassword"
+                      method="post"
+                      autocomplete="off">
+
+                    <div class="settings-row">
+
+                        <div class="settings-row-label">
+                            Current Password
                         </div>
+
+                        <div class="settings-row-control position-relative">
+
+                            <input type="password"
+                                   name="currentPassword"
+                                   id="pwCurrent"
+                                   class="form-control pe-5"
+                                   placeholder="Enter current password"
+                                   autocomplete="current-password"
+                                   required />
+
+                            <button type="button"
+                                    class="btn btn-sm position-absolute top-50 end-0 translate-middle-y me-1 border-0 text-muted toggle-pw"
+                                    data-target="pwCurrent"
+                                    aria-label="Show current password">
+
+                                <i class="bi bi-eye"></i>
+
+                            </button>
+
+                        </div>
+
                     </div>
-                </div>
+
+
+                    <div class="settings-row">
+
+                        <div class="settings-row-label">
+                            New Password
+                        </div>
+
+                        <div class="settings-row-control position-relative">
+
+                            <input type="password"
+                                   name="newPassword"
+                                   id="pwNew"
+                                   class="form-control pe-5"
+                                   placeholder="At least 8 characters"
+                                   autocomplete="new-password"
+                                   minlength="8"
+                                   required />
+
+                            <button type="button"
+                                    class="btn btn-sm position-absolute top-50 end-0 translate-middle-y me-1 border-0 text-muted toggle-pw"
+                                    data-target="pwNew"
+                                    aria-label="Show new password">
+
+                                <i class="bi bi-eye"></i>
+
+                            </button>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="settings-row">
+
+                        <div class="settings-row-label">
+                            Confirm Password
+                        </div>
+
+                        <div class="settings-row-control position-relative">
+
+                            <input type="password"
+                                   name="confirmPassword"
+                                   id="pwConfirm"
+                                   class="form-control pe-5"
+                                   placeholder="Repeat new password"
+                                   autocomplete="new-password"
+                                   minlength="8"
+                                   required />
+
+                            <button type="button"
+                                    class="btn btn-sm position-absolute top-50 end-0 translate-middle-y me-1 border-0 text-muted toggle-pw"
+                                    data-target="pwConfirm"
+                                    aria-label="Show confirmed password">
+
+                                <i class="bi bi-eye"></i>
+
+                            </button>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="alert alert-light border mt-4 mb-0">
+
+                        <div class="d-flex gap-2">
+
+                            <i class="bi bi-shield-lock text-success"></i>
+
+                            <div class="small">
+
+                                <strong>Password security</strong>
+
+                                <div class="text-muted">
+                                    Use at least 8 characters and avoid
+                                    reusing a password from another account.
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="text-end pt-4">
+
+                        <button type="submit"
+                                class="btn btn-pv">
+
+                            <i class="bi bi-shield-check"></i>
+                            Update Password
+
+                        </button>
+
+                    </div>
+
+                </form>
+
             </div>
+
         </div>
+
     </div>
+
 </div>
 
-@section Scripts {
-    <script>
-        document.querySelectorAll('.toggle-pw').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                var input = document.getElementById(btn.getAttribute('data-target'));
-                if (input.type === 'password') {
-                    input.type = 'text';
-                    btn.innerHTML = '<i class="bi bi-eye-slash"></i>';
-                } else {
-                    input.type = 'password';
-                    btn.innerHTML = '<i class="bi bi-eye"></i>';
-                }
-            });
-        });
 
-        document.getElementById('twoFactorToggle').addEventListener('change', function () {
-            fetch('@Url.Action("ToggleTwoFactor")', {
-                method: 'POST',
-                headers: { 'X-CSRF-TOKEN': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' }
+@section Scripts {
+
+    <script>
+
+        document
+            .querySelectorAll('.toggle-pw')
+            .forEach(function (button) {
+
+                button.addEventListener(
+                    'click',
+                    function () {
+
+                        var targetId =
+                            button.getAttribute(
+                                'data-target');
+
+                        var input =
+                            document.getElementById(
+                                targetId);
+
+                        if (!input) {
+                            return;
+                        }
+
+
+                        var icon =
+                            button.querySelector('i');
+
+
+                        if (input.type === 'password') {
+
+                            input.type = 'text';
+
+                            if (icon) {
+                                icon.className =
+                                    'bi bi-eye-slash';
+                            }
+
+                            button.setAttribute(
+                                'aria-label',
+                                'Hide password');
+
+                        }
+                        else {
+
+                            input.type = 'password';
+
+                            if (icon) {
+                                icon.className =
+                                    'bi bi-eye';
+                            }
+
+                            button.setAttribute(
+                                'aria-label',
+                                'Show password');
+                        }
+                    });
             });
-        });
+
     </script>
-    <form style="display:none;">@Html.AntiForgeryToken()</form>
 }

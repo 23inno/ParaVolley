@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SportsManagementMVC.Data;
@@ -11,9 +12,11 @@ using SportsManagementMVC.Data;
 namespace SportsManagementMVC.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260910135403_ImproveBackupManagement")]
+    partial class ImproveBackupManagement
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -488,30 +491,9 @@ namespace SportsManagementMVC.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<bool>("AcceptPlayerApplications")
-                        .HasColumnType("boolean");
-
                     b.Property<string>("ActiveSeason")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<bool>("AllowEventRegistration")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("DefaultCountry")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("DefaultProvince")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("DefaultTeamName")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
 
                     b.Property<string>("Language")
                         .IsRequired()
@@ -520,32 +502,8 @@ namespace SportsManagementMVC.Migrations
                     b.Property<string>("LogoPath")
                         .HasColumnType("text");
 
-                    b.Property<string>("MaintenanceMessage")
-                        .IsRequired()
-                        .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
-
-                    b.Property<bool>("MaintenanceMode")
-                        .HasColumnType("boolean");
-
                     b.Property<int>("MinAttendancePercent")
                         .HasColumnType("integer");
-
-                    b.Property<string>("OfficeLocation")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("OfficialEmail")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("OfficialPhone")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("OfficialWebsite")
-                        .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
 
                     b.Property<string>("OrganisationName")
                         .IsRequired()

@@ -28,16 +28,39 @@ namespace SportsManagementMVC.Controllers
             CancellationToken cancellationToken = default)
         {
             page = Paging.Page(page);
+
             var today = DateTime.Today;
-            var weekStart = today.AddDays(-6);
-            var nextDay = today.AddDays(1);
-            var monthStart = new DateTime(today.Year, today.Month, 1);
+            var organisationSettings = await _context.OrganisationSettings
+                .AsNoTracking()
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var activeSeason =
+                int.TryParse(organisationSettings?.ActiveSeason, out var configuredSeason)
+                    ? configuredSeason
+                    : today.Year;
+
+            var seasonStart = new DateTime(activeSeason, 1, 1);
+            var seasonEnd = seasonStart.AddYears(1);
+
+            var referenceDate = activeSeason == today.Year
+                ? today
+                : seasonEnd.AddDays(-1);
+
+            var weekStart = referenceDate.AddDays(-6);
+            var nextDay = referenceDate.AddDays(1);
+            var monthStart = new DateTime(
+                referenceDate.Year,
+                referenceDate.Month,
+                1);
             var nextMonth = monthStart.AddMonths(1);
 
-            var weeklyAttendance = await _context.Attendances.AsNoTracking()
+            var weeklyAttendance = await _context.Attendances
+                .AsNoTracking()
                 .Where(record =>
                     record.Date >= weekStart &&
-                    record.Date < nextDay)
+                    record.Date < nextDay &&
+                    record.Date >= seasonStart &&
+                    record.Date < seasonEnd)
                 .GroupBy(_ => 1)
                 .Select(group => new
                 {
@@ -55,45 +78,69 @@ namespace SportsManagementMVC.Controllers
                     weeklyAttendance.Total,
                     1);
 
-            var sessionsThisMonth = await _context.Events.AsNoTracking()
+            var sessionsThisMonth = await _context.Events
+                .AsNoTracking()
                 .CountAsync(eventItem =>
                     eventItem.Date >= monthStart &&
-                    eventItem.Date < nextMonth,
+                    eventItem.Date < nextMonth &&
+                    eventItem.Date >= seasonStart &&
+                    eventItem.Date < seasonEnd,
                     cancellationToken);
 
             var perfectAttendanceCount = await _context.Attendances
-    .AsNoTracking()
-    .Where(record =>
-        record.Date >= monthStart &&
-        record.Date < nextMonth)
-    .GroupBy(record => record.PlayerId)
-    .Where(group =>
-        group.All(record =>
-            record.Status == AttendanceStatus.Present))
-    .CountAsync(cancellationToken);
+                .AsNoTracking()
+                .Where(record =>
+                    record.Date >= monthStart &&
+                    record.Date < nextMonth &&
+                    record.Date >= seasonStart &&
+                    record.Date < seasonEnd)
+                .GroupBy(record => record.PlayerId)
+                .Where(group =>
+                    group.All(record =>
+                        record.Status == AttendanceStatus.Present))
+                .CountAsync(cancellationToken);
 
-            var reportQuery = _context.Reports.AsNoTracking().AsQueryable();
+            var reportQuery = _context.Reports
+                .AsNoTracking()
+                .Where(report =>
+                    report.Date >= seasonStart &&
+                    report.Date < seasonEnd)
+                .AsQueryable();
+
             if (!string.IsNullOrWhiteSpace(search))
             {
                 reportQuery = reportQuery.Where(report =>
                     report.Title.Contains(search));
             }
-            if (!string.IsNullOrWhiteSpace(type) && Enum.TryParse<ReportType>(type, out var parsedType))
+
+            if (!string.IsNullOrWhiteSpace(type) &&
+                Enum.TryParse<ReportType>(type, out var parsedType))
             {
-                reportQuery = reportQuery.Where(report => report.Type == parsedType);
-            }
-            if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<ReportStatus>(status, out var parsedStatus))
-            {
-                reportQuery = reportQuery.Where(report => report.Status == parsedStatus);
+                reportQuery = reportQuery.Where(report =>
+                    report.Type == parsedType);
             }
 
-            var filteredReportCount = await reportQuery.CountAsync(cancellationToken);
+            if (!string.IsNullOrWhiteSpace(status) &&
+                Enum.TryParse<ReportStatus>(status, out var parsedStatus))
+            {
+                reportQuery = reportQuery.Where(report =>
+                    report.Status == parsedStatus);
+            }
+
+            var filteredReportCount = await reportQuery
+                .CountAsync(cancellationToken);
+
             var pageCount = Paging.PageCount(
                 filteredReportCount,
                 Paging.DefaultPageSize);
+
             page = Math.Min(page, pageCount);
 
-            var reportCounts = await _context.Reports.AsNoTracking()
+            var reportCounts = await _context.Reports
+                .AsNoTracking()
+                .Where(report =>
+                    report.Date >= seasonStart &&
+                    report.Date < seasonEnd)
                 .GroupBy(_ => 1)
                 .Select(group => new
                 {
@@ -105,7 +152,8 @@ namespace SportsManagementMVC.Controllers
                 })
                 .SingleOrDefaultAsync(cancellationToken);
 
-            var playerCounts = await _context.Players.AsNoTracking()
+            var playerCounts = await _context.Players
+                .AsNoTracking()
                 .GroupBy(_ => 1)
                 .Select(group => new
                 {
@@ -117,7 +165,11 @@ namespace SportsManagementMVC.Controllers
                 })
                 .SingleOrDefaultAsync(cancellationToken);
 
-            var matchCounts = await _context.Matches.AsNoTracking()
+            var matchCounts = await _context.Matches
+                .AsNoTracking()
+                .Where(match =>
+                    match.Date >= seasonStart &&
+                    match.Date < seasonEnd)
                 .GroupBy(_ => 1)
                 .Select(group => new
                 {
@@ -133,7 +185,8 @@ namespace SportsManagementMVC.Controllers
                 })
                 .SingleOrDefaultAsync(cancellationToken);
 
-            var teamBreakdowns = await _context.Players.AsNoTracking()
+            var teamBreakdowns = await _context.Players
+                .AsNoTracking()
                 .GroupBy(player => player.Team)
                 .Select(group => new TeamBreakdown
                 {
@@ -146,7 +199,11 @@ namespace SportsManagementMVC.Controllers
                 .Take(100)
                 .ToListAsync(cancellationToken);
 
-            var eventTypeCounts = await _context.Events.AsNoTracking()
+            var eventTypeCounts = await _context.Events
+                .AsNoTracking()
+                .Where(eventItem =>
+                    eventItem.Date >= seasonStart &&
+                    eventItem.Date < seasonEnd)
                 .GroupBy(eventItem => eventItem.Type)
                 .Select(group => new
                 {
@@ -164,6 +221,7 @@ namespace SportsManagementMVC.Controllers
                     .Skip((page - 1) * Paging.DefaultPageSize)
                     .Take(Paging.DefaultPageSize)
                     .ToListAsync(cancellationToken),
+
                 TotalReportsCount = reportCounts?.Total ?? 0,
                 PublishedCount = reportCounts?.Published ?? 0,
                 DraftCount = reportCounts?.Draft ?? 0,
@@ -175,7 +233,8 @@ namespace SportsManagementMVC.Controllers
                 TotalPlayers = playerCounts?.Total ?? 0,
                 ActivePlayers = playerCounts?.Active ?? 0,
                 InactivePlayers = playerCounts?.Inactive ?? 0,
-                TotalCoaches = await _context.Coaches.CountAsync(cancellationToken),
+                TotalCoaches = await _context.Coaches
+                    .CountAsync(cancellationToken),
                 TotalMatches = matchCounts?.Total ?? 0,
                 CompletedMatches = matchCounts?.Completed ?? 0,
                 WinsA = matchCounts?.Wins ?? 0,
@@ -193,13 +252,23 @@ namespace SportsManagementMVC.Controllers
 
             var attendanceByEvent = await _context.Attendances
                 .AsNoTracking()
-                .GroupBy(a => new { a.EventId, a.Event!.Title, a.Event.Date })
+                .Where(a =>
+                    a.Date >= seasonStart &&
+                    a.Date < seasonEnd)
+                .GroupBy(a => new
+                {
+                    a.EventId,
+                    a.Event!.Title,
+                    a.Event.Date
+                })
                 .Select(g => new AttendanceSummary
                 {
                     EventTitle = g.Key.Title,
                     Date = g.Key.Date,
-                    PresentCount = g.Count(a => a.Status == AttendanceStatus.Present),
-                    AbsentCount = g.Count(a => a.Status == AttendanceStatus.Absent)
+                    PresentCount = g.Count(a =>
+                        a.Status == AttendanceStatus.Present),
+                    AbsentCount = g.Count(a =>
+                        a.Status == AttendanceStatus.Absent)
                 })
                 .OrderByDescending(a => a.Date)
                 .Take(50)
@@ -212,6 +281,7 @@ namespace SportsManagementMVC.Controllers
             ViewBag.SelectedStatus = status;
             ViewBag.CurrentPage = page;
             ViewBag.TotalPages = pageCount;
+            ViewBag.ActiveSeason = activeSeason;
 
             return View(vm);
         }

@@ -12,6 +12,7 @@ using SportsManagementMVC.Data;
 using SportsManagementMVC.Health;
 using SportsManagementMVC.Models;
 using SportsManagementMVC.Security;
+using SportsManagementMVC.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -77,6 +78,8 @@ builder.Services.AddHealthChecks()
 
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<RealCalendarImportService>();
+builder.Services.AddScoped<BackupService>();
+builder.Services.AddHostedService<BackupSchedulerService>();
 
 builder.Services.AddScoped<
     IPasswordHasher<AppUser>,
@@ -391,6 +394,45 @@ app.Use(async (context, next) =>
 });
 
 app.UseStaticFiles();
+
+// Public-site maintenance mode. Static assets, health checks, account pages
+// and the mobile API remain reachable. Authenticated Admins can continue
+// using the web application while maintenance mode is enabled.
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path;
+
+    var bypassMaintenance =
+        path.StartsWithSegments("/Maintenance") ||
+        path.StartsWithSegments("/Account") ||
+        path.StartsWithSegments("/health") ||
+        path.StartsWithSegments("/api");
+
+    var isAdmin =
+        context.User.Identity?.IsAuthenticated == true &&
+        context.User.IsInRole(nameof(AppUserRole.Admin));
+
+    if (!bypassMaintenance && !isAdmin)
+    {
+        var db = context.RequestServices
+            .GetRequiredService<ApplicationDbContext>();
+
+        var maintenanceMode =
+            await db.OrganisationSettings
+                .AsNoTracking()
+                .Select(settings => settings.MaintenanceMode)
+                .FirstOrDefaultAsync(context.RequestAborted);
+
+        if (maintenanceMode)
+        {
+            context.Response.Redirect("/Maintenance");
+            return;
+        }
+    }
+
+    await next();
+});
+
 app.UseRateLimiter();
 app.UseAuthorization();
 
