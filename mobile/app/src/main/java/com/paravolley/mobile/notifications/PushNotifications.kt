@@ -1,6 +1,9 @@
 package com.paravolley.mobile.notifications
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.Context
+import android.os.Build
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.messaging.FirebaseMessaging
@@ -18,6 +21,8 @@ object PushNotifications {
         }
 
         val appContext = context.applicationContext
+
+        createNotificationChannel(appContext)
 
         if (FirebaseApp.getApps(appContext).isEmpty()) {
             val options = FirebaseOptions.Builder()
@@ -65,5 +70,29 @@ object PushNotifications {
             .unsubscribeFromTopic(
                 PLAYER_TOPIC
             )
+    }
+
+    private fun createNotificationChannel(
+        context: Context
+    ) {
+        if (
+            Build.VERSION.SDK_INT <
+            Build.VERSION_CODES.O
+        ) {
+            return
+        }
+
+        val channel = NotificationChannel(
+            CHANNEL_ID,
+            CHANNEL_NAME,
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description =
+                "Important ParaVolley Mpumalanga player updates"
+        }
+
+        context.getSystemService(
+            NotificationManager::class.java
+        ).createNotificationChannel(channel)
     }
 }
