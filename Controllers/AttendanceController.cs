@@ -27,10 +27,28 @@ namespace SportsManagementMVC.Controllers
             string? status,
             CancellationToken cancellationToken)
         {
+            var organisationSettings = await _context.OrganisationSettings
+                .AsNoTracking()
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var today = DateTime.Today;
+            var activeSeason =
+                int.TryParse(organisationSettings?.ActiveSeason, out var configuredSeason)
+                    ? configuredSeason
+                    : today.Year;
+
+            var seasonStart = new DateTime(activeSeason, 1, 1);
+            var seasonEnd = seasonStart.AddYears(1);
+            var minAttendancePercent =
+                organisationSettings?.MinAttendancePercent ?? 75;
+
             var attendanceRecords = await _context.Attendances
                 .AsNoTracking()
                 .Include(record => record.Player)
                 .Include(record => record.Event)
+                .Where(record =>
+                    record.Date >= seasonStart &&
+                    record.Date < seasonEnd)
                 .OrderByDescending(record => record.Date)
                 .ThenByDescending(record => record.Id)
                 .Take(5000)
@@ -76,8 +94,6 @@ namespace SportsManagementMVC.Controllers
                 .ThenBy(item => item.Name)
                 .FirstOrDefault();
 
-            var today = DateTime.Today;
-
             var monthStart =
                 new DateTime(today.Year, today.Month, 1);
 
@@ -103,7 +119,8 @@ namespace SportsManagementMVC.Controllers
         Present = group.Count(record =>
             record.Status == AttendanceStatus.Present),
         Absent = group.Count(record =>
-            record.Status == AttendanceStatus.Absent)
+            record.Status == AttendanceStatus.Absent),
+        MinimumAttendancePercent = minAttendancePercent
     })
     .OrderByDescending(record => record.Date)
     .ThenBy(record => record.Session)
@@ -185,7 +202,7 @@ namespace SportsManagementMVC.Controllers
                         Count = players.Count(player =>
                             playerAttendanceLookup.TryGetValue(player.Id, out var records) &&
                             records.Count(record => record.Status == AttendanceStatus.Present) *
-                                100.0 / records.Count >= 75)
+                                100.0 / records.Count >= minAttendancePercent)
                     },
                     new()
                     {
@@ -193,7 +210,7 @@ namespace SportsManagementMVC.Controllers
                         Count = players.Count(player =>
                             playerAttendanceLookup.TryGetValue(player.Id, out var records) &&
                             records.Count(record => record.Status == AttendanceStatus.Present) *
-                                100.0 / records.Count < 75)
+                                100.0 / records.Count < minAttendancePercent)
                     },
                     new()
                     {
@@ -268,22 +285,41 @@ namespace SportsManagementMVC.Controllers
             ViewBag.SelectedTeam = team;
             ViewBag.SelectedStatus = status;
             ViewBag.TotalSessionCount = sessionRecords.Count;
+            ViewBag.ActiveSeason = activeSeason;
+            ViewBag.MinimumAttendancePercent = minAttendancePercent;
 
             return View(vm);
         }
 
-        // GET: Attendance/Export - downloads the session records as CSV
+        // GET: Attendance/Export - downloads active-season session records as CSV
         [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
-        public async Task<IActionResult> Export()
+        public async Task<IActionResult> Export(
+            CancellationToken cancellationToken = default)
         {
+            var organisationSettings = await _context.OrganisationSettings
+                .AsNoTracking()
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var activeSeason =
+                int.TryParse(organisationSettings?.ActiveSeason, out var configuredSeason)
+                    ? configuredSeason
+                    : DateTime.Today.Year;
+
+            var seasonStart = new DateTime(activeSeason, 1, 1);
+            var seasonEnd = seasonStart.AddYears(1);
+            var minAttendancePercent =
+                organisationSettings?.MinAttendancePercent ?? 75;
+
             var records = await _context.Attendances
                 .AsNoTracking()
                 .Include(record => record.Player)
                 .Include(record => record.Event)
                 .Where(record =>
                     record.Player != null &&
-                    record.Event != null)
-                .ToListAsync();
+                    record.Event != null &&
+                    record.Date >= seasonStart &&
+                    record.Date < seasonEnd)
+                .ToListAsync(cancellationToken);
 
             var sessionRecords = records
                 .GroupBy(record => new
@@ -301,7 +337,8 @@ namespace SportsManagementMVC.Controllers
                     Present = group.Count(record =>
                         record.Status == AttendanceStatus.Present),
                     Absent = group.Count(record =>
-                        record.Status == AttendanceStatus.Absent)
+                        record.Status == AttendanceStatus.Absent),
+                    MinimumAttendancePercent = minAttendancePercent
                 })
                 .OrderByDescending(record => record.Date)
                 .ThenBy(record => record.Session)
@@ -312,11 +349,15 @@ namespace SportsManagementMVC.Controllers
             sb.AppendLine("Date,Session,Team,Present,Absent,Rate,Status");
             foreach (var r in sessionRecords)
             {
-                sb.AppendLine($"{r.Date:yyyy-MM-dd},\"{r.Session}\",\"{r.Team}\",{r.Present},{r.Absent},{r.Rate}%,\"{r.Status}\"");
+                sb.AppendLine(
+                    $"{r.Date:yyyy-MM-dd},\"{r.Session}\",\"{r.Team}\",{r.Present},{r.Absent},{r.Rate}%,\"{r.Status}\"");
             }
 
             var bytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
-            return File(bytes, "text/csv", $"session_records_{DateTime.Now:yyyyMMdd}.csv");
+            return File(
+                bytes,
+                "text/csv",
+                $"session_records_{activeSeason}_{DateTime.Now:yyyyMMdd}.csv");
         }
 
         // GET: Attendance/Records - the raw individual Player/Event check-in log

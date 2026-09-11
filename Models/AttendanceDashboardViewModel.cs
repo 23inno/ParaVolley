@@ -35,13 +35,32 @@ namespace SportsManagementMVC.Models
         public string Team { get; set; } = string.Empty;
         public int Present { get; set; }
         public int Absent { get; set; }
-        public double Rate => (Present + Absent) == 0 ? 0 : Math.Round(100.0 * Present / (Present + Absent), 0);
-        public string Status =>
-    Rate >= 90
-        ? "Excellent"
-        : Rate >= 75
-            ? "Good"
-            : "Needs Attention";
+
+        // The organisation-wide attendance policy is copied onto each row
+        // so the existing table/filter UI can use the configured threshold.
+        public int MinimumAttendancePercent { get; set; } = 75;
+
+        public double Rate =>
+            (Present + Absent) == 0
+                ? 0
+                : Math.Round(
+                    100.0 * Present / (Present + Absent),
+                    0);
+
+        public string Status
+        {
+            get
+            {
+                var excellentThreshold =
+                    Math.Min(100, MinimumAttendancePercent + 15);
+
+                return Rate >= excellentThreshold
+                    ? "Excellent"
+                    : Rate >= MinimumAttendancePercent
+                        ? "Good"
+                        : "Needs Attention";
+            }
+        }
     }
 
     public class AttendanceDashboardViewModel

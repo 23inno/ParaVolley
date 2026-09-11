@@ -29,6 +29,21 @@ namespace SportsManagementMVC.Controllers.Api
         public async Task<ActionResult<EventRegistrationDto>> Register(
             int eventId)
         {
+            var organisationSettings = await _db.OrganisationSettings
+                .AsNoTracking()
+                .FirstOrDefaultAsync();
+
+            if (organisationSettings?.AllowEventRegistration == false)
+            {
+                return StatusCode(
+                    StatusCodes.Status503ServiceUnavailable,
+                    new
+                    {
+                        message =
+                            "Event registration is currently closed by ParaVolley administration."
+                    });
+            }
+
             var playerIdValue = User.FindFirstValue("playerId");
 
             if (!int.TryParse(playerIdValue, out var playerId))

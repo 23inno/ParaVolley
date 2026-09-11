@@ -1644,27 +1644,171 @@ html[data-theme="dark"] .btn-outline-secondary {
   color: #e9ecef;
 }
 
-/* ============ Density ============ */
+/* =========================================================
+   LAYOUT DENSITY
+   Compact / Comfortable / Spacious
+   ========================================================= */
+
+
+/* ================= COMPACT ================= */
+
+html[data-density="compact"] .pv-card,
+html[data-density="compact"] .stat-card,
+html[data-density="compact"] .pm-header-card,
+html[data-density="compact"] .settings-content-card {
+    border-radius: 0.85rem;
+}
+
 html[data-density="compact"] .pv-card,
 html[data-density="compact"] .stat-card,
 html[data-density="compact"] .pm-header-card {
-  padding: 0.85rem 1rem;
+    padding: 0.85rem 1rem;
 }
 
+html[data-density="compact"] .settings-section-header {
+    padding: 0.9rem 1rem;
+}
+
+html[data-density="compact"] .settings-section-body {
+    padding: 0.35rem 1rem;
+}
+
+html[data-density="compact"] .settings-row {
+    padding: 0.7rem 0;
+    gap: 1rem;
+}
+
+html[data-density="compact"] .settings-layout {
+    gap: 1rem;
+}
+
+html[data-density="compact"] .settings-nav-card {
+    padding: 0.7rem;
+}
+
+html[data-density="compact"] .settings-nav-link {
+    padding: 0.5rem 0.7rem;
+    margin-bottom: 0.1rem;
+}
+
+html[data-density="compact"] .pv-table thead th,
+html[data-density="compact"] .pv-table tbody td,
 html[data-density="compact"] .pm-table-card thead th,
 html[data-density="compact"] .pm-table-card tbody td {
-  padding: 0.55rem 0.9rem;
+    padding: 0.5rem 0.7rem;
+}
+
+html[data-density="compact"] .form-control,
+html[data-density="compact"] .form-select {
+    padding-top: 0.4rem;
+    padding-bottom: 0.4rem;
+}
+
+html[data-density="compact"] .btn {
+    padding-top: 0.4rem;
+    padding-bottom: 0.4rem;
+}
+
+
+/* ================= COMFORTABLE ================= */
+
+html[data-density="comfortable"] .pv-card,
+html[data-density="comfortable"] .stat-card,
+html[data-density="comfortable"] .pm-header-card {
+    padding: 1.25rem 1.5rem;
+}
+
+html[data-density="comfortable"] .settings-section-header {
+    padding: 1.5rem;
+}
+
+html[data-density="comfortable"] .settings-section-body {
+    padding: 0.5rem 1.5rem;
+}
+
+html[data-density="comfortable"] .settings-row {
+    padding: 1.1rem 0;
+    gap: 1.5rem;
+}
+
+html[data-density="comfortable"] .settings-layout {
+    gap: 1.5rem;
+}
+
+html[data-density="comfortable"] .settings-nav-card {
+    padding: 1rem;
+}
+
+html[data-density="comfortable"] .settings-nav-link {
+    padding: 0.7rem 0.9rem;
+    margin-bottom: 0.2rem;
+}
+
+html[data-density="comfortable"] .pv-table thead th,
+html[data-density="comfortable"] .pv-table tbody td,
+html[data-density="comfortable"] .pm-table-card thead th,
+html[data-density="comfortable"] .pm-table-card tbody td {
+    padding: 0.75rem 1rem;
+}
+
+
+/* ================= SPACIOUS ================= */
+
+html[data-density="spacious"] .pv-card,
+html[data-density="spacious"] .stat-card,
+html[data-density="spacious"] .pm-header-card,
+html[data-density="spacious"] .settings-content-card {
+    border-radius: 1.25rem;
 }
 
 html[data-density="spacious"] .pv-card,
 html[data-density="spacious"] .stat-card,
 html[data-density="spacious"] .pm-header-card {
-  padding: 2rem 2.25rem;
+    padding: 2rem 2.25rem;
 }
 
+html[data-density="spacious"] .settings-section-header {
+    padding: 2rem;
+}
+
+html[data-density="spacious"] .settings-section-body {
+    padding: 0.9rem 2rem;
+}
+
+html[data-density="spacious"] .settings-row {
+    padding: 1.5rem 0;
+    gap: 2rem;
+}
+
+html[data-density="spacious"] .settings-layout {
+    gap: 2rem;
+}
+
+html[data-density="spacious"] .settings-nav-card {
+    padding: 1.35rem;
+}
+
+html[data-density="spacious"] .settings-nav-link {
+    padding: 0.9rem 1.1rem;
+    margin-bottom: 0.3rem;
+}
+
+html[data-density="spacious"] .pv-table thead th,
+html[data-density="spacious"] .pv-table tbody td,
 html[data-density="spacious"] .pm-table-card thead th,
 html[data-density="spacious"] .pm-table-card tbody td {
-  padding: 1.3rem 1.6rem;
+    padding: 1.1rem 1.35rem;
+}
+
+html[data-density="spacious"] .form-control,
+html[data-density="spacious"] .form-select {
+    padding-top: 0.65rem;
+    padding-bottom: 0.65rem;
+}
+
+html[data-density="spacious"] .btn {
+    padding-top: 0.6rem;
+    padding-bottom: 0.6rem;
 }
 
 /* ============ Settings module ============ */
@@ -2894,54 +3038,51 @@ padding: 3rem 1.5rem;
 }
 
 /* ============================================================
-   OFFICIAL PARAVOLLEY BRAND COLOURS
-   Keep Admin / Coach portal consistent with public branding
-   ============================================================ */
+   AUTHENTICATED PORTAL ACCENT COLOURS
 
-:root {
-    --pv-green: #0B6E4F !important;
-    --pv-green-dark: #085D42 !important;
-    --pv-gold: #FFC72C !important;
-}
+   --pv-green and --pv-green-dark are supplied by _Layout.cshtml.
+   Public visitors still receive the official ParaVolley green.
+   Admin / Coach users receive the selected Appearance accent.
+   ============================================================ */
 
 
 /* ============================================================
-   BOOTSTRAP GREEN OVERRIDES
+   BOOTSTRAP ACCENT OVERRIDES
    ============================================================ */
 
 .btn-success,
 .bg-success {
-    background-color: #0B6E4F !important;
-    border-color: #0B6E4F !important;
+    background-color: var(--pv-green) !important;
+    border-color: var(--pv-green) !important;
 }
 
     .btn-success:hover,
     .btn-success:focus,
     .btn-success:active {
-        background-color: #085D42 !important;
-        border-color: #085D42 !important;
+        background-color: var(--pv-green-dark) !important;
+        border-color: var(--pv-green-dark) !important;
     }
 
 .btn-outline-success {
-    color: #0B6E4F !important;
-    border-color: #0B6E4F !important;
+    color: var(--pv-green) !important;
+    border-color: var(--pv-green) !important;
 }
 
     .btn-outline-success:hover,
     .btn-outline-success:focus,
     .btn-outline-success:active {
-        background-color: #0B6E4F !important;
-        border-color: #0B6E4F !important;
+        background-color: var(--pv-green) !important;
+        border-color: var(--pv-green) !important;
         color: #FFFFFF !important;
     }
 
 .text-success {
-    color: #0B6E4F !important;
+    color: var(--pv-green) !important;
 }
 
 
 /* ============================================================
-   BOOTSTRAP YELLOW / WARNING OVERRIDES
+   YELLOW / WARNING
    ============================================================ */
 
 .btn-warning,
@@ -2967,19 +3108,19 @@ padding: 3rem 1.5rem;
    ============================================================ */
 
 .pv-sidebar {
-    background-color: #0B6E4F !important;
+    background-color: var(--pv-green) !important;
 }
 
     .pv-sidebar .brand {
-        border-bottom-color: #085D42 !important;
+        border-bottom-color: var(--pv-green-dark) !important;
     }
 
     .pv-sidebar .user-box {
-        border-top-color: #085D42 !important;
+        border-top-color: var(--pv-green-dark) !important;
     }
 
 .pv-nav-link:hover {
-    background-color: #085D42 !important;
+    background-color: var(--pv-green-dark) !important;
 }
 
 .pv-nav-link.active {
@@ -2998,15 +3139,15 @@ padding: 3rem 1.5rem;
 
 
 /* ============================================================
-   STANDARD PARAVOLLEY ACTION BUTTONS
+   STANDARD ACTION BUTTONS
    ============================================================ */
 
 .btn-pv,
 .btn-pm-add,
 .btn-view-details,
 .btn-read-more {
-    background-color: #0B6E4F !important;
-    border-color: #0B6E4F !important;
+    background-color: var(--pv-green) !important;
+    border-color: var(--pv-green) !important;
     color: #FFFFFF !important;
 }
 
@@ -3014,8 +3155,8 @@ padding: 3rem 1.5rem;
     .btn-pm-add:hover,
     .btn-view-details:hover,
     .btn-read-more:hover {
-        background-color: #085D42 !important;
-        border-color: #085D42 !important;
+        background-color: var(--pv-green-dark) !important;
+        border-color: var(--pv-green-dark) !important;
         color: #FFFFFF !important;
     }
 
@@ -3033,17 +3174,17 @@ padding: 3rem 1.5rem;
    ============================================================ */
 
 .toggle-btn.active {
-    background-color: #0B6E4F !important;
+    background-color: var(--pv-green) !important;
     color: #FFFFFF !important;
 }
 
 .chart-section-title,
 .ranked-player-rate {
-    color: #0B6E4F !important;
+    color: var(--pv-green) !important;
 }
 
 .rate-progress-fill {
-    background-color: #0B6E4F !important;
+    background-color: var(--pv-green) !important;
 }
 
 .rank-1 {
@@ -3056,11 +3197,11 @@ padding: 3rem 1.5rem;
    ============================================================ */
 
 .em-card {
-    border-left-color: #0B6E4F;
+    border-left-color: var(--pv-green);
 }
 
     .em-card.border-tournament {
-        border-left-color: #0B6E4F !important;
+        border-left-color: var(--pv-green) !important;
     }
 
     .em-card.border-practice {
@@ -3069,7 +3210,7 @@ padding: 3rem 1.5rem;
 
 .em-type-tournament,
 .em-status-completed {
-    color: #0B6E4F !important;
+    color: var(--pv-green) !important;
 }
 
 .em-type-practice,
@@ -3083,14 +3224,14 @@ padding: 3rem 1.5rem;
    ============================================================ */
 
 .form-check-input:checked {
-    background-color: #0B6E4F !important;
-    border-color: #0B6E4F !important;
+    background-color: var(--pv-green) !important;
+    border-color: var(--pv-green) !important;
 }
 
 .form-control:focus,
 .form-select:focus {
-    border-color: #0B6E4F !important;
-    box-shadow: 0 0 0 0.2rem rgba(11, 110, 79, 0.15) !important;
+    border-color: var(--pv-green) !important;
+    box-shadow: 0 0 0 0.2rem color-mix( in srgb, var(--pv-green) 15%, transparent ) !important;
 }
 
 
@@ -3329,4 +3470,104 @@ padding: 3rem 1.5rem;
         .coach-card-footer .btn {
             width: 100%;
         }
+}
+
+.validation-summary-valid {
+    display: none;
+}
+
+.validation-summary-errors {
+    display: block;
+}
+
+/* =========================================================
+   SETTINGS - DARK MODE CONTRAST FIX
+   ========================================================= */
+
+html[data-theme="dark"] .settings-nav-card {
+    background-color: #1a1d23 !important;
+    border-color: #2b2f38 !important;
+}
+
+html[data-theme="dark"] .settings-nav-heading {
+    color: #adb5bd !important;
+}
+
+html[data-theme="dark"] .settings-nav-link,
+html[data-theme="dark"] .settings-nav-link:link,
+html[data-theme="dark"] .settings-nav-link:visited {
+    color: #e9ecef !important;
+}
+
+    html[data-theme="dark"] .settings-nav-link .link-left,
+    html[data-theme="dark"] .settings-nav-link .link-left i {
+        color: #e9ecef !important;
+    }
+
+    html[data-theme="dark"] .settings-nav-link:hover {
+        color: #ffffff !important;
+        background-color: #252931 !important;
+    }
+
+        html[data-theme="dark"] .settings-nav-link:hover .link-left,
+        html[data-theme="dark"] .settings-nav-link:hover .link-left i {
+            color: #ffffff !important;
+        }
+
+    html[data-theme="dark"] .settings-nav-link.active {
+        background-color: var(--pv-green) !important;
+        color: #ffffff !important;
+    }
+
+        html[data-theme="dark"] .settings-nav-link.active .link-left,
+        html[data-theme="dark"] .settings-nav-link.active .link-left i,
+        html[data-theme="dark"] .settings-nav-link.active > i {
+            color: #ffffff !important;
+        }
+
+html[data-theme="dark"] .settings-page-title {
+    color: #f8f9fa !important;
+}
+
+html[data-theme="dark"] .settings-page-subtitle {
+    color: #adb5bd !important;
+}
+
+html[data-theme="dark"] .settings-section-header h5 {
+    color: #f8f9fa !important;
+}
+
+html[data-theme="dark"] .settings-section-header p {
+    color: #adb5bd !important;
+}
+
+html[data-theme="dark"] .settings-row-label {
+    color: #e9ecef !important;
+}
+
+html[data-theme="dark"] .density-option {
+    color: #e9ecef !important;
+    border-color: #adb5bd !important;
+    background-color: transparent !important;
+}
+
+    html[data-theme="dark"] .density-option:hover {
+        color: #ffffff !important;
+        border-color: #ffffff !important;
+        background-color: #252931 !important;
+    }
+
+    html[data-theme="dark"] .density-option.selected {
+        color: #ffffff !important;
+        border-color: var(--pv-green) !important;
+        background-color: rgba(11, 110, 79, 0.18) !important;
+    }
+
+html[data-theme="dark"] #accentHexLabel {
+    color: #ced4da !important;
+}
+
+html[data-theme="dark"] .form-text,
+html[data-theme="dark"] .text-muted {
+    color: #adb5bd !important;
 }

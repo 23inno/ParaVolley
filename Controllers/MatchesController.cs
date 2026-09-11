@@ -157,13 +157,36 @@ namespace SportsManagementMVC.Controllers
 
         // GET: Matches/Create
         [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
-        public IActionResult Create()
+        public async Task<IActionResult> Create(
+            CancellationToken cancellationToken = default)
         {
+            var settings = await _context.OrganisationSettings
+                .AsNoTracking()
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var activeSeason =
+                int.TryParse(settings?.ActiveSeason, out var configuredSeason)
+                    ? configuredSeason
+                    : DateTime.Today.Year;
+
+            var defaultDate = DateTime.Today.Year == activeSeason
+                ? DateTime.Today
+                : new DateTime(activeSeason, 1, 1);
+
+            var match = new Match
+            {
+                Date = defaultDate,
+                TeamA = string.IsNullOrWhiteSpace(settings?.DefaultTeamName)
+                    ? "ParaVolley Mpumalanga"
+                    : settings.DefaultTeamName
+            };
+
             if (IsAjaxRequest())
             {
-                return PartialView("_CreatePartial", new Match { Date = DateTime.Today });
+                return PartialView("_CreatePartial", match);
             }
-            return View();
+
+            return View(match);
         }
 
         // POST: Matches/Create
