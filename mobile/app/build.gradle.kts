@@ -3,6 +3,12 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+fun String.asBuildConfigString(): String =
+    "\"" +
+        replace("\\", "\\\\")
+            .replace("\"", "\\\"") +
+        "\""
+
 val debugApiBaseUrl = providers
     .gradleProperty("PARAVOLLEY_API_BASE_URL")
     .orNull
@@ -20,6 +26,36 @@ val releaseApiBaseUrl = providers
         if (value.endsWith("/")) value else "$value/"
     }
     ?: "https://example.invalid/"
+
+val firebaseApplicationId = providers
+    .gradleProperty("PARAVOLLEY_FIREBASE_APPLICATION_ID")
+    .orNull
+    ?.trim()
+    .orEmpty()
+
+val firebaseApiKey = providers
+    .gradleProperty("PARAVOLLEY_FIREBASE_API_KEY")
+    .orNull
+    ?.trim()
+    .orEmpty()
+
+val firebaseProjectId = providers
+    .gradleProperty("PARAVOLLEY_FIREBASE_PROJECT_ID")
+    .orNull
+    ?.trim()
+    .orEmpty()
+
+val firebaseSenderId = providers
+    .gradleProperty("PARAVOLLEY_FIREBASE_SENDER_ID")
+    .orNull
+    ?.trim()
+    .orEmpty()
+
+val firebaseEnabled =
+    firebaseApplicationId.isNotBlank() &&
+        firebaseApiKey.isNotBlank() &&
+        firebaseProjectId.isNotBlank() &&
+        firebaseSenderId.isNotBlank()
 
 android {
     namespace = "com.paravolley.mobile"
@@ -39,6 +75,32 @@ android {
 
         testInstrumentationRunner =
             "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField(
+            "boolean",
+            "FIREBASE_ENABLED",
+            firebaseEnabled.toString()
+        )
+        buildConfigField(
+            "String",
+            "FIREBASE_APPLICATION_ID",
+            firebaseApplicationId.asBuildConfigString()
+        )
+        buildConfigField(
+            "String",
+            "FIREBASE_API_KEY",
+            firebaseApiKey.asBuildConfigString()
+        )
+        buildConfigField(
+            "String",
+            "FIREBASE_PROJECT_ID",
+            firebaseProjectId.asBuildConfigString()
+        )
+        buildConfigField(
+            "String",
+            "FIREBASE_SENDER_ID",
+            firebaseSenderId.asBuildConfigString()
+        )
     }
 
     buildTypes {
@@ -104,6 +166,9 @@ dependencies {
     implementation(libs.androidx.camera.view)
     implementation(libs.mlkit.barcode.scanning)
     implementation(libs.androidx.security.crypto)
+
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
 
     testImplementation(libs.junit)
 
