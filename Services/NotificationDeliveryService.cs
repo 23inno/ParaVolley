@@ -225,8 +225,12 @@ public sealed class NotificationDeliveryService
             var projectId = GetFirebaseProjectId()!;
             var serviceAccountJson = GetFirebaseServiceAccountJson()!;
 
-            var credential = GoogleCredential
-                .FromJson(serviceAccountJson)
+            var serviceAccountCredential =
+                CredentialFactory.FromJson<ServiceAccountCredential>(
+                    serviceAccountJson);
+
+            var credential = serviceAccountCredential
+                .ToGoogleCredential()
                 .CreateScoped(
                     "https://www.googleapis.com/auth/firebase.messaging");
 
