@@ -1,0 +1,212 @@
+@model NotificationSettingsViewModel
+@{
+    ViewData["Title"] = "Notifications";
+}
+
+<h2 class="settings-page-title">Notifications</h2>
+<p class="settings-page-subtitle mb-3">
+    Configure real email, SMS and Android push notification delivery.
+</p>
+
+@if (TempData["Success"] is string successMessage)
+{
+    <div class="alert alert-success">@successMessage</div>
+}
+@if (TempData["Error"] is string errorMessage)
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+<div class="settings-layout">
+    @await Html.PartialAsync("~/Views/Settings/_SettingsNav.cshtml")
+
+    <div>
+        <div class="settings-content-card mb-3">
+            <div class="settings-section-header">
+                <h5>Delivery Providers</h5>
+                <p>
+                    Provider secrets are read from secure application configuration.
+                    They are never stored in the notification-preference table.
+                </p>
+            </div>
+
+            <div class="settings-section-body pt-3 pb-3">
+                <div class="row g-3">
+                    @foreach (var provider in new[] { Model.Email, Model.Sms, Model.Push })
+                    {
+                        <div class="col-12 col-xl-4">
+                            <div class="border rounded-3 p-3 h-100 bg-light">
+                                <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+                                    <strong>@provider.Name</strong>
+                                    @if (provider.Configured)
+                                    {
+                                        <span class="badge bg-success">Configured</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Not configured</span>
+                                    }
+                                </div>
+                                <div class="text-muted small">@provider.Detail</div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="settings-content-card mb-3">
+            <div class="settings-section-header">
+                <h5>Notification Preferences</h5>
+                <p>
+                    Enable or disable each delivery channel for each system event.
+                    Unconfigured channels stay unavailable until their provider is connected.
+                </p>
+            </div>
+
+            <div class="settings-section-body pt-3 pb-3">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Event</th>
+                                <th class="text-center">Email</th>
+                                <th class="text-center">SMS</th>
+                                <th class="text-center">Push</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var preference in Model.Preferences)
+                            {
+                                <tr>
+                                    <td style="min-width: 280px;">
+                                        <div class="fw-semibold">@preference.EventLabel</div>
+                                        <div class="text-muted small">@preference.EventDescription</div>
+                                    </td>
+                                    <td class="text-center">
+                                        @if (Model.Email.Configured)
+                                        {
+                                            <form asp-controller="NotificationSettings" asp-action="UpdatePreference" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@preference.Id" />
+                                                <input type="hidden" name="channel" value="email" />
+                                                <button type="submit" class="btn btn-sm @(preference.EmailEnabled ? "btn-success" : "btn-outline-secondary")">
+                                                    @(preference.EmailEnabled ? "On" : "Off")
+                                                </button>
+                                            </form>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-light text-secondary border">Unavailable</span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        @if (Model.Sms.Configured)
+                                        {
+                                            <form asp-controller="NotificationSettings" asp-action="UpdatePreference" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@preference.Id" />
+                                                <input type="hidden" name="channel" value="sms" />
+                                                <button type="submit" class="btn btn-sm @(preference.SmsEnabled ? "btn-success" : "btn-outline-secondary")">
+                                                    @(preference.SmsEnabled ? "On" : "Off")
+                                                </button>
+                                            </form>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-light text-secondary border">Unavailable</span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        @if (Model.Push.Configured)
+                                        {
+                                            <form asp-controller="NotificationSettings" asp-action="UpdatePreference" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@preference.Id" />
+                                                <input type="hidden" name="channel" value="push" />
+                                                <button type="submit" class="btn btn-sm @(preference.PushEnabled ? "btn-success" : "btn-outline-secondary")">
+                                                    @(preference.PushEnabled ? "On" : "Off")
+                                                </button>
+                                            </form>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-light text-secondary border">Unavailable</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="settings-content-card">
+            <div class="settings-section-header">
+                <h5>Send Test Notifications</h5>
+                <p>Use these tests after configuring a provider to verify end-to-end delivery.</p>
+            </div>
+
+            <div class="settings-section-body pt-3 pb-3">
+                <div class="row g-4">
+                    <div class="col-12 col-xl-4">
+                        <h6>Email test</h6>
+                        @if (Model.Email.Configured)
+                        {
+                            <form asp-controller="NotificationSettings" asp-action="TestEmail" method="post">
+                                @Html.AntiForgeryToken()
+                                <input class="form-control mb-2" type="email" name="email" value="@Model.DefaultTestEmail" placeholder="name@example.com" required />
+                                <button class="btn btn-success w-100" type="submit">
+                                    <i class="bi bi-envelope me-1"></i> Send Test Email
+                                </button>
+                            </form>
+                        }
+                        else
+                        {
+                            <div class="text-muted small">Configure SMTP settings first.</div>
+                        }
+                    </div>
+
+                    <div class="col-12 col-xl-4">
+                        <h6>SMS test</h6>
+                        @if (Model.Sms.Configured)
+                        {
+                            <form asp-controller="NotificationSettings" asp-action="TestSms" method="post">
+                                @Html.AntiForgeryToken()
+                                <input class="form-control mb-2" type="tel" name="phone" value="@Model.DefaultTestPhone" placeholder="+27..." required />
+                                <button class="btn btn-success w-100" type="submit">
+                                    <i class="bi bi-phone me-1"></i> Send Test SMS
+                                </button>
+                            </form>
+                        }
+                        else
+                        {
+                            <div class="text-muted small">Configure Twilio settings first.</div>
+                        }
+                    </div>
+
+                    <div class="col-12 col-xl-4">
+                        <h6>Android push test</h6>
+                        @if (Model.Push.Configured)
+                        {
+                            <form asp-controller="NotificationSettings" asp-action="TestPush" method="post">
+                                @Html.AntiForgeryToken()
+                                <button class="btn btn-success w-100" type="submit">
+                                    <i class="bi bi-bell me-1"></i> Send Test Push
+                                </button>
+                            </form>
+                            <div class="text-muted small mt-2">
+                                Sends to the Firebase <code>players</code> topic. Logged-in player apps subscribe automatically.
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-muted small">Configure Firebase Cloud Messaging first.</div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

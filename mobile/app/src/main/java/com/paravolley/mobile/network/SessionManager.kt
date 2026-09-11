@@ -3,6 +3,7 @@ package com.paravolley.mobile.network
 import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import com.paravolley.mobile.notifications.PushNotifications
 import java.time.Instant
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -24,13 +25,16 @@ object SessionEvents {
 class SessionManager(
     context: Context
 ) {
-    private val masterKey = MasterKey.Builder(context)
+    private val appContext =
+        context.applicationContext
+
+    private val masterKey = MasterKey.Builder(appContext)
         .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
         .build()
 
     private val preferences =
         EncryptedSharedPreferences.create(
-            context,
+            appContext,
             SECURE_PREFERENCES_NAME,
             masterKey,
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
@@ -38,8 +42,9 @@ class SessionManager(
         )
 
     init {
-        // Remove the legacy plaintext token store after an application upgrade.
-        context.deleteSharedPreferences(LEGACY_PREFERENCES_NAME)
+        appContext.deleteSharedPreferences(
+            LEGACY_PREFERENCES_NAME
+        )
     }
 
     fun saveLogin(
@@ -76,6 +81,17 @@ class SessionManager(
                 loginResponse.user.playerName
             )
             .apply()
+
+        if (
+            loginResponse.user.role.equals(
+                "Player",
+                ignoreCase = true
+            )
+        ) {
+            PushNotifications.subscribePlayer(
+                appContext
+            )
+        }
     }
 
     fun getToken(): String? {
@@ -159,6 +175,17 @@ class SessionManager(
     }
 
     fun clearSession() {
+        if (
+            getRole().equals(
+                "Player",
+                ignoreCase = true
+            )
+        ) {
+            PushNotifications.unsubscribePlayer(
+                appContext
+            )
+        }
+
         preferences.edit()
             .clear()
             .apply()
