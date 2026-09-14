@@ -1,6 +1,6 @@
 # ParaVolley notification delivery setup
 
-The Notifications settings page supports real SMTP email, Twilio SMS, and Firebase Cloud Messaging (FCM) push delivery.
+The Notifications settings page supports real SMTP email, BulkSMS SMS, and Firebase Cloud Messaging (FCM) push delivery.
 
 Do not commit provider passwords, API tokens, service-account JSON, or other secrets to Git.
 
@@ -30,18 +30,42 @@ dotnet user-secrets set "EmailSettings:SenderName" "ParaVolley Mpumalanga"
 dotnet user-secrets set "EmailSettings:EnableSsl" "true"
 ```
 
-### Twilio SMS
+### BulkSMS SMS
+
+ParaVolley uses the BulkSMS JSON REST API at `https://api.bulksms.com/v1/messages`.
+
+Create an API token in BulkSMS under **Settings -> Developers -> API Tokens**. New BulkSMS accounts authenticate with an API token: the Token ID is used as the HTTP Basic username and the Token Secret as the password.
 
 Required keys:
 
-- `Twilio:AccountSid`
-- `Twilio:AuthToken`
-- `Twilio:FromNumber`
+- `BulkSMS:TokenId`
+- `BulkSMS:TokenSecret`
+
+Optional key:
+
+- `BulkSMS:From` — only configure this if BulkSMS has provided/approved a sender value for your account. If omitted, ParaVolley lets BulkSMS choose the applicable sender/route.
 
 ```powershell
-dotnet user-secrets set "Twilio:AccountSid" "YOUR_TWILIO_ACCOUNT_SID"
-dotnet user-secrets set "Twilio:AuthToken" "YOUR_TWILIO_AUTH_TOKEN"
-dotnet user-secrets set "Twilio:FromNumber" "+YOUR_TWILIO_NUMBER"
+dotnet user-secrets set "BulkSMS:TokenId" "YOUR_BULKSMS_TOKEN_ID"
+dotnet user-secrets set "BulkSMS:TokenSecret" "YOUR_BULKSMS_TOKEN_SECRET"
+```
+
+Optional sender example:
+
+```powershell
+dotnet user-secrets set "BulkSMS:From" "YOUR_APPROVED_SENDER"
+```
+
+South African recipient numbers should be entered in international format, for example `+2782...` rather than `082...`.
+
+BulkSMS provides a small number of free SMS credits for account testing after mobile-number activation. Real SMS delivery after those credits are used requires purchasing additional credits.
+
+The previous Twilio settings are no longer used by ParaVolley and can be removed from local user-secrets after BulkSMS is working:
+
+```powershell
+dotnet user-secrets remove "Twilio:AccountSid"
+dotnet user-secrets remove "Twilio:AuthToken"
+dotnet user-secrets remove "Twilio:FromNumber"
 ```
 
 ### Firebase server-side push
@@ -74,6 +98,14 @@ When all four are present, logged-in Player accounts automatically subscribe to 
 
 Add the same web keys as Railway Variables. Keep Auto Deploy behavior unchanged. Never place secret values in `appsettings.json` or source control.
 
+For BulkSMS in Railway, add:
+
+- `BulkSMS__TokenId`
+- `BulkSMS__TokenSecret`
+- optionally `BulkSMS__From`
+
+ASP.NET Core maps double underscores in environment-variable names to configuration colons.
+
 ## Testing
 
 After the providers are configured:
@@ -81,5 +113,6 @@ After the providers are configured:
 1. Open **Settings -> Notifications** as Admin.
 2. Confirm the provider badge changes to **Configured**.
 3. Use **Send Test Email**, **Send Test SMS**, and **Send Test Push**.
-4. For push testing, install/run the Android debug app with the Firebase Gradle properties present and sign in as an approved Player.
-5. Enable/disable event-channel preferences from the table and confirm the values persist after refresh.
+4. For SMS, test with a real recipient number in international format such as `+27...`.
+5. For push testing, install/run the Android debug app with the Firebase Gradle properties present and sign in as an approved Player.
+6. Enable/disable event-channel preferences from the table and confirm the values persist after refresh.
