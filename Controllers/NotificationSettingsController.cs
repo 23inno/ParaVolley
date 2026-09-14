@@ -17,6 +17,7 @@ public sealed class NotificationSettingsController : Controller
 {
     private readonly ApplicationDbContext _context;
     private readonly NotificationDeliveryService _delivery;
+    private readonly EmailService _emailService;
 
     public NotificationSettingsController(
         ApplicationDbContext context,
@@ -25,6 +26,7 @@ public sealed class NotificationSettingsController : Controller
         ILogger<NotificationDeliveryService> logger)
     {
         _context = context;
+        _emailService = emailService;
         _delivery = new NotificationDeliveryService(
             context,
             emailService,
@@ -65,6 +67,9 @@ public sealed class NotificationSettingsController : Controller
             .Select(profile => profile.Phone)
             .FirstOrDefaultAsync(cancellationToken);
 
+        var lastTestEmail =
+            TempData.Peek("NotificationTestEmail") as string;
+
         return View(
             new NotificationSettingsViewModel
             {
@@ -72,7 +77,10 @@ public sealed class NotificationSettingsController : Controller
                 Email = _delivery.GetEmailStatus(),
                 Sms = _delivery.GetSmsStatus(),
                 Push = _delivery.GetPushStatus(),
-                DefaultTestEmail = adminEmail,
+                DefaultTestEmail =
+                    string.IsNullOrWhiteSpace(lastTestEmail)
+                        ? adminEmail
+                        : lastTestEmail,
                 DefaultTestPhone = adminPhone
             });
     }
@@ -124,19 +132,43 @@ public sealed class NotificationSettingsController : Controller
     {
         var normalizedEmail = email?.Trim() ?? string.Empty;
 
+        TempData["NotificationTestEmail"] = normalizedEmail;
+
         if (string.IsNullOrWhiteSpace(normalizedEmail) ||
             !new EmailAddressAttribute().IsValid(normalizedEmail))
         {
-            TempData["Error"] = "Enter a valid email address for the test.";
+            TempData["Error"] =
+                "Enter a valid email address for the test.";
+
             return RedirectToAction(nameof(Index));
         }
 
-        var result = await _delivery.SendEmailAsync(
+        if (!_delivery.EmailConfigured)
+        {
+            TempData["Error"] =
+                "Email delivery is not configured.";
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        var result = await _emailService.SendDetailedAsync(
             normalizedEmail,
             "ParaVolley notification test",
             "<p>This is a test email from the ParaVolley Mpumalanga notification system.</p>");
 
-        SetResult(result);
+        if (result.Success)
+        {
+            TempData["Success"] =
+                $"Test email sent to {normalizedEmail}.";
+        }
+        else
+        {
+            TempData["Error"] =
+                string.IsNullOrWhiteSpace(result.Diagnostic)
+                    ? "The SMTP server did not accept the email."
+                    : $"Email test failed: {result.Diagnostic}";
+        }
+
         return RedirectToAction(nameof(Index));
     }
 
@@ -152,7 +184,9 @@ public sealed class NotificationSettingsController : Controller
         if (string.IsNullOrWhiteSpace(normalizedPhone) ||
             !new PhoneAttribute().IsValid(normalizedPhone))
         {
-            TempData["Error"] = "Enter a valid phone number for the test.";
+            TempData["Error"] =
+                "Enter a valid phone number for the test.";
+
             return RedirectToAction(nameof(Index));
         }
 
