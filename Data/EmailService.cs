@@ -5,68 +5,138 @@ using Microsoft.Extensions.Logging;
 
 namespace SportsManagementMVC.Data
 {
-    // Sends real emails via SMTP once EmailSettings is configured in appsettings.json
-    // (or appsettings.Development.json / user secrets / environment variables).
-    // Until a SmtpHost is provided, SendAsync logs the email instead of sending it,
-    // so the rest of the app (subscribe flow, notifications) still works end-to-end
-    // in this demo without crashing on a missing mail server.
+    public sealed record EmailSendResult(
+        bool Success,
+        string? Diagnostic = null);
+
+    // Sends real emails via SMTP once EmailSettings is configured in
+    // appsettings.Development.json, user secrets, or environment variables.
     public class EmailService
     {
         private readonly IConfiguration _config;
         private readonly ILogger<EmailService> _logger;
 
-        public EmailService(IConfiguration config, ILogger<EmailService> logger)
+        public EmailService(
+            IConfiguration config,
+            ILogger<EmailService> logger)
         {
             _config = config;
             _logger = logger;
         }
 
-        public async Task<bool> SendAsync(string toEmail, string subject, string bodyHtml)
+        public async Task<bool> SendAsync(
+            string toEmail,
+            string subject,
+            string bodyHtml)
+        {
+            var result = await SendDetailedAsync(
+                toEmail,
+                subject,
+                bodyHtml);
+
+            return result.Success;
+        }
+
+        public async Task<EmailSendResult> SendDetailedAsync(
+            string toEmail,
+            string subject,
+            string bodyHtml)
         {
             var host = _config["EmailSettings:SmtpHost"];
             var portStr = _config["EmailSettings:SmtpPort"];
             var senderEmail = _config["EmailSettings:SenderEmail"];
             var senderPassword = _config["EmailSettings:SenderPassword"];
-            var senderName = _config["EmailSettings:SenderName"] ?? "ParaVolley Mpumalanga";
-            var enableSsl = bool.TryParse(_config["EmailSettings:EnableSsl"], out var ssl) ? ssl : true;
+            var senderName =
+                _config["EmailSettings:SenderName"]
+                ?? "ParaVolley Mpumalanga";
 
-            if (string.IsNullOrWhiteSpace(host) || string.IsNullOrWhiteSpace(senderEmail))
+            var enableSsl =
+                bool.TryParse(
+                    _config["EmailSettings:EnableSsl"],
+                    out var ssl)
+                    ? ssl
+                    : true;
+
+            if (string.IsNullOrWhiteSpace(host) ||
+                string.IsNullOrWhiteSpace(senderEmail))
             {
-                // No SMTP server configured yet - log instead of sending so the
-                // rest of the feature (subscribing, DB records) still works.
                 _logger.LogInformation(
-                    "EMAIL NOT SENT (no SMTP configured). To: {To} | Subject: {Subject}\n{Body}",
-                    toEmail, subject, bodyHtml);
-                return false;
+                    "EMAIL NOT SENT (no SMTP configured). To: {To} | Subject: {Subject}",
+                    toEmail,
+                    subject);
+
+                return new EmailSendResult(
+                    false,
+                    "SMTP host or sender email is missing.");
             }
 
             try
             {
-                var port = int.TryParse(portStr, out var p) ? p : 587;
+                var port =
+                    int.TryParse(portStr, out var parsedPort)
+                        ? parsedPort
+                        : 587;
 
                 using var client = new SmtpClient(host, port)
                 {
-                    Credentials = new NetworkCredential(senderEmail, senderPassword),
+                    Credentials = new NetworkCredential(
+                        senderEmail,
+                        senderPassword),
                     EnableSsl = enableSsl,
                 };
 
                 using var message = new MailMessage
                 {
-                    From = new MailAddress(senderEmail, senderName),
+                    From = new MailAddress(
+                        senderEmail,
+                        senderName),
                     Subject = subject,
                     Body = bodyHtml,
                     IsBodyHtml = true,
                 };
+
                 message.To.Add(toEmail);
 
                 await client.SendMailAsync(message);
-                return true;
+
+                return new EmailSendResult(true);
             }
-            catch (Exception ex)
+            catch (SmtpException exception)
             {
-                _logger.LogWarning(ex, "Failed to send email to {To}", toEmail);
-                return false;
+                _logger.LogWarning(
+                    exception,
+                    "Failed to send email to {To}",
+                    toEmail);
+
+                return new EmailSendResult(
+                    false,
+                    BuildSafeDiagnostic(
+                        $"SMTP {exception.StatusCode}: {exception.Message}"));
             }
+            catch (Exception exception)
+            {
+                _logger.LogWarning(
+                    exception,
+                    "Failed to send email to {To}",
+                    toEmail);
+
+                return new EmailSendResult(
+                    false,
+                    BuildSafeDiagnostic(
+                        $"{exception.GetType().Name}: {exception.Message}"));
+            }
+        }
+
+        private static string BuildSafeDiagnostic(string value)
+        {
+            var singleLine = value
+                .Replace("\r", " ")
+                .Replace("\n", " ")
+                .Trim();
+
+            return singleLine.Length <= 300
+                ? singleLine
+                : singleLine[..300];
         }
     }
 }
