@@ -69,6 +69,8 @@ public sealed class NotificationSettingsController : Controller
 
         var lastTestEmail =
             TempData.Peek("NotificationTestEmail") as string;
+        var lastTestPhone =
+            TempData.Peek("NotificationTestPhone") as string;
 
         return View(
             new NotificationSettingsViewModel
@@ -81,7 +83,10 @@ public sealed class NotificationSettingsController : Controller
                     string.IsNullOrWhiteSpace(lastTestEmail)
                         ? adminEmail
                         : lastTestEmail,
-                DefaultTestPhone = adminPhone
+                DefaultTestPhone =
+                    string.IsNullOrWhiteSpace(lastTestPhone)
+                        ? adminPhone
+                        : lastTestPhone
             });
     }
 
@@ -180,6 +185,8 @@ public sealed class NotificationSettingsController : Controller
         CancellationToken cancellationToken = default)
     {
         var normalizedPhone = phone?.Trim() ?? string.Empty;
+
+        TempData["NotificationTestPhone"] = normalizedPhone;
 
         if (string.IsNullOrWhiteSpace(normalizedPhone) ||
             !new PhoneAttribute().IsValid(normalizedPhone))
