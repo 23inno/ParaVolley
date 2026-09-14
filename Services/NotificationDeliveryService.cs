@@ -88,9 +88,8 @@ public sealed class NotificationDeliveryService
         !string.IsNullOrWhiteSpace(_configuration["EmailSettings:SenderPassword"]);
 
     public bool SmsConfigured =>
-        !string.IsNullOrWhiteSpace(_configuration["Twilio:AccountSid"]) &&
-        !string.IsNullOrWhiteSpace(_configuration["Twilio:AuthToken"]) &&
-        !string.IsNullOrWhiteSpace(_configuration["Twilio:FromNumber"]);
+        !string.IsNullOrWhiteSpace(_configuration["BulkSMS:TokenId"]) &&
+        !string.IsNullOrWhiteSpace(_configuration["BulkSMS:TokenSecret"]);
 
     public bool PushConfigured =>
         !string.IsNullOrWhiteSpace(GetFirebaseProjectId()) &&
@@ -159,30 +158,37 @@ public sealed class NotificationDeliveryService
             return new(false, "SMS delivery is not configured.");
         }
 
-        var accountSid = _configuration["Twilio:AccountSid"]!;
-        var authToken = _configuration["Twilio:AuthToken"]!;
-        var fromNumber = _configuration["Twilio:FromNumber"]!;
-
-        var endpoint =
-            $"https://api.twilio.com/2010-04-01/Accounts/{Uri.EscapeDataString(accountSid)}/Messages.json";
+        var tokenId = _configuration["BulkSMS:TokenId"]!.Trim();
+        var tokenSecret = _configuration["BulkSMS:TokenSecret"]!.Trim();
+        var from = _configuration["BulkSMS:From"]?.Trim();
 
         using var request = new HttpRequestMessage(
             HttpMethod.Post,
-            endpoint);
+            "https://api.bulksms.com/v1/messages");
 
         var credentials = Convert.ToBase64String(
-            Encoding.ASCII.GetBytes($"{accountSid}:{authToken}"));
+            Encoding.UTF8.GetBytes($"{tokenId}:{tokenSecret}"));
 
         request.Headers.Authorization =
             new AuthenticationHeaderValue("Basic", credentials);
+        request.Headers.Accept.Add(
+            new MediaTypeWithQualityHeaderValue("application/json"));
 
-        request.Content = new FormUrlEncodedContent(
-            new Dictionary<string, string>
-            {
-                ["To"] = toPhone.Trim(),
-                ["From"] = fromNumber,
-                ["Body"] = body
-            });
+        var payload = new Dictionary<string, object>
+        {
+            ["to"] = toPhone.Trim(),
+            ["body"] = body
+        };
+
+        if (!string.IsNullOrWhiteSpace(from))
+        {
+            payload["from"] = from;
+        }
+
+        request.Content = new StringContent(
+            JsonSerializer.Serialize(payload),
+            Encoding.UTF8,
+            "application/json");
 
         try
         {
@@ -190,23 +196,31 @@ public sealed class NotificationDeliveryService
                 request,
                 cancellationToken);
 
+            var responseBody = await response.Content
+                .ReadAsStringAsync(cancellationToken);
+
             if (response.IsSuccessStatusCode)
             {
-                return new(true, $"Test SMS sent to {toPhone.Trim()}.");
+                return new(true, $"Test SMS sent to {toPhone.Trim()} through BulkSMS.");
             }
 
+            var providerError = GetBulkSmsError(responseBody);
+
             _logger.LogWarning(
-                "Twilio SMS failed with HTTP status {StatusCode}.",
-                (int)response.StatusCode);
+                "BulkSMS failed with HTTP status {StatusCode}. Provider response: {ProviderError}",
+                (int)response.StatusCode,
+                providerError);
 
             return new(
                 false,
-                $"Twilio rejected the SMS request with HTTP {(int)response.StatusCode}.");
+                string.IsNullOrWhiteSpace(providerError)
+                    ? $"BulkSMS rejected the SMS request with HTTP {(int)response.StatusCode}."
+                    : $"BulkSMS rejected the SMS request: {providerError} (HTTP {(int)response.StatusCode}).");
         }
         catch (Exception exception)
         {
-            _logger.LogWarning(exception, "Twilio SMS delivery failed.");
-            return new(false, "Could not connect to the SMS provider.");
+            _logger.LogWarning(exception, "BulkSMS delivery failed.");
+            return new(false, "Could not connect to BulkSMS.");
         }
     }
 
@@ -407,8 +421,8 @@ public sealed class NotificationDeliveryService
             Name = "SMS",
             Configured = SmsConfigured,
             Detail = SmsConfigured
-                ? "Twilio account, token and sending number are configured."
-                : "Configure Twilio:AccountSid, AuthToken and FromNumber."
+                ? "BulkSMS API token credentials are configured."
+                : "Configure BulkSMS:TokenId and BulkSMS:TokenSecret."
         };
 
     public NotificationProviderStatus GetPushStatus() =>
@@ -420,6 +434,43 @@ public sealed class NotificationDeliveryService
                 ? "Firebase Cloud Messaging service credentials are configured."
                 : "Configure Firebase:ProjectId and Firebase:ServiceAccountJsonBase64."
         };
+
+    private static string? GetBulkSmsError(string? responseBody)
+    {
+        if (string.IsNullOrWhiteSpace(responseBody))
+        {
+            return null;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(responseBody);
+            var root = document.RootElement;
+
+            foreach (var propertyName in new[] { "detail", "message", "title", "type" })
+            {
+                if (root.ValueKind == JsonValueKind.Object &&
+                    root.TryGetProperty(propertyName, out var property) &&
+                    property.ValueKind == JsonValueKind.String)
+                {
+                    var value = property.GetString();
+                    if (!string.IsNullOrWhiteSpace(value))
+                    {
+                        return value;
+                    }
+                }
+            }
+        }
+        catch (JsonException)
+        {
+            // Fall through to a short plain-text provider response.
+        }
+
+        var compact = responseBody.Trim();
+        return compact.Length <= 240
+            ? compact
+            : compact[..240] + "...";
+    }
 
     private string? GetFirebaseProjectId()
     {
