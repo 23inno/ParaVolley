@@ -81,6 +81,86 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
+/* LIVE ATTENDANCE - GROUP EVENT PICKER BY YEAR AND MONTH */
+document.addEventListener('DOMContentLoaded', function () {
+    var path = window.location.pathname.replace(/\/+$/, '').toLowerCase();
+    if (path !== '/attendance/live') return;
+
+    var eventPicker = document.getElementById('eventPicker');
+    if (!eventPicker || eventPicker.querySelector('optgroup')) return;
+
+    var options = Array.from(eventPicker.querySelectorAll('option'));
+    if (!options.length) return;
+
+    var selectedValue = eventPicker.value;
+    var monthNames = {
+        jan: 'January',
+        feb: 'February',
+        mar: 'March',
+        apr: 'April',
+        may: 'May',
+        jun: 'June',
+        jul: 'July',
+        aug: 'August',
+        sep: 'September',
+        oct: 'October',
+        nov: 'November',
+        dec: 'December'
+    };
+
+    var groups = new Map();
+    var fallbackOptions = [];
+
+    options.forEach(function (option) {
+        if (!option.value) {
+            fallbackOptions.push(option);
+            return;
+        }
+
+        var text = option.textContent.trim();
+        var match = text.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})\s+—\s+(.+)$/);
+
+        if (!match) {
+            fallbackOptions.push(option);
+            return;
+        }
+
+        var monthKey = match[2].slice(0, 3).toLowerCase();
+        var monthName = monthNames[monthKey];
+
+        if (!monthName) {
+            fallbackOptions.push(option);
+            return;
+        }
+
+        var year = match[3];
+        var groupKey = year + '-' + monthKey;
+
+        if (!groups.has(groupKey)) {
+            var group = document.createElement('optgroup');
+            group.label = year + ' — ' + monthName;
+            groups.set(groupKey, group);
+        }
+
+        groups.get(groupKey).appendChild(option);
+    });
+
+    if (!groups.size) return;
+
+    eventPicker.innerHTML = '';
+
+    fallbackOptions.forEach(function (option) {
+        eventPicker.appendChild(option);
+    });
+
+    groups.forEach(function (group) {
+        eventPicker.appendChild(group);
+    });
+
+    eventPicker.value = selectedValue;
+    eventPicker.setAttribute('aria-label', 'Events grouped by year and month');
+});
+
 /* PUBLIC PORTAL - ABOUT HERO SLIDESHOW */
 document.addEventListener('DOMContentLoaded', function () {
     const slider = document.querySelector('.about-hero-slider');
