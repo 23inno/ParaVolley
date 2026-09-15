@@ -140,8 +140,14 @@ namespace SportsManagementMVC.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime?>("CheckedInAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime>("Date")
                         .HasColumnType("date");
+
+                    b.Property<int>("EntryMethod")
+                        .HasColumnType("integer");
 
                     b.Property<int>("EventId")
                         .HasColumnType("integer");
@@ -682,6 +688,43 @@ namespace SportsManagementMVC.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("PlayerRegistrationApplications");
+                });
+
+            modelBuilder.Entity("SportsManagementMVC.Models.QrAttendanceAttempt", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("AttemptedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("EventId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<int?>("PlayerId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("QrAttendanceSessionId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EventId", "AttemptedAtUtc");
+
+                    b.ToTable("QrAttendanceAttempts");
                 });
 
             modelBuilder.Entity("SportsManagementMVC.Models.QrAttendanceSession", b =>
