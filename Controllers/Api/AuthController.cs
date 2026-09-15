@@ -12,6 +12,7 @@ using SportsManagementMVC.Data;
 using SportsManagementMVC.Dtos;
 using SportsManagementMVC.Models;
 using SportsManagementMVC.Models.Api;
+using SportsManagementMVC.Services;
 
 namespace SportsManagementMVC.Controllers.Api
 {
@@ -22,15 +23,21 @@ namespace SportsManagementMVC.Controllers.Api
         private readonly ApplicationDbContext _context;
         private readonly IPasswordHasher<AppUser> _passwordHasher;
         private readonly IConfiguration _configuration;
+        private readonly StaffNotificationService _staffNotifications;
+        private readonly ILogger<AuthController> _logger;
 
         public AuthController(
             ApplicationDbContext context,
             IPasswordHasher<AppUser> passwordHasher,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            StaffNotificationService staffNotifications,
+            ILogger<AuthController> logger)
         {
             _context = context;
             _passwordHasher = passwordHasher;
             _configuration = configuration;
+            _staffNotifications = staffNotifications;
+            _logger = logger;
         }
 
         [AllowAnonymous]
@@ -105,15 +112,17 @@ namespace SportsManagementMVC.Controllers.Api
         [HttpPost("register/player")]
         [EnableRateLimiting("registration")]
         public async Task<IActionResult> RegisterPlayer(
-            RegisterPlayerRequest request)
+            RegisterPlayerRequest request,
+            CancellationToken cancellationToken = default)
         {
             var normalizedEmail = request.Email
                 .Trim()
                 .ToLowerInvariant();
 
             var accountExists = await _context.AppUsers
-                .AnyAsync(user =>
-                    user.NormalizedEmail == normalizedEmail);
+                .AnyAsync(
+                    user => user.NormalizedEmail == normalizedEmail,
+                    cancellationToken);
 
             if (accountExists)
             {
@@ -125,8 +134,9 @@ namespace SportsManagementMVC.Controllers.Api
             }
 
             var playerExists = await _context.Players
-                .AnyAsync(player =>
-                    player.Email.ToLower() == normalizedEmail);
+                .AnyAsync(
+                    player => player.Email.ToLower() == normalizedEmail,
+                    cancellationToken);
 
             if (playerExists)
             {
@@ -138,7 +148,7 @@ namespace SportsManagementMVC.Controllers.Api
             }
 
             await using var transaction =
-                await _context.Database.BeginTransactionAsync();
+                await _context.Database.BeginTransactionAsync(cancellationToken);
 
             try
             {
@@ -157,7 +167,7 @@ namespace SportsManagementMVC.Controllers.Api
 
                 _context.Players.Add(player);
 
-                await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync(cancellationToken);
 
                 var appUser = new AppUser
                 {
@@ -175,9 +185,13 @@ namespace SportsManagementMVC.Controllers.Api
 
                 _context.AppUsers.Add(appUser);
 
-                await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync(cancellationToken);
 
-                await transaction.CommitAsync();
+                await transaction.CommitAsync(cancellationToken);
+
+                await NotifyNewPlayerRegistrationAsync(
+                    player,
+                    cancellationToken);
 
                 return StatusCode(
                     StatusCodes.Status201Created,
@@ -194,7 +208,7 @@ namespace SportsManagementMVC.Controllers.Api
                     _context.Database,
                     "IX_AppUsers_NormalizedEmail"))
             {
-                await transaction.RollbackAsync();
+                await transaction.RollbackAsync(cancellationToken);
 
                 return Conflict(new
                 {
@@ -204,8 +218,61 @@ namespace SportsManagementMVC.Controllers.Api
             }
             catch
             {
-                await transaction.RollbackAsync();
+                await transaction.RollbackAsync(cancellationToken);
                 throw;
+            }
+        }
+
+        private async Task NotifyNewPlayerRegistrationAsync(
+            Player player,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var subject = $"New player registration: {player.Name}";
+                var textBody =
+                    $"A new Android player registration was submitted by {player.Name}. " +
+                    $"Email: {player.Email}. Phone: {player.Phone}. Team: {player.Team}. " +
+                    "The account is inactive until an administrator approves it.";
+
+                var safeName = System.Net.WebUtility.HtmlEncode(player.Name);
+                var safeEmail = System.Net.WebUtility.HtmlEncode(player.Email);
+                var safePhone = System.Net.WebUtility.HtmlEncode(player.Phone);
+                var safeTeam = System.Net.WebUtility.HtmlEncode(player.Team);
+
+                var htmlBody = $"""
+                    <p>A new ParaVolley Mpumalanga Android player registration has been submitted.</p>
+                    <p><strong>Name:</strong> {safeName}</p>
+                    <p><strong>Email:</strong> {safeEmail}</p>
+                    <p><strong>Phone:</strong> {safePhone}</p>
+                    <p><strong>Team:</strong> {safeTeam}</p>
+                    <p>The account is inactive until an administrator approves it.</p>
+                    """;
+
+                var results = await _staffNotifications.SendAsync(
+                    "new_player",
+                    subject,
+                    textBody,
+                    htmlBody,
+                    includeCoaches: false,
+                    cancellationToken);
+
+                foreach (var result in results.Where(item => !item.Success))
+                {
+                    _logger.LogWarning(
+                        "New Android player registration {PlayerId} notification reported: {Message}",
+                        player.Id,
+                        result.Message);
+                }
+            }
+            catch (Exception exception)
+            {
+                // Registration has already committed; notification failure must
+                // not turn a successful registration into an API error.
+                _logger.LogWarning(
+                    exception,
+                    "Player registration {PlayerId} was saved, but staff notification delivery failed.",
+                    player.Id);
             }
         }
 
