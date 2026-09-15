@@ -1,0 +1,66 @@
+@model Attendance
+
+<div id="record-attendance-card" class="pv-card mt-3 mb-3">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+        <div>
+            <h5 class="mb-1">Record Attendance</h5>
+            <p class="text-muted mb-0">Add a player attendance record without leaving this page.</p>
+        </div>
+        <button type="button"
+                class="btn btn-sm btn-outline-secondary"
+                data-attendance-collapse-close
+                aria-label="Collapse record attendance form">
+            <i class="bi bi-chevron-up me-1"></i> Collapse
+        </button>
+    </div>
+
+    <form asp-controller="AttendanceInline" asp-action="Record" method="post">
+        @Html.AntiForgeryToken()
+
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+        <div class="row g-3">
+            <div class="col-12 col-md-6">
+                <label class="form-label fw-semibold">Player</label>
+                @Html.DropDownList(
+                    "PlayerId",
+                    (SelectList)ViewBag.PlayerId,
+                    "Select a player",
+                    new { @class = "form-select", required = "required" })
+            </div>
+
+            <div class="col-12 col-md-6">
+                <label class="form-label fw-semibold">Event</label>
+                @Html.DropDownList(
+                    "EventId",
+                    (SelectList)ViewBag.EventId,
+                    "Select an event",
+                    new { @class = "form-select", required = "required" })
+            </div>
+
+            <div class="col-12 col-md-6">
+                <label asp-for="Date" class="form-label fw-semibold"></label>
+                <input asp-for="Date" class="form-control" type="date" required />
+            </div>
+
+            <div class="col-12 col-md-6">
+                <label asp-for="Status" class="form-label fw-semibold"></label>
+                <select asp-for="Status" class="form-select">
+                    <option value="Present">Present</option>
+                    <option value="Absent">Absent</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="d-flex flex-wrap justify-content-end gap-2 mt-4">
+            <button type="button"
+                    class="btn btn-outline-secondary"
+                    data-attendance-collapse-close>
+                Cancel
+            </button>
+            <button type="submit" class="btn btn-pv">
+                <i class="bi bi-check-lg me-1"></i> Save Attendance
+            </button>
+        </div>
+    </form>
+</div>
