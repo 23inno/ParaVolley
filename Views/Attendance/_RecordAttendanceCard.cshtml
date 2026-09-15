@@ -1,0 +1,70 @@
+@model Attendance
+
+<div id="record-attendance-card" class="pv-card mb-3" style="border-top:4px solid var(--pv-green);">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+        <div class="d-flex align-items-center gap-3">
+            <div style="width:48px;height:48px;border-radius:.75rem;background:var(--pv-green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">
+                <i class="bi bi-clipboard-check-fill"></i>
+            </div>
+            <div>
+                <h5 class="mb-1">Record Attendance</h5>
+                <p class="text-muted mb-0">Add an individual player attendance record without leaving this page.</p>
+            </div>
+        </div>
+
+        <a asp-controller="Attendance" asp-action="Records" class="btn btn-outline-secondary">
+            <i class="bi bi-list-check me-1"></i> View All Records
+        </a>
+    </div>
+
+    <form action="/Attendance/Inline/Record" method="post" class="row g-3 align-items-end">
+        @Html.AntiForgeryToken()
+
+        <div class="col-12 col-md-6 col-xl-3">
+            <label class="form-label fw-semibold" for="inlinePlayerId">Player</label>
+            @Html.DropDownList(
+                "PlayerId",
+                (SelectList)ViewBag.PlayerId,
+                "Select a player",
+                new
+                {
+                    @class = "form-select",
+                    id = "inlinePlayerId",
+                    required = "required"
+                })
+        </div>
+
+        <div class="col-12 col-md-6 col-xl-3">
+            <label class="form-label fw-semibold" for="inlineEventId">Event</label>
+            @Html.DropDownList(
+                "EventId",
+                (SelectList)ViewBag.EventId,
+                "Select an event",
+                new
+                {
+                    @class = "form-select",
+                    id = "inlineEventId",
+                    required = "required"
+                })
+        </div>
+
+        <div class="col-12 col-md-6 col-xl-2">
+            <label asp-for="Date" class="form-label fw-semibold"></label>
+            <input asp-for="Date" class="form-control" type="date" required />
+        </div>
+
+        <div class="col-12 col-md-6 col-xl-2">
+            <label asp-for="Status" class="form-label fw-semibold"></label>
+            <select asp-for="Status" class="form-select" required>
+                <option value="Present">Present</option>
+                <option value="Absent">Absent</option>
+            </select>
+        </div>
+
+        <div class="col-12 col-xl-2">
+            <button type="submit" class="btn btn-pv w-100">
+                <i class="bi bi-check-lg me-1"></i> Save Record
+            </button>
+        </div>
+    </form>
+</div>
