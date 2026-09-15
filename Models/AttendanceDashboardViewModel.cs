@@ -82,4 +82,33 @@ namespace SportsManagementMVC.Models
 
         public List<string> Teams { get; set; } = new();
     }
+
+    public class AttendanceArchiveGroup
+    {
+        public int Value { get; set; }
+        public string Label { get; set; } = string.Empty;
+        public int RecordCount { get; set; }
+    }
+
+    public class AttendanceRecordsViewModel
+    {
+        public int? SelectedYear { get; set; }
+        public int? SelectedMonth { get; set; }
+        public int? SelectedDay { get; set; }
+
+        public List<AttendanceArchiveGroup> Years { get; set; } = new();
+        public List<AttendanceArchiveGroup> Months { get; set; } = new();
+        public List<AttendanceArchiveGroup> Days { get; set; } = new();
+        public List<Attendance> Records { get; set; } = new();
+
+        public DateTime? SelectedDate =>
+            SelectedYear.HasValue &&
+            SelectedMonth.HasValue &&
+            SelectedDay.HasValue
+                ? new DateTime(
+                    SelectedYear.Value,
+                    SelectedMonth.Value,
+                    SelectedDay.Value)
+                : null;
+    }
 }
