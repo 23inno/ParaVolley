@@ -79,6 +79,114 @@ document.addEventListener('DOMContentLoaded', function () {
         liveButton.innerHTML = '<i class="bi bi-qr-code-scan me-1"></i> Live Attendance';
         actions.appendChild(liveButton);
     }
+
+    var recordButton = actions
+        ? Array.from(actions.querySelectorAll('a, button')).find(function (item) {
+            return item.textContent.trim().toLowerCase() === 'record attendance';
+        })
+        : null;
+
+    if (!recordButton) return;
+
+    recordButton.setAttribute('role', 'button');
+    recordButton.setAttribute('aria-controls', 'attendanceRecordCollapse');
+    recordButton.setAttribute('aria-expanded', 'false');
+
+    var formHost = document.getElementById('attendanceRecordCollapse');
+    if (!formHost) {
+        formHost = document.createElement('div');
+        formHost.id = 'attendanceRecordCollapse';
+        formHost.className = 'collapse';
+        recordsCard.insertAdjacentElement('afterend', formHost);
+    }
+
+    var formLoaded = false;
+    var formLoading = false;
+
+    function setRecordButtonState(expanded) {
+        recordButton.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        recordButton.innerHTML = expanded
+            ? '<i class="bi bi-chevron-up me-1"></i> Collapse Form'
+            : '<i class="bi bi-plus-lg me-1"></i> Record Attendance';
+    }
+
+    async function ensureFormLoaded() {
+        if (formLoaded) return true;
+        if (formLoading) return false;
+
+        formLoading = true;
+        formHost.innerHTML = '<div class="pv-card mt-3 mb-3 text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Loading attendance form...</div>';
+
+        try {
+            var response = await fetch('/Attendance/Inline/Form', {
+                method: 'GET',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin'
+            });
+
+            if (!response.ok) {
+                throw new Error('Attendance form request failed with HTTP ' + response.status + '.');
+            }
+
+            formHost.innerHTML = await response.text();
+            formLoaded = true;
+            return true;
+        } catch (error) {
+            console.error(error);
+            formHost.innerHTML = '<div class="alert alert-danger mt-3 mb-3">The attendance form could not be loaded. Please refresh the page and try again.</div>';
+            return false;
+        } finally {
+            formLoading = false;
+        }
+    }
+
+    async function toggleAttendanceForm(forceOpen) {
+        var loaded = await ensureFormLoaded();
+        if (!loaded && !formHost.innerHTML) return;
+
+        var collapse = bootstrap.Collapse.getOrCreateInstance(formHost, { toggle: false });
+
+        if (forceOpen === true) {
+            collapse.show();
+            return;
+        }
+
+        if (formHost.classList.contains('show')) {
+            collapse.hide();
+        } else {
+            collapse.show();
+        }
+    }
+
+    recordButton.addEventListener('click', function (event) {
+        event.preventDefault();
+        toggleAttendanceForm(false);
+    });
+
+    formHost.addEventListener('shown.bs.collapse', function () {
+        setRecordButtonState(true);
+    });
+
+    formHost.addEventListener('hidden.bs.collapse', function () {
+        setRecordButtonState(false);
+    });
+
+    formHost.addEventListener('click', function (event) {
+        var closeButton = event.target.closest('[data-attendance-collapse-close]');
+        if (!closeButton) return;
+
+        event.preventDefault();
+        bootstrap.Collapse.getOrCreateInstance(formHost, { toggle: false }).hide();
+    });
+
+    if (window.location.hash === '#record-attendance-card') {
+        toggleAttendanceForm(true).then(function () {
+            window.setTimeout(function () {
+                var card = document.getElementById('record-attendance-card');
+                if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 150);
+        });
+    }
 });
 
 /* LIVE ATTENDANCE - GROUP EVENT PICKER BY YEAR AND MONTH */
