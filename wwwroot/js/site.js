@@ -35,82 +35,119 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
-/* ATTENDANCE - INLINE RECORD FORM */
+/* ATTENDANCE - RECORD ATTENDANCE MODAL */
 document.addEventListener('DOMContentLoaded', function () {
     var path = window.location.pathname.replace(/\/+$/, '').toLowerCase();
-    if (path !== '/attendance' && path !== '/attendance/index') return;
+    if (!path.startsWith('/attendance')) return;
 
-    var recordsCard = Array.from(document.querySelectorAll('.pv-card')).find(function (card) {
-        var heading = card.querySelector('h5');
-        return heading && heading.textContent.trim() === 'Attendance Records';
-    });
+    if (path === '/attendance' || path === '/attendance/index') {
+        var recordsCard = Array.from(document.querySelectorAll('.pv-card')).find(function (card) {
+            var heading = card.querySelector('h5');
+            return heading && heading.textContent.trim() === 'Attendance Records';
+        });
 
-    if (!recordsCard) return;
+        if (recordsCard) {
+            var iconBox = recordsCard.querySelector('.icon-box');
+            if (iconBox) {
+                iconBox.style.width = '48px';
+                iconBox.style.height = '48px';
+                iconBox.style.borderRadius = '.75rem';
+                iconBox.style.display = 'flex';
+                iconBox.style.alignItems = 'center';
+                iconBox.style.justifyContent = 'center';
+                iconBox.style.flexShrink = '0';
+                iconBox.style.backgroundColor = 'var(--pv-green)';
+                iconBox.style.color = '#fff';
+                iconBox.style.fontSize = '1.3rem';
 
-    var iconBox = recordsCard.querySelector('.icon-box');
-    if (iconBox) {
-        iconBox.style.width = '48px';
-        iconBox.style.height = '48px';
-        iconBox.style.borderRadius = '.75rem';
-        iconBox.style.display = 'flex';
-        iconBox.style.alignItems = 'center';
-        iconBox.style.justifyContent = 'center';
-        iconBox.style.flexShrink = '0';
-        iconBox.style.color = '#fff';
-        iconBox.style.fontSize = '1.3rem';
-
-        var icon = iconBox.querySelector('i');
-        if (icon) {
-            icon.className = 'bi bi-clipboard-check-fill';
-            icon.style.color = '#fff';
-            icon.style.fontSize = '1.3rem';
-            icon.style.lineHeight = '1';
+                var icon = iconBox.querySelector('i');
+                if (icon) {
+                    icon.className = 'bi bi-clipboard-check-fill';
+                    icon.style.color = '#fff';
+                    icon.style.fontSize = '1.3rem';
+                    icon.style.lineHeight = '1';
+                }
+            }
         }
     }
 
-    var recordLink = Array.from(recordsCard.querySelectorAll('a')).find(function (link) {
-        return link.textContent.trim().includes('Record Attendance');
-    });
+    var modalLoadPromise = null;
 
-    if (recordLink) {
-        recordLink.setAttribute('href', '#record-attendance-card');
-        recordLink.addEventListener('click', function (event) {
-            event.preventDefault();
-            var card = document.getElementById('record-attendance-card');
-            if (card) {
-                card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                var firstField = card.querySelector('select, input');
-                if (firstField) firstField.focus({ preventScroll: true });
-            }
-        });
+    function ensureAttendanceModal() {
+        var existing = document.getElementById('recordAttendanceModal');
+        if (existing) return Promise.resolve(existing);
+        if (modalLoadPromise) return modalLoadPromise;
+
+        modalLoadPromise = fetch('/Attendance/Inline/Form', {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(function (response) {
+                if (!response.ok) throw new Error('Could not load attendance form.');
+                return response.text();
+            })
+            .then(function (html) {
+                document.body.insertAdjacentHTML('beforeend', html);
+                return document.getElementById('recordAttendanceModal');
+            })
+            .finally(function () {
+                modalLoadPromise = null;
+            });
+
+        return modalLoadPromise;
     }
 
-    fetch('/Attendance/Inline/Form', {
-        method: 'GET',
-        credentials: 'same-origin',
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    })
-        .then(function (response) {
-            if (!response.ok) throw new Error('Could not load attendance form.');
-            return response.text();
-        })
-        .then(function (html) {
-            if (document.getElementById('record-attendance-card')) return;
+    function openAttendanceModal(fallbackUrl) {
+        ensureAttendanceModal()
+            .then(function (modalElement) {
+                if (!modalElement || typeof bootstrap === 'undefined' || !bootstrap.Modal) {
+                    window.location.href = fallbackUrl;
+                    return;
+                }
 
-            recordsCard.insertAdjacentHTML('afterend', html);
+                var modal = bootstrap.Modal.getOrCreateInstance(modalElement, {
+                    backdrop: true,
+                    keyboard: true,
+                    focus: true
+                });
 
-            if (window.location.hash === '#record-attendance-card') {
-                window.setTimeout(function () {
-                    var card = document.getElementById('record-attendance-card');
-                    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }, 60);
-            }
-        })
-        .catch(function () {
-            if (recordLink) {
-                recordLink.setAttribute('href', '/Attendance/Create');
-            }
+                modalElement.addEventListener('shown.bs.modal', function focusFirstAttendanceField() {
+                    modalElement.removeEventListener('shown.bs.modal', focusFirstAttendanceField);
+                    var firstField = modalElement.querySelector('select, input:not([type="hidden"])');
+                    if (firstField) firstField.focus();
+                });
+
+                modal.show();
+            })
+            .catch(function () {
+                window.location.href = fallbackUrl;
+            });
+    }
+
+    document.querySelectorAll('a').forEach(function (link) {
+        var rawHref = link.getAttribute('href');
+        if (!rawHref) return;
+
+        var linkUrl;
+        try {
+            linkUrl = new URL(rawHref, window.location.origin);
+        } catch (_) {
+            return;
+        }
+
+        if (linkUrl.pathname.replace(/\/+$/, '').toLowerCase() !== '/attendance/create') return;
+
+        link.addEventListener('click', function (event) {
+            if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+            event.preventDefault();
+            openAttendanceModal(link.href);
         });
+    });
+
+    if (window.location.hash.toLowerCase() === '#record-attendance-modal') {
+        openAttendanceModal('/Attendance/Create');
+    }
 });
 
 /* PUBLIC PORTAL - ABOUT HERO SLIDESHOW */
