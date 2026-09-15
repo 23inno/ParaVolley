@@ -22,7 +22,7 @@ public sealed class LiveAttendanceEventPickerController : ControllerBase
     public async Task<IActionResult> Index(
         CancellationToken cancellationToken = default)
     {
-        var events = await _context.Events
+        var rows = await _context.Events
             .AsNoTracking()
             .Where(eventItem => eventItem.Status != EventStatus.Cancelled)
             .OrderByDescending(eventItem => eventItem.Date)
@@ -30,12 +30,20 @@ public sealed class LiveAttendanceEventPickerController : ControllerBase
             .Take(500)
             .Select(eventItem => new
             {
-                id = eventItem.Id,
-                title = eventItem.Title,
-                date = eventItem.Date.ToString("yyyy-MM-dd"),
-                type = eventItem.Type.ToString()
+                eventItem.Id,
+                eventItem.Title,
+                eventItem.Date,
+                eventItem.Type
             })
             .ToListAsync(cancellationToken);
+
+        var events = rows.Select(eventItem => new
+        {
+            id = eventItem.Id,
+            title = eventItem.Title,
+            date = eventItem.Date.ToString("yyyy-MM-dd"),
+            type = eventItem.Type.ToString()
+        });
 
         return Ok(events);
     }
