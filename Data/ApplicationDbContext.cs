@@ -21,6 +21,8 @@ namespace SportsManagementMVC.Data
             Set<EventRegistration>();
         public DbSet<QrAttendanceSession> QrAttendanceSessions =>
             Set<QrAttendanceSession>();
+        public DbSet<QrAttendanceAttempt> QrAttendanceAttempts =>
+            Set<QrAttendanceAttempt>();
         public DbSet<Sponsor> Sponsors => Set<Sponsor>();
         public DbSet<Report> Reports => Set<Report>();
         public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
@@ -36,9 +38,10 @@ namespace SportsManagementMVC.Data
         public DbSet<Subscriber> Subscribers => Set<Subscriber>();
         public DbSet<AppUser> AppUsers => Set<AppUser>();
         public DbSet<ContactMessage> ContactMessages =>
-    Set<ContactMessage>();
-        public DbSet<PlayerRegistrationApplication> PlayerRegistrationApplications
-    => Set<PlayerRegistrationApplication>();
+            Set<ContactMessage>();
+        public DbSet<PlayerRegistrationApplication> PlayerRegistrationApplications =>
+            Set<PlayerRegistrationApplication>();
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -119,6 +122,10 @@ namespace SportsManagementMVC.Data
                 })
                 .IsUnique();
 
+            modelBuilder.Entity<Attendance>()
+                .Property(attendance => attendance.CheckedInAtUtc)
+                .HasColumnType("timestamp with time zone");
+
             modelBuilder.Entity<QrAttendanceSession>()
                 .HasIndex(session => session.TokenHash)
                 .IsUnique();
@@ -141,6 +148,17 @@ namespace SportsManagementMVC.Data
 
             modelBuilder.Entity<QrAttendanceSession>()
                 .Property(session => session.ExpiresAtUtc)
+                .HasColumnType("timestamp with time zone");
+
+            modelBuilder.Entity<QrAttendanceAttempt>()
+                .HasIndex(attempt => new
+                {
+                    attempt.EventId,
+                    attempt.AttemptedAtUtc
+                });
+
+            modelBuilder.Entity<QrAttendanceAttempt>()
+                .Property(attempt => attempt.AttemptedAtUtc)
                 .HasColumnType("timestamp with time zone");
 
             modelBuilder.Entity<Announcement>()
@@ -180,12 +198,12 @@ namespace SportsManagementMVC.Data
                 .HasColumnType("timestamp without time zone");
 
             modelBuilder.Entity<ContactMessage>()
-    .Property(message => message.SubmittedAtUtc)
-    .HasColumnType("timestamp with time zone");
+                .Property(message => message.SubmittedAtUtc)
+                .HasColumnType("timestamp with time zone");
 
             modelBuilder.Entity<PlayerRegistrationApplication>()
-    .Property(x => x.SubmittedAtUtc)
-    .HasColumnType("timestamp with time zone");
+                .Property(x => x.SubmittedAtUtc)
+                .HasColumnType("timestamp with time zone");
         }
     }
 }
