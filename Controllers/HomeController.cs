@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using SportsManagementMVC.Data;
 using SportsManagementMVC.Models;
 using SportsManagementMVC.Security;
+using SportsManagementMVC.Services;
 
 namespace SportsManagementMVC.Controllers
 {
@@ -13,13 +14,19 @@ namespace SportsManagementMVC.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly EmailService _emailService;
+        private readonly StaffNotificationService _staffNotifications;
+        private readonly ILogger<HomeController> _logger;
 
         public HomeController(
             ApplicationDbContext context,
-            EmailService emailService)
+            EmailService emailService,
+            StaffNotificationService staffNotifications,
+            ILogger<HomeController> logger)
         {
             _context = context;
             _emailService = emailService;
+            _staffNotifications = staffNotifications;
+            _logger = logger;
         }
 
         [AllowAnonymous]
@@ -206,6 +213,10 @@ namespace SportsManagementMVC.Controllers
             _context.PlayerRegistrationApplications.Add(input);
 
             await _context.SaveChangesAsync(cancellationToken);
+
+            await NotifyNewPlayerApplicationAsync(
+                input,
+                cancellationToken);
 
             TempData["RegistrationSuccess"] =
                 "Thank you. Your player application has been submitted successfully. " +
@@ -541,6 +552,68 @@ namespace SportsManagementMVC.Controllers
 
             Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
             return View(settings);
+        }
+
+        private async Task NotifyNewPlayerApplicationAsync(
+            PlayerRegistrationApplication application,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var subject = $"New player application: {application.FullName}";
+                var location = string.Join(
+                    ", ",
+                    new[] { application.Town, application.Province }
+                        .Where(value => !string.IsNullOrWhiteSpace(value)));
+
+                var textBody =
+                    $"A new ParaVolley player application was received from {application.FullName}. " +
+                    $"Email: {application.Email}. Phone: {application.Phone}. " +
+                    $"Location: {(string.IsNullOrWhiteSpace(location) ? "Not provided" : location)}. " +
+                    "Open Player Applications in the Admin website to review it.";
+
+                var safeName = WebUtility.HtmlEncode(application.FullName);
+                var safeEmail = WebUtility.HtmlEncode(application.Email);
+                var safePhone = WebUtility.HtmlEncode(application.Phone ?? "Not provided");
+                var safeLocation = WebUtility.HtmlEncode(
+                    string.IsNullOrWhiteSpace(location)
+                        ? "Not provided"
+                        : location);
+
+                var htmlBody = $"""
+                    <p>A new ParaVolley Mpumalanga player application has been received.</p>
+                    <p><strong>Name:</strong> {safeName}</p>
+                    <p><strong>Email:</strong> {safeEmail}</p>
+                    <p><strong>Phone:</strong> {safePhone}</p>
+                    <p><strong>Location:</strong> {safeLocation}</p>
+                    <p>Open <strong>Player Applications</strong> in the Admin website to review the application.</p>
+                    """;
+
+                var results = await _staffNotifications.SendAsync(
+                    "new_player",
+                    subject,
+                    textBody,
+                    htmlBody,
+                    includeCoaches: false,
+                    cancellationToken);
+
+                foreach (var result in results.Where(item => !item.Success))
+                {
+                    _logger.LogWarning(
+                        "New player application {ApplicationId} notification reported: {Message}",
+                        application.Id,
+                        result.Message);
+                }
+            }
+            catch (Exception exception)
+            {
+                // A valid public registration must remain successful even if a
+                // configured staff notification provider fails.
+                _logger.LogWarning(
+                    exception,
+                    "Player application {ApplicationId} was saved, but staff notification delivery failed.",
+                    application.Id);
+            }
         }
 
         [AllowAnonymous]
