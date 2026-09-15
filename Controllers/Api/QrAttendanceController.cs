@@ -71,7 +71,15 @@ namespace SportsManagementMVC.Controllers.Api
             var rawToken = Convert.ToHexString(rawTokenBytes);
             var tokenHash = HashToken(rawToken);
             var createdAtUtc = DateTime.UtcNow;
-            var expiresAtUtc = createdAtUtc.AddMinutes(15);
+
+            // ParaVolley operates in South Africa (SAST, UTC+2).
+            // A generated QR session remains valid until midnight at the
+            // end of the South African calendar day on which it was created.
+            var createdAtSast = createdAtUtc.AddHours(2);
+            var startOfNextSastDay = createdAtSast.Date.AddDays(1);
+            var expiresAtUtc = DateTime.SpecifyKind(
+                startOfNextSastDay.AddHours(-2),
+                DateTimeKind.Utc);
 
             var session = new QrAttendanceSession
             {
