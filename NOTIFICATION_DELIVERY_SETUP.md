@@ -94,6 +94,14 @@ PARAVOLLEY_FIREBASE_SENDER_ID=YOUR_FIREBASE_SENDER_ID
 
 When all four are present, logged-in Player accounts automatically subscribe to the FCM topic `players`. Logging out unsubscribes the device.
 
+## Scheduled event reminders
+
+The web application runs an event-reminder background service every 15 minutes. Upcoming events are eligible for one reminder when they enter the 24-hour window before their scheduled South African date/time.
+
+Delivery follows the `event_reminders` Email/SMS/Push switches in **Settings -> Notifications**. A persistent `EventReminderDispatches` ledger prevents the same event schedule from being sent repeatedly. If an event is rescheduled to a different date/time, the new schedule can receive a new reminder.
+
+The dispatch ledger is created by the `AddEventReminderDispatches` EF Core migration when the application starts and runs `Database.Migrate()`.
+
 ## Railway production configuration
 
 Add the same web keys as Railway Variables. Keep Auto Deploy behavior unchanged. Never place secret values in `appsettings.json` or source control.
@@ -116,3 +124,4 @@ After the providers are configured:
 4. For SMS, test with a real recipient number in international format such as `+27...`.
 5. For push testing, install/run the Android debug app with the Firebase Gradle properties present and sign in as an approved Player.
 6. Enable/disable event-channel preferences from the table and confirm the values persist after refresh.
+7. To test scheduled reminders safely, set **Event Reminders** to Push only, create an Upcoming event whose scheduled date/time is within the next 24 hours, and keep the app running for at least 30 seconds. The reminder scheduler performs its first check shortly after startup and then every 15 minutes.
