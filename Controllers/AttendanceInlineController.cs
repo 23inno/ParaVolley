@@ -51,7 +51,7 @@ public sealed class AttendanceInlineController : Controller
             TempData["Error"] =
                 "Please select a player, event, date and attendance status.";
 
-            return Redirect("/Attendance#record-attendance-card");
+            return Redirect("/Attendance");
         }
 
         var playerExists = await _context.Players
@@ -71,7 +71,7 @@ public sealed class AttendanceInlineController : Controller
             TempData["Error"] =
                 "The selected player or event could not be found.";
 
-            return Redirect("/Attendance#record-attendance-card");
+            return Redirect("/Attendance");
         }
 
         var before = await _attendanceNotifications.GetSnapshotAsync(
@@ -92,7 +92,7 @@ public sealed class AttendanceInlineController : Controller
             TempData["Error"] =
                 "Attendance has already been recorded for this player and event.";
 
-            return Redirect("/Attendance#record-attendance-card");
+            return Redirect("/Attendance");
         }
 
         await _attendanceNotifications.NotifyIfCrossedBelowAsync(
@@ -103,7 +103,7 @@ public sealed class AttendanceInlineController : Controller
         TempData["Success"] =
             "Attendance record was added successfully.";
 
-        return Redirect("/Attendance#record-attendance-card");
+        return Redirect("/Attendance");
     }
 
     private async Task PopulateDropdownsAsync(
