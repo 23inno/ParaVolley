@@ -94,6 +94,21 @@ PARAVOLLEY_FIREBASE_SENDER_ID=YOUR_FIREBASE_SENDER_ID
 
 When all four are present, logged-in Player accounts automatically subscribe to the FCM topic `players`. Logging out unsubscribes the device.
 
+## Notification recipients and triggers
+
+Player-facing events use the configured Email/SMS/Push switches and the Firebase `players` topic where Push is enabled:
+
+- `announcement` — sent when an Admin publishes a new announcement.
+- `match_results` — sent when a completed score is first recorded, or when the score of an already-completed match changes.
+- `event_reminders` — sent once when an Upcoming event enters the 24-hour reminder window.
+
+Staff-only events use Email/SMS, not Android player push:
+
+- `new_player` — sent to Admin recipients when a public website player application or Android player registration is submitted. Sensitive disability/medical details are deliberately excluded from notification content.
+- `low_attendance` — sent to Admin/Coach recipients when a player's active-season attendance rate crosses from at/above the configured minimum to below it. Remaining below the threshold does not repeatedly resend the same alert; if the player's rate recovers and later drops below again, a new alert can be sent.
+
+Staff email recipients are drawn from active Admin/Coach application accounts, the Admin profile, organisation contact settings, and active/available coach records as appropriate. Staff SMS recipients use the configured Admin/organisation/coach phone records as appropriate.
+
 ## Scheduled event reminders
 
 The web application runs an event-reminder background service every 15 minutes. Upcoming events are eligible for one reminder when they enter the 24-hour window before their scheduled South African date/time.
@@ -125,3 +140,5 @@ After the providers are configured:
 5. For push testing, install/run the Android debug app with the Firebase Gradle properties present and sign in as an approved Player.
 6. Enable/disable event-channel preferences from the table and confirm the values persist after refresh.
 7. To test scheduled reminders safely, set **Event Reminders** to Push only, create an Upcoming event whose scheduled date/time is within the next 24 hours, and keep the app running for at least 30 seconds. The reminder scheduler performs its first check shortly after startup and then every 15 minutes.
+8. To test **New Player Registration**, turn Email on and SMS off, then submit a unique registration through `/Join` or the Android registration screen and confirm an Admin recipient receives the alert.
+9. To test **Low Attendance Alert**, turn Email on and SMS off, choose a test player whose current active-season attendance is at/above the configured minimum, then record an absence that moves the calculated rate below the minimum. One staff alert should be sent. Additional absences while the player remains below the minimum should not send duplicates.
