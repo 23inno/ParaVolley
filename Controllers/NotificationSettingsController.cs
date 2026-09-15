@@ -107,7 +107,21 @@ public sealed class NotificationSettingsController : Controller
             return NotFound();
         }
 
-        switch ((channel ?? string.Empty).Trim().ToLowerInvariant())
+        var normalizedChannel =
+            (channel ?? string.Empty).Trim().ToLowerInvariant();
+
+        var staffOnlyEvent =
+            preference.EventKey == "new_player" ||
+            preference.EventKey == "low_attendance";
+
+        if (staffOnlyEvent && normalizedChannel == "push")
+        {
+            TempData["Error"] =
+                "Android push is player-only. New-player and low-attendance alerts are delivered to staff by Email/SMS.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        switch (normalizedChannel)
         {
             case "email":
                 preference.EmailEnabled = !preference.EmailEnabled;
