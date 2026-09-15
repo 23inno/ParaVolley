@@ -78,6 +78,8 @@ builder.Services.AddHealthChecks()
 
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<NotificationDeliveryService>();
+builder.Services.AddScoped<StaffNotificationService>();
+builder.Services.AddScoped<AttendanceNotificationService>();
 builder.Services.AddScoped<RealCalendarImportService>();
 builder.Services.AddScoped<BackupService>();
 builder.Services.AddHostedService<BackupSchedulerService>();
