@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 using SportsManagementMVC.Data;
 using SportsManagementMVC.Dtos;
 using SportsManagementMVC.Infrastructure;
@@ -152,7 +151,11 @@ namespace SportsManagementMVC.Controllers.Api
                 PlayerId = request.PlayerId,
                 EventId = request.EventId,
                 Date = eventItem.Date.Date,
-                Status = attendanceStatus
+                Status = attendanceStatus,
+                CheckedInAtUtc = attendanceStatus == AttendanceStatus.Present
+                    ? DateTime.UtcNow
+                    : null,
+                EntryMethod = AttendanceEntryMethod.Manual
             };
 
             _db.Attendances.Add(attendanceRecord);
@@ -210,6 +213,8 @@ namespace SportsManagementMVC.Controllers.Api
                 EventLocation =
                     attendance.Event?.Location ?? string.Empty,
                 AttendanceDate = attendance.Date,
+                CheckedInAtUtc = attendance.CheckedInAtUtc,
+                EntryMethod = attendance.EntryMethod.ToString(),
                 Status = attendance.Status.ToString()
             };
         }
