@@ -35,6 +35,84 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
+/* ATTENDANCE - INLINE RECORD FORM */
+document.addEventListener('DOMContentLoaded', function () {
+    var path = window.location.pathname.replace(/\/+$/, '').toLowerCase();
+    if (path !== '/attendance' && path !== '/attendance/index') return;
+
+    var recordsCard = Array.from(document.querySelectorAll('.pv-card')).find(function (card) {
+        var heading = card.querySelector('h5');
+        return heading && heading.textContent.trim() === 'Attendance Records';
+    });
+
+    if (!recordsCard) return;
+
+    var iconBox = recordsCard.querySelector('.icon-box');
+    if (iconBox) {
+        iconBox.style.width = '48px';
+        iconBox.style.height = '48px';
+        iconBox.style.borderRadius = '.75rem';
+        iconBox.style.display = 'flex';
+        iconBox.style.alignItems = 'center';
+        iconBox.style.justifyContent = 'center';
+        iconBox.style.flexShrink = '0';
+        iconBox.style.color = '#fff';
+        iconBox.style.fontSize = '1.3rem';
+
+        var icon = iconBox.querySelector('i');
+        if (icon) {
+            icon.className = 'bi bi-clipboard-check-fill';
+            icon.style.color = '#fff';
+            icon.style.fontSize = '1.3rem';
+            icon.style.lineHeight = '1';
+        }
+    }
+
+    var recordLink = Array.from(recordsCard.querySelectorAll('a')).find(function (link) {
+        return link.textContent.trim().includes('Record Attendance');
+    });
+
+    if (recordLink) {
+        recordLink.setAttribute('href', '#record-attendance-card');
+        recordLink.addEventListener('click', function (event) {
+            event.preventDefault();
+            var card = document.getElementById('record-attendance-card');
+            if (card) {
+                card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                var firstField = card.querySelector('select, input');
+                if (firstField) firstField.focus({ preventScroll: true });
+            }
+        });
+    }
+
+    fetch('/Attendance/Inline/Form', {
+        method: 'GET',
+        credentials: 'same-origin',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+        .then(function (response) {
+            if (!response.ok) throw new Error('Could not load attendance form.');
+            return response.text();
+        })
+        .then(function (html) {
+            if (document.getElementById('record-attendance-card')) return;
+
+            recordsCard.insertAdjacentHTML('afterend', html);
+
+            if (window.location.hash === '#record-attendance-card') {
+                window.setTimeout(function () {
+                    var card = document.getElementById('record-attendance-card');
+                    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 60);
+            }
+        })
+        .catch(function () {
+            if (recordLink) {
+                recordLink.setAttribute('href', '/Attendance/Create');
+            }
+        });
+});
+
 /* PUBLIC PORTAL - ABOUT HERO SLIDESHOW */
 document.addEventListener('DOMContentLoaded', function () {
     const slider = document.querySelector('.about-hero-slider');
