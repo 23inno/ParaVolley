@@ -1,12 +1,17 @@
 @model IEnumerable<Attendance>
 @{
     ViewData["Title"] = "Attendance Records";
+    var isAdmin = User.IsInRole("Admin");
+    var groupedRecords = Model
+        .GroupBy(item => item.Date.Date)
+        .OrderByDescending(group => group.Key)
+        .ToList();
 }
 
 <div class="topbar">
     <div>
         <h2 class="page-title">Attendance Records</h2>
-        <p class="text-muted mb-0">Individual player check-ins by event.</p>
+        <p class="text-muted mb-0">Individual player check-ins grouped by date. QR check-ins appear automatically.</p>
     </div>
     <div class="d-flex gap-2">
         <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back to Attendance</a>
@@ -31,20 +36,41 @@
 }
 
 <div class="pv-card mb-3">
-    <form method="get" class="row g-2 align-items-end">
-        <div class="col-md-8">
-            <label class="form-label small">Filter by Event</label>
-            @Html.DropDownList("eventId", (SelectList)ViewBag.Events, "All Events", new { @class = "form-select" })
+    <div class="row g-3 align-items-end">
+        <div class="col-md-6">
+            <label for="attendanceRecordSearch" class="form-label small fw-semibold">Find player or event</label>
+            <div class="input-group">
+                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                <input id="attendanceRecordSearch"
+                       type="search"
+                       class="form-control"
+                       placeholder="Type a player name or event..."
+                       autocomplete="off" />
+            </div>
+        </div>
+        <div class="col-md-4">
+            <label for="attendanceEventFilter" class="form-label small fw-semibold">Filter by event</label>
+            @Html.DropDownList(
+                "eventId",
+                (SelectList)ViewBag.Events,
+                "All Events",
+                new { @class = "form-select", id = "attendanceEventFilter" })
         </div>
         <div class="col-md-2">
-            <button type="submit" class="btn btn-outline-secondary w-100"><i class="bi bi-filter"></i> Filter</button>
+            <button type="button" id="clearAttendanceFilters" class="btn btn-outline-secondary w-100">
+                <i class="bi bi-x-circle me-1"></i> Clear
+            </button>
         </div>
-    </form>
+    </div>
+    <div class="small text-muted mt-2">
+        <i class="bi bi-arrow-repeat me-1"></i>
+        This list refreshes automatically every 5 seconds while the page is open.
+    </div>
 </div>
 
 <div class="pv-card">
     <div class="table-responsive">
-        <table class="table pv-table align-middle">
+        <table class="table pv-table align-middle mb-0">
             <thead>
                 <tr>
                     <th>Player</th>
@@ -54,29 +80,198 @@
                     <th class="text-end">Actions</th>
                 </tr>
             </thead>
-            <tbody>
-                @foreach (var a in Model)
+            <tbody id="attendanceRecordsBody" data-admin="@(isAdmin ? "true" : "false")">
+                @foreach (var group in groupedRecords)
                 {
-                    <tr>
-                        <td>@a.Player?.Name</td>
-                        <td>@a.Event?.Title</td>
-                        <td>@a.Date.ToString("MMM d, yyyy")</td>
-                        <td>
-                            <span class="badge @(a.Status == AttendanceStatus.Present ? "badge-active" : "badge-cancelled")">@a.Status</span>
-                        </td>
-                        <td class="text-end">
-                            <a asp-action="Edit" asp-route-id="@a.Id" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
-                            @if (User.IsInRole("Admin")) { <a asp-action="Delete" asp-route-id="@a.Id" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></a> }
+                    <tr class="table-light attendance-date-group">
+                        <td colspan="5" class="fw-semibold text-dark py-2">
+                            <i class="bi bi-calendar3 me-2 text-success"></i>@group.Key.ToString("dddd, dd MMMM yyyy")
                         </td>
                     </tr>
+
+                    @foreach (var attendance in group.OrderBy(item => item.Player?.Name).ThenByDescending(item => item.Id))
+                    {
+                        <tr>
+                            <td class="fw-semibold">@attendance.Player?.Name</td>
+                            <td>@attendance.Event?.Title</td>
+                            <td>@attendance.Date.ToString("dd MMM yyyy")</td>
+                            <td>
+                                <span class="badge @(attendance.Status == AttendanceStatus.Present ? "badge-active" : "badge-cancelled")">
+                                    @attendance.Status
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <a asp-action="Edit" asp-route-id="@attendance.Id" class="btn btn-sm btn-outline-secondary" title="Edit attendance">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                @if (isAdmin)
+                                {
+                                    <a asp-action="Delete" asp-route-id="@attendance.Id" class="btn btn-sm btn-outline-danger" title="Delete attendance">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                }
+                            </td>
+                        </tr>
+                    }
                 }
+
                 @if (!Model.Any())
                 {
-                    <tr><td colspan="5" class="text-center text-muted py-4">No attendance records found.</td></tr>
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">No attendance records found.</td>
+                    </tr>
                 }
             </tbody>
         </table>
     </div>
 </div>
 
-<partial name="_Pagination" />
+@section Scripts {
+    <script>
+        (function () {
+            var body = document.getElementById('attendanceRecordsBody');
+            var searchInput = document.getElementById('attendanceRecordSearch');
+            var eventFilter = document.getElementById('attendanceEventFilter');
+            var clearButton = document.getElementById('clearAttendanceFilters');
+            if (!body || !searchInput || !eventFilter) return;
+
+            var isAdmin = body.getAttribute('data-admin') === 'true';
+            var debounceTimer = null;
+            var requestInFlight = false;
+
+            function addTextCell(row, value, className) {
+                var cell = document.createElement('td');
+                cell.textContent = value || '';
+                if (className) cell.className = className;
+                row.appendChild(cell);
+                return cell;
+            }
+
+            function shortDate(isoDate) {
+                var parts = isoDate.split('-');
+                if (parts.length !== 3) return isoDate;
+                var date = new Date(isoDate + 'T00:00:00');
+                var month = date.toLocaleString('en-ZA', { month: 'short' });
+                return parts[2] + ' ' + month + ' ' + parts[0];
+            }
+
+            function render(records) {
+                body.innerHTML = '';
+
+                if (!records || records.length === 0) {
+                    var emptyRow = document.createElement('tr');
+                    var emptyCell = document.createElement('td');
+                    emptyCell.colSpan = 5;
+                    emptyCell.className = 'text-center text-muted py-4';
+                    emptyCell.textContent = 'No attendance records found.';
+                    emptyRow.appendChild(emptyCell);
+                    body.appendChild(emptyRow);
+                    return;
+                }
+
+                var currentDate = null;
+
+                records.forEach(function (record) {
+                    if (record.date !== currentDate) {
+                        currentDate = record.date;
+
+                        var groupRow = document.createElement('tr');
+                        groupRow.className = 'table-light attendance-date-group';
+                        var groupCell = document.createElement('td');
+                        groupCell.colSpan = 5;
+                        groupCell.className = 'fw-semibold text-dark py-2';
+
+                        var calendarIcon = document.createElement('i');
+                        calendarIcon.className = 'bi bi-calendar3 me-2 text-success';
+                        groupCell.appendChild(calendarIcon);
+                        groupCell.appendChild(document.createTextNode(record.dateLabel));
+                        groupRow.appendChild(groupCell);
+                        body.appendChild(groupRow);
+                    }
+
+                    var row = document.createElement('tr');
+                    addTextCell(row, record.playerName, 'fw-semibold');
+                    addTextCell(row, record.eventTitle);
+                    addTextCell(row, shortDate(record.date));
+
+                    var statusCell = document.createElement('td');
+                    var badge = document.createElement('span');
+                    badge.className = 'badge ' + (record.status === 'Present' ? 'badge-active' : 'badge-cancelled');
+                    badge.textContent = record.status;
+                    statusCell.appendChild(badge);
+                    row.appendChild(statusCell);
+
+                    var actions = document.createElement('td');
+                    actions.className = 'text-end';
+
+                    var edit = document.createElement('a');
+                    edit.href = '/Attendance/Edit/' + record.id;
+                    edit.className = 'btn btn-sm btn-outline-secondary';
+                    edit.title = 'Edit attendance';
+                    edit.innerHTML = '<i class="bi bi-pencil"></i>';
+                    actions.appendChild(edit);
+
+                    if (isAdmin) {
+                        actions.appendChild(document.createTextNode(' '));
+                        var remove = document.createElement('a');
+                        remove.href = '/Attendance/Delete/' + record.id;
+                        remove.className = 'btn btn-sm btn-outline-danger';
+                        remove.title = 'Delete attendance';
+                        remove.innerHTML = '<i class="bi bi-trash"></i>';
+                        actions.appendChild(remove);
+                    }
+
+                    row.appendChild(actions);
+                    body.appendChild(row);
+                });
+            }
+
+            function loadRecords() {
+                if (requestInFlight) return;
+                requestInFlight = true;
+
+                var params = new URLSearchParams();
+                var search = searchInput.value.trim();
+                var eventId = eventFilter.value;
+
+                if (search) params.set('search', search);
+                if (eventId) params.set('eventId', eventId);
+
+                fetch('/Attendance/Live/Records?' + params.toString(), {
+                    credentials: 'same-origin',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(function (response) {
+                        if (!response.ok) throw new Error('Could not load attendance records.');
+                        return response.json();
+                    })
+                    .then(render)
+                    .catch(function () {
+                        // Keep the most recently rendered records if a refresh fails.
+                    })
+                    .finally(function () {
+                        requestInFlight = false;
+                    });
+            }
+
+            searchInput.addEventListener('input', function () {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(loadRecords, 250);
+            });
+
+            eventFilter.addEventListener('change', loadRecords);
+
+            if (clearButton) {
+                clearButton.addEventListener('click', function () {
+                    searchInput.value = '';
+                    eventFilter.value = '';
+                    loadRecords();
+                    searchInput.focus();
+                });
+            }
+
+            loadRecords();
+            window.setInterval(loadRecords, 5000);
+        })();
+    </script>
+}
