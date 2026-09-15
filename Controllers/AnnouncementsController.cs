@@ -5,6 +5,7 @@ using SportsManagementMVC.Data;
 using SportsManagementMVC.Infrastructure;
 using SportsManagementMVC.Models;
 using SportsManagementMVC.Security;
+using SportsManagementMVC.Services;
 
 namespace SportsManagementMVC.Controllers
 {
@@ -12,11 +13,24 @@ namespace SportsManagementMVC.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly EmailService _emailService;
+        private readonly NotificationDeliveryService _notificationDelivery;
+        private readonly ILogger<AnnouncementsController> _logger;
 
-        public AnnouncementsController(ApplicationDbContext context, EmailService emailService)
+        public AnnouncementsController(
+            ApplicationDbContext context,
+            EmailService emailService,
+            IConfiguration configuration,
+            ILogger<NotificationDeliveryService> notificationLogger,
+            ILogger<AnnouncementsController> logger)
         {
             _context = context;
             _emailService = emailService;
+            _notificationDelivery = new NotificationDeliveryService(
+                context,
+                emailService,
+                configuration,
+                notificationLogger);
+            _logger = logger;
         }
 
         private bool IsAjaxRequest() => Request.Headers["X-Requested-With"] == "XMLHttpRequest";
@@ -240,9 +254,13 @@ namespace SportsManagementMVC.Controllers
                 await _context.SaveChangesAsync();
                 TempData["Success"] = $"Announcement \"{announcement.Title}\" was published.";
 
-                // Notify subscribers after the announcement has been saved.
-                // EmailService handles delivery failures without failing publication.
+                // Public newsletter subscriptions stay independent from the
+                // Admin notification-preference switches.
                 await NotifySubscribersAsync(announcement);
+
+                // Deliver the system-level announcement notification to active
+                // players according to Settings -> Notifications.
+                await NotifyPlayersAsync(announcement);
 
                 if (IsAjaxRequest())
                 {
@@ -272,6 +290,56 @@ namespace SportsManagementMVC.Controllers
             foreach (var sub in subscribers)
             {
                 await _emailService.SendAsync(sub.Email, subject, body);
+            }
+        }
+
+        private async Task NotifyPlayersAsync(Announcement announcement)
+        {
+            try
+            {
+                var category = announcement.Category
+                    .ToString()
+                    .ToLowerInvariant();
+
+                var subject = $"New announcement: {announcement.Title}";
+                var textBody =
+                    $"ParaVolley Mpumalanga published a new {category}: " +
+                    $"{announcement.Title}. {announcement.Excerpt}";
+
+                var encodedTitle =
+                    System.Net.WebUtility.HtmlEncode(announcement.Title);
+                var encodedExcerpt =
+                    System.Net.WebUtility.HtmlEncode(announcement.Excerpt);
+                var encodedCategory =
+                    System.Net.WebUtility.HtmlEncode(category);
+
+                var htmlBody = $@"
+                    <p>ParaVolley Mpumalanga published a new {encodedCategory}.</p>
+                    <h3>{encodedTitle}</h3>
+                    <p>{encodedExcerpt}</p>";
+
+                var results = await _notificationDelivery.SendToActivePlayersAsync(
+                    "announcement",
+                    subject,
+                    textBody,
+                    htmlBody);
+
+                foreach (var result in results.Where(result => !result.Success))
+                {
+                    _logger.LogWarning(
+                        "Announcement {AnnouncementId} notification delivery reported: {Message}",
+                        announcement.Id,
+                        result.Message);
+                }
+            }
+            catch (Exception exception)
+            {
+                // Publishing an announcement must remain successful even if a
+                // configured notification provider or downstream query fails.
+                _logger.LogWarning(
+                    exception,
+                    "Announcement {AnnouncementId} was published, but player notification delivery failed.",
+                    announcement.Id);
             }
         }
 
@@ -317,8 +385,8 @@ namespace SportsManagementMVC.Controllers
                 "<p>Thanks for subscribing!</p><p>You'll now receive an email every time we publish a new announcement, event, or news update.</p>");
 
             TempData["Success"] = sent
-    ? "Subscribed successfully. Check your inbox for a confirmation email."
-    : "Subscribed successfully.";
+                ? "Subscribed successfully. Check your inbox for a confirmation email."
+                : "Subscribed successfully.";
 
             return RedirectToAction(nameof(Index));
         }
