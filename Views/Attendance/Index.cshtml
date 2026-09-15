@@ -5,6 +5,28 @@
         || !string.IsNullOrWhiteSpace((string?)ViewBag.SelectedStatus);
 }
 
+<div class="pv-card mb-3">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="icon-box icon-box-green" style="width:48px;height:48px;">
+                <i class="bi bi-clipboard2-check-fill"></i>
+            </div>
+            <div>
+                <h5 class="mb-1">Attendance Records</h5>
+                <p class="text-muted mb-0">View individual player check-ins or record attendance for an event.</p>
+            </div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a asp-action="Records" class="btn btn-outline-secondary">
+                <i class="bi bi-list-check me-1"></i> View Records
+            </a>
+            <a asp-action="Create" class="btn btn-pv">
+                <i class="bi bi-plus-lg me-1"></i> Record Attendance
+            </a>
+        </div>
+    </div>
+</div>
+
 <div class="row g-3 mb-3">
     <div class="col-sm-6 col-lg-3">
         <div class="stat-card">
@@ -310,8 +332,8 @@
                 data: {
                     labels: d.map(x => x.label),
                     datasets: [
-                                { label: 'Present', data: d.map(x => x.actual), backgroundColor: '#0B6E4F', borderRadius: 4, maxBarThickness: 34 },
-        { label: 'Total', data: d.map(x => x.target), backgroundColor: '#FFC72C', borderRadius: 4, maxBarThickness: 34 }
+                        { label: 'Present', data: d.map(x => x.actual), backgroundColor: '#0B6E4F', borderRadius: 4, maxBarThickness: 34 },
+                        { label: 'Total', data: d.map(x => x.target), backgroundColor: '#FFC72C', borderRadius: 4, maxBarThickness: 34 }
                     ]
                 },
                 options: {
