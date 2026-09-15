@@ -98,7 +98,8 @@ public sealed class LiveAttendanceController : Controller
             .AsNoTracking()
             .Include(item => item.Player)
             .Where(item => item.EventId == eventId)
-            .OrderByDescending(item => item.CheckedInAtUtc)
+            .OrderByDescending(item => item.CheckedInAtUtc.HasValue)
+            .ThenByDescending(item => item.CheckedInAtUtc)
             .ThenByDescending(item => item.Id)
             .ToListAsync(cancellationToken);
 
