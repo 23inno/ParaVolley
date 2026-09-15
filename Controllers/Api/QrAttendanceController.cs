@@ -6,9 +6,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 using SportsManagementMVC.Data;
 using SportsManagementMVC.Dtos;
+using SportsManagementMVC.Infrastructure;
 using SportsManagementMVC.Models;
 using AttendanceEntity = SportsManagementMVC.Models.Attendance;
 
@@ -28,7 +28,6 @@ namespace SportsManagementMVC.Controllers.Api
             _db = db;
         }
 
-        // Admin/Coach creates a temporary QR attendance session.
         [HttpPost("events/{eventId:int}/sessions")]
         [Authorize(Roles = "Admin,Coach")]
         [EnableRateLimiting("sensitive")]
@@ -68,18 +67,11 @@ namespace SportsManagementMVC.Controllers.Api
                 });
             }
 
-            var rawTokenBytes =
-                RandomNumberGenerator.GetBytes(32);
-
-            var rawToken =
-                Convert.ToHexString(rawTokenBytes);
-
-            var tokenHash =
-                HashToken(rawToken);
-
+            var rawTokenBytes = RandomNumberGenerator.GetBytes(32);
+            var rawToken = Convert.ToHexString(rawTokenBytes);
+            var tokenHash = HashToken(rawToken);
             var createdAtUtc = DateTime.UtcNow;
-            var expiresAtUtc =
-                createdAtUtc.AddMinutes(15);
+            var expiresAtUtc = createdAtUtc.AddMinutes(15);
 
             var session = new QrAttendanceSession
             {
@@ -92,7 +84,6 @@ namespace SportsManagementMVC.Controllers.Api
             };
 
             _db.QrAttendanceSessions.Add(session);
-
             await _db.SaveChangesAsync();
 
             return StatusCode(
@@ -161,15 +152,13 @@ namespace SportsManagementMVC.Controllers.Api
             });
         }
 
-        // Player submits the token obtained from scanning the QR code.
         [HttpPost("check-in")]
         [Authorize(Roles = "Player")]
         [EnableRateLimiting("qr-check-in")]
         public async Task<ActionResult<AttendanceDto>>
             CheckIn(QrCheckInRequest request)
         {
-            var playerIdValue =
-                User.FindFirstValue("playerId");
+            var playerIdValue = User.FindFirstValue("playerId");
 
             if (!int.TryParse(playerIdValue, out var playerId))
             {
@@ -215,6 +204,12 @@ namespace SportsManagementMVC.Controllers.Api
 
             if (session.IsRevoked)
             {
+                await RecordAttemptAsync(
+                    session,
+                    playerId,
+                    "SessionEnded",
+                    "Scan rejected — attendance session has ended.");
+
                 return Conflict(new
                 {
                     message =
@@ -224,6 +219,12 @@ namespace SportsManagementMVC.Controllers.Api
 
             if (session.ExpiresAtUtc <= DateTime.UtcNow)
             {
+                await RecordAttemptAsync(
+                    session,
+                    playerId,
+                    "Expired",
+                    "Scan rejected — QR session expired.");
+
                 return Conflict(new
                 {
                     message =
@@ -250,6 +251,12 @@ namespace SportsManagementMVC.Controllers.Api
 
             if (!isRegistered)
             {
+                await RecordAttemptAsync(
+                    session,
+                    playerId,
+                    "NotRegistered",
+                    $"{player.Name} is not registered for this event.");
+
                 return Conflict(new
                 {
                     message =
@@ -265,6 +272,12 @@ namespace SportsManagementMVC.Controllers.Api
 
             if (attendanceExists)
             {
+                await RecordAttemptAsync(
+                    session,
+                    playerId,
+                    "Duplicate",
+                    $"Duplicate scan — {player.Name} is already checked in.");
+
                 return DuplicateAttendanceConflict();
             }
 
@@ -273,7 +286,9 @@ namespace SportsManagementMVC.Controllers.Api
                 PlayerId = playerId,
                 EventId = session.EventId,
                 Date = session.Event.Date.Date,
-                Status = AttendanceStatus.Present
+                Status = AttendanceStatus.Present,
+                CheckedInAtUtc = DateTime.UtcNow,
+                EntryMethod = AttendanceEntryMethod.Qr
             };
 
             _db.Attendances.Add(attendanceRecord);
@@ -287,6 +302,14 @@ namespace SportsManagementMVC.Controllers.Api
                     exception,
                     _db.Database))
             {
+                _db.Entry(attendanceRecord).State = EntityState.Detached;
+
+                await RecordAttemptAsync(
+                    session,
+                    playerId,
+                    "Duplicate",
+                    $"Duplicate scan — {player.Name} is already checked in.");
+
                 return DuplicateAttendanceConflict();
             }
 
@@ -303,8 +326,29 @@ namespace SportsManagementMVC.Controllers.Api
                     EventTime = session.Event.Time,
                     EventLocation = session.Event.Location,
                     AttendanceDate = attendanceRecord.Date,
+                    CheckedInAtUtc = attendanceRecord.CheckedInAtUtc,
+                    EntryMethod = attendanceRecord.EntryMethod.ToString(),
                     Status = attendanceRecord.Status.ToString()
                 });
+        }
+
+        private async Task RecordAttemptAsync(
+            QrAttendanceSession session,
+            int playerId,
+            string outcome,
+            string message)
+        {
+            _db.QrAttendanceAttempts.Add(new QrAttendanceAttempt
+            {
+                EventId = session.EventId,
+                QrAttendanceSessionId = session.Id,
+                PlayerId = playerId,
+                AttemptedAtUtc = DateTime.UtcNow,
+                Outcome = outcome,
+                Message = message
+            });
+
+            await _db.SaveChangesAsync();
         }
 
         private static string HashToken(string rawToken)
