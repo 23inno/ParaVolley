@@ -9,6 +9,14 @@ namespace SportsManagementMVC.Models
         Absent
     }
 
+    public enum AttendanceEntryMethod
+    {
+        Recorded,
+        Qr,
+        Manual,
+        SessionClose
+    }
+
     public class Attendance
     {
         public int Id { get; set; }
@@ -30,5 +38,12 @@ namespace SportsManagementMVC.Models
         public DateTime Date { get; set; } = DateTime.Today;
 
         public AttendanceStatus Status { get; set; } = AttendanceStatus.Present;
+
+        // Exact UTC time a player was marked present. Historical records and
+        // absent records may remain null.
+        public DateTime? CheckedInAtUtc { get; set; }
+
+        public AttendanceEntryMethod EntryMethod { get; set; } =
+            AttendanceEntryMethod.Recorded;
     }
 }
