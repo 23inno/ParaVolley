@@ -100,7 +100,7 @@ The web application runs an event-reminder background service every 15 minutes. 
 
 Delivery follows the `event_reminders` Email/SMS/Push switches in **Settings -> Notifications**. A persistent `EventReminderDispatches` ledger prevents the same event schedule from being sent repeatedly. If an event is rescheduled to a different date/time, the new schedule can receive a new reminder.
 
-The dispatch ledger is created by the `AddEventReminderDispatches` EF Core migration when the application starts and runs `Database.Migrate()`.
+The dispatch ledger is created by the `AddEventReminderDispatches` EF Core migration when the application starts and runs `Database.Migrate()`. The ledger is operational notification state and is intentionally not part of the application entity model.
 
 ## Railway production configuration
 
