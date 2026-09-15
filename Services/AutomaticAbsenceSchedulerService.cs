@@ -9,6 +9,7 @@ public sealed class AutomaticAbsenceSchedulerService : BackgroundService
 {
     private static readonly TimeSpan InitialDelay = TimeSpan.FromSeconds(20);
     private static readonly TimeSpan Interval = TimeSpan.FromMinutes(15);
+    private const int CatchUpDays = 7;
 
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<AutomaticAbsenceSchedulerService> _logger;
@@ -76,12 +77,14 @@ public sealed class AutomaticAbsenceSchedulerService : BackgroundService
         // finalized as Absent.
         var todaySast = DateTime.UtcNow.AddHours(2).Date;
         var yesterdaySast = todaySast.AddDays(-1);
+        var catchUpStart = todaySast.AddDays(-CatchUpDays);
 
         var candidates = await context.EventRegistrations
             .AsNoTracking()
             .Where(registration =>
                 registration.Status == EventRegistrationStatus.Registered &&
                 registration.Event.Status != EventStatus.Cancelled &&
+                registration.Event.Date >= catchUpStart &&
                 registration.Event.Date < todaySast &&
                 !context.Attendances.Any(attendance =>
                     attendance.PlayerId == registration.PlayerId &&
@@ -112,8 +115,8 @@ public sealed class AutomaticAbsenceSchedulerService : BackgroundService
             AttendanceThresholdSnapshot? before = null;
 
             // Only newly completed yesterday records participate in the live
-            // low-attendance alert workflow. Older historical backfill is kept
-            // silent so enabling this scheduler cannot generate an alert flood.
+            // low-attendance alert workflow. Catch-up records from earlier in
+            // the week are kept silent so a restart cannot generate an alert flood.
             if (candidate.EventDate.Date == yesterdaySast)
             {
                 before = await attendanceNotifications.GetSnapshotAsync(
