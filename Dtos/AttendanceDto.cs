@@ -20,6 +20,10 @@ namespace SportsManagementMVC.Dtos
 
         public DateTime AttendanceDate { get; set; }
 
+        public DateTime? CheckedInAtUtc { get; set; }
+
+        public string EntryMethod { get; set; } = string.Empty;
+
         public string Status { get; set; } = string.Empty;
     }
 }
