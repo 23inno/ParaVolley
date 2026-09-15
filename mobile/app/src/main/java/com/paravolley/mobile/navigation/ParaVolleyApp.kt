@@ -12,6 +12,7 @@ import com.paravolley.mobile.screens.LoginScreen
 import com.paravolley.mobile.screens.NotificationsScreen
 import com.paravolley.mobile.screens.ProfileScreen
 import com.paravolley.mobile.screens.RegisterPlayerScreen
+import com.paravolley.mobile.screens.ResultsScreen
 import com.paravolley.mobile.screens.ScannerScreen
 import com.paravolley.mobile.network.SessionEvents
 import com.paravolley.mobile.network.SessionManager
@@ -96,6 +97,12 @@ fun ParaVolleyApp() {
 
         composable(Routes.EVENTS) {
             EventsScreen(
+                onNavigate = navigateFromBottomBar
+            )
+        }
+
+        composable(Routes.RESULTS) {
+            ResultsScreen(
                 onNavigate = navigateFromBottomBar
             )
         }
