@@ -69,14 +69,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    var actions = Array.from(recordsCard.querySelectorAll('.d-flex')).find(function (element) {
-        return element.querySelector('a[href*="Attendance/Records"], a[href$="/Records"]') ||
-            element.querySelector('a[href*="Attendance/Create"], a[href$="/Create"]');
-    });
-
-    if (!actions) {
-        actions = recordsCard.querySelector('.d-flex.flex-wrap.gap-2');
-    }
+    var actions = recordsCard.querySelector('.d-flex.flex-wrap.gap-2');
 
     if (actions && !document.getElementById('liveAttendancePageButton')) {
         var liveButton = document.createElement('a');
