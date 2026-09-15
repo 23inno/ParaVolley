@@ -77,9 +77,11 @@ builder.Services.AddHealthChecks()
     .AddCheck<DatabaseHealthCheck>("database", tags: ["ready"]);
 
 builder.Services.AddScoped<EmailService>();
+builder.Services.AddScoped<NotificationDeliveryService>();
 builder.Services.AddScoped<RealCalendarImportService>();
 builder.Services.AddScoped<BackupService>();
 builder.Services.AddHostedService<BackupSchedulerService>();
+builder.Services.AddHostedService<EventReminderSchedulerService>();
 
 builder.Services.AddScoped<
     IPasswordHasher<AppUser>,
