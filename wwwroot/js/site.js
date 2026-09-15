@@ -35,234 +35,56 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
-/* ATTENDANCE - RECORD ATTENDANCE + LIVE CHECK-INS */
+/* ATTENDANCE DASHBOARD */
 document.addEventListener('DOMContentLoaded', function () {
     var path = window.location.pathname.replace(/\/+$/, '').toLowerCase();
-    if (!path.startsWith('/attendance')) return;
+    if (path !== '/attendance' && path !== '/attendance/index') return;
 
-    if (path === '/attendance' || path === '/attendance/index') {
-        var recordsCard = Array.from(document.querySelectorAll('.pv-card')).find(function (card) {
-            var heading = card.querySelector('h5');
-            return heading && heading.textContent.trim() === 'Attendance Records';
-        });
-
-        if (recordsCard) {
-            var iconBox = recordsCard.querySelector('.icon-box');
-            if (iconBox) {
-                iconBox.style.width = '48px';
-                iconBox.style.height = '48px';
-                iconBox.style.borderRadius = '.75rem';
-                iconBox.style.display = 'flex';
-                iconBox.style.alignItems = 'center';
-                iconBox.style.justifyContent = 'center';
-                iconBox.style.flexShrink = '0';
-                iconBox.style.backgroundColor = 'var(--pv-green)';
-                iconBox.style.color = '#fff';
-                iconBox.style.fontSize = '1.3rem';
-
-                var icon = iconBox.querySelector('i');
-                if (icon) {
-                    icon.className = 'bi bi-clipboard-check-fill';
-                    icon.style.color = '#fff';
-                    icon.style.fontSize = '1.3rem';
-                    icon.style.lineHeight = '1';
-                }
-            }
-
-            var liveCard = document.getElementById('liveAttendanceCard');
-            if (!liveCard) {
-                liveCard = document.createElement('div');
-                liveCard.id = 'liveAttendanceCard';
-                liveCard.className = 'pv-card mb-3';
-
-                var header = document.createElement('div');
-                header.className = 'd-flex flex-wrap justify-content-between align-items-center gap-2 mb-3';
-
-                var titleWrap = document.createElement('div');
-                var title = document.createElement('h5');
-                title.className = 'mb-1';
-                title.textContent = 'Live Attendance Check-ins';
-                var subtitle = document.createElement('p');
-                subtitle.className = 'text-muted small mb-0';
-                subtitle.textContent = 'Player QR submissions and other attendance changes appear here automatically.';
-                titleWrap.appendChild(title);
-                titleWrap.appendChild(subtitle);
-
-                var controls = document.createElement('div');
-                controls.className = 'd-flex align-items-center gap-2';
-                var liveBadge = document.createElement('span');
-                liveBadge.className = 'badge bg-success-subtle text-success border border-success-subtle';
-                liveBadge.innerHTML = '<i class="bi bi-broadcast-pin me-1"></i> Live';
-                var viewAll = document.createElement('a');
-                viewAll.href = '/Attendance/Records';
-                viewAll.className = 'btn btn-sm btn-outline-secondary';
-                viewAll.innerHTML = '<i class="bi bi-list-check me-1"></i> View all records';
-                controls.appendChild(liveBadge);
-                controls.appendChild(viewAll);
-
-                header.appendChild(titleWrap);
-                header.appendChild(controls);
-                liveCard.appendChild(header);
-
-                var tableWrap = document.createElement('div');
-                tableWrap.className = 'table-responsive';
-                var table = document.createElement('table');
-                table.className = 'table align-middle mb-0';
-                table.innerHTML = '<thead><tr><th>Player</th><th>Event</th><th>Date</th><th>Status</th></tr></thead><tbody id="liveAttendanceBody"><tr><td colspan="4" class="text-center text-muted py-3">Loading attendance...</td></tr></tbody>';
-                tableWrap.appendChild(table);
-                liveCard.appendChild(tableWrap);
-
-                recordsCard.insertAdjacentElement('afterend', liveCard);
-            }
-
-            var liveBody = document.getElementById('liveAttendanceBody');
-            var liveRequestInFlight = false;
-
-            function renderLiveAttendance(records) {
-                if (!liveBody) return;
-                liveBody.innerHTML = '';
-
-                if (!records || records.length === 0) {
-                    var emptyRow = document.createElement('tr');
-                    var emptyCell = document.createElement('td');
-                    emptyCell.colSpan = 4;
-                    emptyCell.className = 'text-center text-muted py-3';
-                    emptyCell.textContent = 'No attendance records yet.';
-                    emptyRow.appendChild(emptyCell);
-                    liveBody.appendChild(emptyRow);
-                    return;
-                }
-
-                records.forEach(function (record) {
-                    var row = document.createElement('tr');
-
-                    var playerCell = document.createElement('td');
-                    playerCell.className = 'fw-semibold';
-                    playerCell.textContent = record.playerName;
-                    row.appendChild(playerCell);
-
-                    var eventCell = document.createElement('td');
-                    eventCell.textContent = record.eventTitle;
-                    row.appendChild(eventCell);
-
-                    var dateCell = document.createElement('td');
-                    dateCell.className = 'text-muted';
-                    dateCell.textContent = record.dateLabel;
-                    row.appendChild(dateCell);
-
-                    var statusCell = document.createElement('td');
-                    var badge = document.createElement('span');
-                    badge.className = 'badge ' + (record.status === 'Present' ? 'badge-active' : 'badge-cancelled');
-                    badge.textContent = record.status;
-                    statusCell.appendChild(badge);
-                    row.appendChild(statusCell);
-
-                    liveBody.appendChild(row);
-                });
-            }
-
-            function refreshLiveAttendance() {
-                if (liveRequestInFlight) return;
-                liveRequestInFlight = true;
-
-                fetch('/Attendance/Live/Recent', {
-                    credentials: 'same-origin',
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                })
-                    .then(function (response) {
-                        if (!response.ok) throw new Error('Could not load live attendance.');
-                        return response.json();
-                    })
-                    .then(renderLiveAttendance)
-                    .catch(function () {
-                        // Keep the previous successful feed on a temporary failure.
-                    })
-                    .finally(function () {
-                        liveRequestInFlight = false;
-                    });
-            }
-
-            refreshLiveAttendance();
-            window.setInterval(refreshLiveAttendance, 5000);
-        }
-    }
-
-    var modalLoadPromise = null;
-
-    function ensureAttendanceModal() {
-        var existing = document.getElementById('recordAttendanceModal');
-        if (existing) return Promise.resolve(existing);
-        if (modalLoadPromise) return modalLoadPromise;
-
-        modalLoadPromise = fetch('/Attendance/Inline/Form', {
-            method: 'GET',
-            credentials: 'same-origin',
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        })
-            .then(function (response) {
-                if (!response.ok) throw new Error('Could not load attendance form.');
-                return response.text();
-            })
-            .then(function (html) {
-                document.body.insertAdjacentHTML('beforeend', html);
-                return document.getElementById('recordAttendanceModal');
-            })
-            .finally(function () {
-                modalLoadPromise = null;
-            });
-
-        return modalLoadPromise;
-    }
-
-    function openAttendanceModal(fallbackUrl) {
-        ensureAttendanceModal()
-            .then(function (modalElement) {
-                if (!modalElement || typeof bootstrap === 'undefined' || !bootstrap.Modal) {
-                    window.location.href = fallbackUrl;
-                    return;
-                }
-
-                var modal = bootstrap.Modal.getOrCreateInstance(modalElement, {
-                    backdrop: true,
-                    keyboard: true,
-                    focus: true
-                });
-
-                modalElement.addEventListener('shown.bs.modal', function focusFirstAttendanceField() {
-                    modalElement.removeEventListener('shown.bs.modal', focusFirstAttendanceField);
-                    var firstField = modalElement.querySelector('select, input:not([type="hidden"])');
-                    if (firstField) firstField.focus();
-                });
-
-                modal.show();
-            })
-            .catch(function () {
-                window.location.href = fallbackUrl;
-            });
-    }
-
-    document.querySelectorAll('a').forEach(function (link) {
-        var rawHref = link.getAttribute('href');
-        if (!rawHref) return;
-
-        var linkUrl;
-        try {
-            linkUrl = new URL(rawHref, window.location.origin);
-        } catch (_) {
-            return;
-        }
-
-        if (linkUrl.pathname.replace(/\/+$/, '').toLowerCase() !== '/attendance/create') return;
-
-        link.addEventListener('click', function (event) {
-            if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
-            event.preventDefault();
-            openAttendanceModal(link.href);
-        });
+    var recordsCard = Array.from(document.querySelectorAll('.pv-card')).find(function (card) {
+        var heading = card.querySelector('h5');
+        return heading && heading.textContent.trim() === 'Attendance Records';
     });
 
-    if (window.location.hash.toLowerCase() === '#record-attendance-modal') {
-        openAttendanceModal('/Attendance/Create');
+    if (!recordsCard) return;
+
+    var iconBox = recordsCard.querySelector('.icon-box');
+    if (iconBox) {
+        iconBox.style.width = '48px';
+        iconBox.style.height = '48px';
+        iconBox.style.borderRadius = '.75rem';
+        iconBox.style.display = 'flex';
+        iconBox.style.alignItems = 'center';
+        iconBox.style.justifyContent = 'center';
+        iconBox.style.flexShrink = '0';
+        iconBox.style.backgroundColor = 'var(--pv-green)';
+        iconBox.style.color = '#fff';
+        iconBox.style.fontSize = '1.3rem';
+
+        var icon = iconBox.querySelector('i');
+        if (icon) {
+            icon.className = 'bi bi-clipboard2-check-fill';
+            icon.style.color = '#fff';
+            icon.style.fontSize = '1.3rem';
+            icon.style.lineHeight = '1';
+        }
+    }
+
+    var actions = Array.from(recordsCard.querySelectorAll('.d-flex')).find(function (element) {
+        return element.querySelector('a[href*="Attendance/Records"], a[href$="/Records"]') ||
+            element.querySelector('a[href*="Attendance/Create"], a[href$="/Create"]');
+    });
+
+    if (!actions) {
+        actions = recordsCard.querySelector('.d-flex.flex-wrap.gap-2');
+    }
+
+    if (actions && !document.getElementById('liveAttendancePageButton')) {
+        var liveButton = document.createElement('a');
+        liveButton.id = 'liveAttendancePageButton';
+        liveButton.href = '/Attendance/Live';
+        liveButton.className = 'btn btn-pv';
+        liveButton.innerHTML = '<i class="bi bi-qr-code-scan me-1"></i> Live Attendance';
+        actions.appendChild(liveButton);
     }
 });
 
