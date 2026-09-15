@@ -8,6 +8,7 @@ using SportsManagementMVC.Data;
 using SportsManagementMVC.Dtos;
 using SportsManagementMVC.Infrastructure;
 using SportsManagementMVC.Models;
+using SportsManagementMVC.Services;
 using AttendanceEntity = SportsManagementMVC.Models.Attendance;
 
 namespace SportsManagementMVC.Controllers.Api
@@ -20,10 +21,14 @@ namespace SportsManagementMVC.Controllers.Api
     public class AttendanceController : ControllerBase
     {
         private readonly ApplicationDbContext _db;
+        private readonly AttendanceNotificationService _attendanceNotifications;
 
-        public AttendanceController(ApplicationDbContext db)
+        public AttendanceController(
+            ApplicationDbContext db,
+            AttendanceNotificationService attendanceNotifications)
         {
             _db = db;
+            _attendanceNotifications = attendanceNotifications;
         }
 
         [HttpGet("/api/player/attendance")]
@@ -71,7 +76,8 @@ namespace SportsManagementMVC.Controllers.Api
         [HttpPost]
         [Authorize(Roles = "Admin,Coach")]
         public async Task<ActionResult<AttendanceDto>> RecordAttendance(
-            RecordAttendanceRequest request)
+            RecordAttendanceRequest request,
+            CancellationToken cancellationToken = default)
         {
             if (!Enum.TryParse<AttendanceStatus>(
                     request.Status,
@@ -90,8 +96,9 @@ namespace SportsManagementMVC.Controllers.Api
 
             var player = await _db.Players
                 .AsNoTracking()
-                .FirstOrDefaultAsync(playerItem =>
-                    playerItem.Id == request.PlayerId);
+                .FirstOrDefaultAsync(
+                    playerItem => playerItem.Id == request.PlayerId,
+                    cancellationToken);
 
             if (player == null)
             {
@@ -103,8 +110,9 @@ namespace SportsManagementMVC.Controllers.Api
 
             var eventItem = await _db.Events
                 .AsNoTracking()
-                .FirstOrDefaultAsync(item =>
-                    item.Id == request.EventId);
+                .FirstOrDefaultAsync(
+                    item => item.Id == request.EventId,
+                    cancellationToken);
 
             if (eventItem == null)
             {
@@ -124,14 +132,20 @@ namespace SportsManagementMVC.Controllers.Api
             }
 
             var attendanceExists = await _db.Attendances
-                .AnyAsync(attendance =>
-                    attendance.PlayerId == request.PlayerId &&
-                    attendance.EventId == request.EventId);
+                .AnyAsync(
+                    attendance =>
+                        attendance.PlayerId == request.PlayerId &&
+                        attendance.EventId == request.EventId,
+                    cancellationToken);
 
             if (attendanceExists)
             {
                 return DuplicateAttendanceConflict();
             }
+
+            var before = await _attendanceNotifications.GetSnapshotAsync(
+                request.PlayerId,
+                cancellationToken);
 
             var attendanceRecord = new AttendanceEntity
             {
@@ -145,7 +159,7 @@ namespace SportsManagementMVC.Controllers.Api
 
             try
             {
-                await _db.SaveChangesAsync();
+                await _db.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateException exception)
                 when (DatabaseConflictClassifier.IsUniqueViolation(
@@ -154,6 +168,11 @@ namespace SportsManagementMVC.Controllers.Api
             {
                 return DuplicateAttendanceConflict();
             }
+
+            await _attendanceNotifications.NotifyIfCrossedBelowAsync(
+                request.PlayerId,
+                before,
+                cancellationToken);
 
             attendanceRecord.Player = player;
             attendanceRecord.Event = eventItem;
