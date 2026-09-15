@@ -115,6 +115,12 @@ object RetrofitClient {
         )
     }
 
+    val matchesApi: MatchesApi by lazy {
+        retrofit.create(
+            MatchesApi::class.java
+        )
+    }
+
     val qrAttendanceApi: QrAttendanceApi by lazy {
         retrofit.create(
             QrAttendanceApi::class.java
