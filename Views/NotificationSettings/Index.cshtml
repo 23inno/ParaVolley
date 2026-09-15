@@ -60,7 +60,7 @@
                 <h5>Notification Preferences</h5>
                 <p>
                     Enable or disable each delivery channel for each system event.
-                    Unconfigured channels stay unavailable until their provider is connected.
+                    New-player and low-attendance alerts are staff-only, so Android player push is not used for those two events.
                 </p>
             </div>
 
@@ -78,6 +78,10 @@
                         <tbody>
                             @foreach (var preference in Model.Preferences)
                             {
+                                var staffOnlyEvent =
+                                    preference.EventKey == "new_player" ||
+                                    preference.EventKey == "low_attendance";
+
                                 <tr>
                                     <td style="min-width: 280px;">
                                         <div class="fw-semibold">@preference.EventLabel</div>
@@ -118,7 +122,13 @@
                                         }
                                     </td>
                                     <td class="text-center">
-                                        @if (Model.Push.Configured)
+                                        @if (staffOnlyEvent)
+                                        {
+                                            <span class="badge bg-light text-secondary border" title="The Android app currently subscribes Player accounts only.">
+                                                Staff only
+                                            </span>
+                                        }
+                                        else if (Model.Push.Configured)
                                         {
                                             <form asp-controller="NotificationSettings" asp-action="UpdatePreference" method="post" class="d-inline">
                                                 @Html.AntiForgeryToken()
