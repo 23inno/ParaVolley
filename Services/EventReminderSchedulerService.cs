@@ -1,5 +1,7 @@
 using System.Globalization;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
+using NpgsqlTypes;
 using SportsManagementMVC.Data;
 using SportsManagementMVC.Models;
 
@@ -100,14 +102,20 @@ public sealed class EventReminderSchedulerService : BackgroundService
         var cutoff = now.Add(ReminderWindow);
         var staleClaimCutoff = now.Subtract(StaleClaimAge);
 
-        // A process may stop after claiming an event but before delivery finishes.
-        // Clear only stale, unfinished claims so they can be retried safely.
-        await context.Database.ExecuteSqlInterpolatedAsync(
-            $"""
+        // The ledger stores South African local wall-clock values in PostgreSQL
+        // timestamp-without-time-zone columns. Explicit Npgsql parameter types
+        // are required here because raw SQL otherwise infers timestamptz and
+        // rejects DateTime values whose Kind is Unspecified.
+        await context.Database.ExecuteSqlRawAsync(
+            """
             DELETE FROM "EventReminderDispatches"
             WHERE "SentAtSast" IS NULL
-              AND "ClaimedAtSast" < {staleClaimCutoff};
+              AND "ClaimedAtSast" < @staleClaimCutoff;
             """,
+            new object[]
+            {
+                TimestampParameter("staleClaimCutoff", staleClaimCutoff)
+            },
             cancellationToken);
 
         var events = await context.Events
@@ -136,14 +144,20 @@ public sealed class EventReminderSchedulerService : BackgroundService
                 continue;
             }
 
-            var claimed = await context.Database.ExecuteSqlInterpolatedAsync(
-                $"""
+            var claimed = await context.Database.ExecuteSqlRawAsync(
+                """
                 INSERT INTO "EventReminderDispatches"
                     ("EventId", "ScheduledForSast", "ClaimedAtSast", "SentAtSast")
                 VALUES
-                    ({ev.Id}, {scheduledFor}, {now}, NULL)
+                    (@eventId, @scheduledFor, @claimedAt, NULL)
                 ON CONFLICT ("EventId", "ScheduledForSast") DO NOTHING;
                 """,
+                new object[]
+                {
+                    IntParameter("eventId", ev.Id),
+                    TimestampParameter("scheduledFor", scheduledFor),
+                    TimestampParameter("claimedAt", now)
+                },
                 cancellationToken);
 
             if (claimed == 0)
@@ -187,13 +201,19 @@ public sealed class EventReminderSchedulerService : BackgroundService
                 {
                     var sentAt = BackupService.GetSastNow();
 
-                    await context.Database.ExecuteSqlInterpolatedAsync(
-                        $"""
+                    await context.Database.ExecuteSqlRawAsync(
+                        """
                         UPDATE "EventReminderDispatches"
-                        SET "SentAtSast" = {sentAt}
-                        WHERE "EventId" = {ev.Id}
-                          AND "ScheduledForSast" = {scheduledFor};
+                        SET "SentAtSast" = @sentAt
+                        WHERE "EventId" = @eventId
+                          AND "ScheduledForSast" = @scheduledFor;
                         """,
+                        new object[]
+                        {
+                            TimestampParameter("sentAt", sentAt),
+                            IntParameter("eventId", ev.Id),
+                            TimestampParameter("scheduledFor", scheduledFor)
+                        },
                         cancellationToken);
 
                     _logger.LogInformation(
@@ -240,14 +260,39 @@ public sealed class EventReminderSchedulerService : BackgroundService
         DateTime scheduledFor,
         CancellationToken cancellationToken)
     {
-        await context.Database.ExecuteSqlInterpolatedAsync(
-            $"""
+        await context.Database.ExecuteSqlRawAsync(
+            """
             DELETE FROM "EventReminderDispatches"
-            WHERE "EventId" = {eventId}
-              AND "ScheduledForSast" = {scheduledFor}
+            WHERE "EventId" = @eventId
+              AND "ScheduledForSast" = @scheduledFor
               AND "SentAtSast" IS NULL;
             """,
+            new object[]
+            {
+                IntParameter("eventId", eventId),
+                TimestampParameter("scheduledFor", scheduledFor)
+            },
             cancellationToken);
+    }
+
+    private static NpgsqlParameter TimestampParameter(
+        string name,
+        DateTime value)
+    {
+        return new NpgsqlParameter(name, NpgsqlDbType.Timestamp)
+        {
+            Value = DateTime.SpecifyKind(value, DateTimeKind.Unspecified)
+        };
+    }
+
+    private static NpgsqlParameter IntParameter(
+        string name,
+        int value)
+    {
+        return new NpgsqlParameter(name, NpgsqlDbType.Integer)
+        {
+            Value = value
+        };
     }
 
     private static bool TryGetScheduledForSast(
