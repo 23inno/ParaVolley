@@ -1,0 +1,436 @@
+@model AttendanceRecordsViewModel
+@{
+    ViewData["Title"] = "Attendance Records";
+
+    var selectedMonthName = Model.SelectedYear.HasValue && Model.SelectedMonth.HasValue
+        ? new DateTime(Model.SelectedYear.Value, Model.SelectedMonth.Value, 1).ToString("MMMM")
+        : string.Empty;
+
+    var presentCount = Model.Records.Count(record => record.Status == AttendanceStatus.Present);
+    var absentCount = Model.Records.Count(record => record.Status == AttendanceStatus.Absent);
+}
+
+<div class="topbar mb-3">
+    <div>
+        <h2 class="page-title mb-1">Attendance Records</h2>
+        <p class="text-muted mb-0">Browse attendance by year, month and specific date.</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a asp-controller="Attendance" asp-action="Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Back to Attendance
+        </a>
+        <a asp-controller="Attendance" asp-action="Index" asp-fragment="record-attendance-card" class="btn btn-pv">
+            <i class="bi bi-plus-lg me-1"></i> Record Attendance
+        </a>
+    </div>
+</div>
+
+<nav aria-label="Attendance record navigation" class="mb-3">
+    <ol class="breadcrumb attendance-breadcrumb mb-0">
+        <li class="breadcrumb-item">
+            <a asp-controller="AttendanceRecords" asp-action="Index">All Years</a>
+        </li>
+        @if (Model.SelectedYear.HasValue)
+        {
+            <li class="breadcrumb-item @(Model.SelectedMonth.HasValue ? string.Empty : "active")">
+                @if (Model.SelectedMonth.HasValue)
+                {
+                    <a asp-controller="AttendanceRecords" asp-action="Index" asp-route-year="@Model.SelectedYear">@Model.SelectedYear</a>
+                }
+                else
+                {
+                    @Model.SelectedYear
+                }
+            </li>
+        }
+        @if (Model.SelectedMonth.HasValue)
+        {
+            <li class="breadcrumb-item @(Model.SelectedDay.HasValue ? string.Empty : "active")">
+                @if (Model.SelectedDay.HasValue)
+                {
+                    <a asp-controller="AttendanceRecords"
+                       asp-action="Index"
+                       asp-route-year="@Model.SelectedYear"
+                       asp-route-month="@Model.SelectedMonth">@selectedMonthName</a>
+                }
+                else
+                {
+                    @selectedMonthName
+                }
+            </li>
+        }
+        @if (Model.SelectedDate.HasValue)
+        {
+            <li class="breadcrumb-item active" aria-current="page">
+                @Model.SelectedDate.Value.ToString("d MMMM yyyy")
+            </li>
+        }
+    </ol>
+</nav>
+
+@if (!Model.SelectedYear.HasValue)
+{
+    <div class="pv-card">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+            <div>
+                <h5 class="mb-1">Select a year</h5>
+                <p class="text-muted mb-0">Choose a year to see the months that contain attendance records.</p>
+            </div>
+            <span class="badge bg-light text-dark border">@Model.Years.Count year@(Model.Years.Count == 1 ? "" : "s")</span>
+        </div>
+
+        @if (Model.Years.Any())
+        {
+            <div class="row g-3">
+                @foreach (var year in Model.Years)
+                {
+                    <div class="col-12 col-sm-6 col-xl-4">
+                        <a asp-controller="AttendanceRecords"
+                           asp-action="Index"
+                           asp-route-year="@year.Value"
+                           class="attendance-archive-card text-decoration-none">
+                            <div class="attendance-archive-icon">
+                                <i class="bi bi-calendar3"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="attendance-archive-title">@year.Label</div>
+                                <div class="attendance-archive-meta">@year.RecordCount attendance record@(year.RecordCount == 1 ? "" : "s")</div>
+                            </div>
+                            <i class="bi bi-chevron-right attendance-archive-chevron"></i>
+                        </a>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="attendance-empty-state">
+                <i class="bi bi-calendar-x"></i>
+                <h6>No attendance records yet</h6>
+                <p class="mb-0">Record attendance first and it will appear here grouped by date.</p>
+            </div>
+        }
+    </div>
+}
+else if (!Model.SelectedMonth.HasValue)
+{
+    <div class="pv-card">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+            <div>
+                <h5 class="mb-1">@Model.SelectedYear</h5>
+                <p class="text-muted mb-0">Select a month to see the attendance dates for that month.</p>
+            </div>
+            <a asp-controller="AttendanceRecords" asp-action="Index" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> Years
+            </a>
+        </div>
+
+        @if (Model.Months.Any())
+        {
+            <div class="row g-3">
+                @foreach (var month in Model.Months)
+                {
+                    <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+                        <a asp-controller="AttendanceRecords"
+                           asp-action="Index"
+                           asp-route-year="@Model.SelectedYear"
+                           asp-route-month="@month.Value"
+                           class="attendance-archive-card text-decoration-none">
+                            <div class="attendance-archive-icon attendance-archive-icon-gold">
+                                <i class="bi bi-calendar-month"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="attendance-archive-title">@month.Label</div>
+                                <div class="attendance-archive-meta">@month.RecordCount record@(month.RecordCount == 1 ? "" : "s")</div>
+                            </div>
+                            <i class="bi bi-chevron-right attendance-archive-chevron"></i>
+                        </a>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="attendance-empty-state">
+                <i class="bi bi-calendar-x"></i>
+                <h6>No records found for @Model.SelectedYear</h6>
+            </div>
+        }
+    </div>
+}
+else if (!Model.SelectedDay.HasValue)
+{
+    <div class="pv-card">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+            <div>
+                <h5 class="mb-1">@selectedMonthName @Model.SelectedYear</h5>
+                <p class="text-muted mb-0">Select a date to see every attendance record captured on that day.</p>
+            </div>
+            <a asp-controller="AttendanceRecords"
+               asp-action="Index"
+               asp-route-year="@Model.SelectedYear"
+               class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> Months
+            </a>
+        </div>
+
+        @if (Model.Days.Any())
+        {
+            <div class="row g-3">
+                @foreach (var date in Model.Days)
+                {
+                    <div class="col-12 col-md-6 col-xl-4">
+                        <a asp-controller="AttendanceRecords"
+                           asp-action="Index"
+                           asp-route-year="@Model.SelectedYear"
+                           asp-route-month="@Model.SelectedMonth"
+                           asp-route-day="@date.Value"
+                           class="attendance-archive-card text-decoration-none">
+                            <div class="attendance-date-box">
+                                <span class="attendance-date-number">@date.Value</span>
+                                <span class="attendance-date-month">@selectedMonthName.Substring(0, 3)</span>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="attendance-archive-title">@date.Label</div>
+                                <div class="attendance-archive-meta">@date.RecordCount attendance record@(date.RecordCount == 1 ? "" : "s")</div>
+                            </div>
+                            <i class="bi bi-chevron-right attendance-archive-chevron"></i>
+                        </a>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="attendance-empty-state">
+                <i class="bi bi-calendar-x"></i>
+                <h6>No attendance dates found</h6>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="row g-3 mb-3">
+        <div class="col-sm-4">
+            <div class="stat-card h-100">
+                <div class="stat-top">
+                    <span class="stat-title">Total Records</span>
+                    <div class="icon-box icon-box-blue"><i class="bi bi-list-check"></i></div>
+                </div>
+                <div class="value">@Model.Records.Count</div>
+                <div class="change">@Model.SelectedDate?.ToString("d MMM yyyy")</div>
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="stat-card h-100">
+                <div class="stat-top">
+                    <span class="stat-title">Present</span>
+                    <div class="icon-box icon-box-green"><i class="bi bi-check-lg"></i></div>
+                </div>
+                <div class="value">@presentCount</div>
+                <div class="change">Marked present</div>
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="stat-card h-100">
+                <div class="stat-top">
+                    <span class="stat-title">Absent</span>
+                    <div class="icon-box attendance-icon-red"><i class="bi bi-x-lg"></i></div>
+                </div>
+                <div class="value">@absentCount</div>
+                <div class="change text-danger">Marked absent</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="pv-card">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <div>
+                <h5 class="mb-1">@Model.SelectedDate?.ToString("dddd, d MMMM yyyy")</h5>
+                <p class="text-muted mb-0">All attendance records captured for this date.</p>
+            </div>
+            <a asp-controller="AttendanceRecords"
+               asp-action="Index"
+               asp-route-year="@Model.SelectedYear"
+               asp-route-month="@Model.SelectedMonth"
+               class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> Dates
+            </a>
+        </div>
+
+        @if (Model.Records.Any())
+        {
+            <div class="table-responsive">
+                <table class="table pv-table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Player</th>
+                            <th>Event</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var record in Model.Records)
+                        {
+                            <tr>
+                                <td class="fw-semibold">@record.Player?.Name</td>
+                                <td>@record.Event?.Title</td>
+                                <td>@record.Date.ToString("d MMM yyyy")</td>
+                                <td>
+                                    <span class="badge @(record.Status == AttendanceStatus.Present ? "badge-active" : "badge-cancelled")">
+                                        @record.Status
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <a asp-controller="Attendance"
+                                       asp-action="Edit"
+                                       asp-route-id="@record.Id"
+                                       class="btn btn-sm btn-outline-secondary"
+                                       title="Edit attendance">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    @if (User.IsInRole("Admin"))
+                                    {
+                                        <a asp-controller="Attendance"
+                                           asp-action="Delete"
+                                           asp-route-id="@record.Id"
+                                           class="btn btn-sm btn-outline-danger"
+                                           title="Delete attendance">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="attendance-empty-state">
+                <i class="bi bi-calendar-x"></i>
+                <h6>No attendance records found for this date</h6>
+            </div>
+        }
+    </div>
+}
+
+<style>
+    .attendance-breadcrumb {
+        background: #fff;
+        border: 1px solid var(--pv-border);
+        border-radius: .85rem;
+        padding: .8rem 1rem;
+    }
+
+    .attendance-breadcrumb a {
+        color: var(--pv-green);
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .attendance-archive-card {
+        min-height: 92px;
+        display: flex;
+        align-items: center;
+        gap: .9rem;
+        padding: 1rem;
+        border: 1px solid var(--pv-border);
+        border-radius: .9rem;
+        background: #fff;
+        color: inherit;
+        transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    }
+
+    .attendance-archive-card:hover {
+        transform: translateY(-2px);
+        border-color: var(--pv-green);
+        box-shadow: 0 8px 22px rgba(0,0,0,.07);
+    }
+
+    .attendance-archive-icon,
+    .attendance-date-box,
+    .attendance-icon-red {
+        width: 48px;
+        height: 48px;
+        flex: 0 0 48px;
+        border-radius: .75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .attendance-archive-icon {
+        background: var(--pv-green);
+        color: #fff;
+        font-size: 1.25rem;
+    }
+
+    .attendance-archive-icon-gold {
+        background: var(--pv-gold);
+        color: #4a3800;
+    }
+
+    .attendance-date-box {
+        flex-direction: column;
+        background: #eef8f4;
+        color: var(--pv-green);
+        line-height: 1;
+    }
+
+    .attendance-date-number {
+        font-size: 1.2rem;
+        font-weight: 800;
+    }
+
+    .attendance-date-month {
+        margin-top: .2rem;
+        font-size: .7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .attendance-archive-title {
+        color: #111827;
+        font-size: 1rem;
+        font-weight: 700;
+    }
+
+    .attendance-archive-meta {
+        margin-top: .2rem;
+        color: #6c757d;
+        font-size: .85rem;
+    }
+
+    .attendance-archive-chevron {
+        color: #9ca3af;
+        font-size: 1.05rem;
+    }
+
+    .attendance-empty-state {
+        padding: 2.5rem 1rem;
+        text-align: center;
+        color: #6c757d;
+    }
+
+    .attendance-empty-state > i {
+        display: block;
+        margin-bottom: .75rem;
+        color: #adb5bd;
+        font-size: 2rem;
+    }
+
+    .attendance-empty-state h6 {
+        color: #343a40;
+    }
+
+    .attendance-icon-red {
+        background: #dc3545;
+        color: #fff;
+        font-size: 1.25rem;
+    }
+</style>
