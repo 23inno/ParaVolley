@@ -5,16 +5,30 @@ using SportsManagementMVC.Data;
 using SportsManagementMVC.Infrastructure;
 using SportsManagementMVC.Models;
 using SportsManagementMVC.Security;
+using SportsManagementMVC.Services;
 
 namespace SportsManagementMVC.Controllers
 {
     public class MatchesController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly NotificationDeliveryService _notificationDelivery;
+        private readonly ILogger<MatchesController> _logger;
 
-        public MatchesController(ApplicationDbContext context)
+        public MatchesController(
+            ApplicationDbContext context,
+            EmailService emailService,
+            IConfiguration configuration,
+            ILogger<NotificationDeliveryService> notificationLogger,
+            ILogger<MatchesController> logger)
         {
             _context = context;
+            _notificationDelivery = new NotificationDeliveryService(
+                context,
+                emailService,
+                configuration,
+                notificationLogger);
+            _logger = logger;
         }
 
         // GET: Matches
@@ -52,25 +66,25 @@ namespace SportsManagementMVC.Controllers
             var tomorrow = today.AddDays(1);
 
             var matchCounts = await _context.Matches
-    .AsNoTracking()
-    .GroupBy(_ => 1)
-    .Select(group => new
-    {
-        Total = group.Count(),
+                .AsNoTracking()
+                .GroupBy(_ => 1)
+                .Select(group => new
+                {
+                    Total = group.Count(),
 
-        Upcoming = group.Count(match =>
-            match.Status == MatchStatus.Scheduled &&
-            match.Date >= today),
+                    Upcoming = group.Count(match =>
+                        match.Status == MatchStatus.Scheduled &&
+                        match.Date >= today),
 
-        Completed = group.Count(match =>
-            match.Status == MatchStatus.Completed),
+                    Completed = group.Count(match =>
+                        match.Status == MatchStatus.Completed),
 
-        InProgress = group.Count(match =>
-            match.Status == MatchStatus.InProgress &&
-            match.Date >= today &&
-            match.Date < tomorrow)
-    })
-    .SingleOrDefaultAsync(cancellationToken);
+                    InProgress = group.Count(match =>
+                        match.Status == MatchStatus.InProgress &&
+                        match.Date >= today &&
+                        match.Date < tomorrow)
+                })
+                .SingleOrDefaultAsync(cancellationToken);
 
             ViewBag.TotalCount = matchCounts?.Total ?? 0;
             ViewBag.UpcomingCount = matchCounts?.Upcoming ?? 0;
@@ -201,6 +215,11 @@ namespace SportsManagementMVC.Controllers
                 await _context.SaveChangesAsync();
                 TempData["Success"] = $"Match \"{match.TeamA} vs {match.TeamB}\" was created.";
 
+                if (ShouldNotifyMatchResult(previous: null, match))
+                {
+                    await NotifyMatchResultAsync(match);
+                }
+
                 if (IsAjaxRequest())
                 {
                     return Json(new { success = true });
@@ -241,6 +260,18 @@ namespace SportsManagementMVC.Controllers
 
             if (ModelState.IsValid)
             {
+                var previousMatch = await _context.Matches
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(item => item.Id == id);
+
+                if (previousMatch == null)
+                {
+                    return NotFound();
+                }
+
+                var shouldNotifyResult =
+                    ShouldNotifyMatchResult(previousMatch, match);
+
                 try
                 {
                     _context.Update(match);
@@ -251,6 +282,11 @@ namespace SportsManagementMVC.Controllers
                 {
                     if (!await MatchExistsAsync(match.Id)) return NotFound();
                     throw;
+                }
+
+                if (shouldNotifyResult)
+                {
+                    await NotifyMatchResultAsync(match);
                 }
 
                 if (IsAjaxRequest())
@@ -302,6 +338,112 @@ namespace SportsManagementMVC.Controllers
                 return Json(new { success = true });
             }
             return RedirectToAction(nameof(Index));
+        }
+
+        private static bool ShouldNotifyMatchResult(
+            Match? previous,
+            Match current)
+        {
+            if (!HasPublishableResult(current))
+            {
+                return false;
+            }
+
+            if (previous == null)
+            {
+                return true;
+            }
+
+            if (!HasPublishableResult(previous))
+            {
+                return true;
+            }
+
+            return previous.ScoreA != current.ScoreA ||
+                   previous.ScoreB != current.ScoreB;
+        }
+
+        private static bool HasPublishableResult(Match match) =>
+            match.Status == MatchStatus.Completed &&
+            match.ScoreA.HasValue &&
+            match.ScoreB.HasValue;
+
+        private async Task NotifyMatchResultAsync(Match match)
+        {
+            try
+            {
+                var score = $"{match.ScoreA}-{match.ScoreB}";
+                var subject =
+                    $"Match result: {match.TeamA} {score} {match.TeamB}";
+
+                var contextParts = new List<string>();
+                if (!string.IsNullOrWhiteSpace(match.Tournament))
+                {
+                    contextParts.Add(match.Tournament.Trim());
+                }
+                if (!string.IsNullOrWhiteSpace(match.Venue))
+                {
+                    contextParts.Add(match.Venue.Trim());
+                }
+
+                var contextText = contextParts.Count == 0
+                    ? string.Empty
+                    : $" ({string.Join(" - ", contextParts)})";
+
+                var textBody =
+                    $"Final result: {match.TeamA} {score} {match.TeamB}{contextText}.";
+
+                var encodedTeamA =
+                    System.Net.WebUtility.HtmlEncode(match.TeamA);
+                var encodedTeamB =
+                    System.Net.WebUtility.HtmlEncode(match.TeamB);
+                var encodedTournament =
+                    System.Net.WebUtility.HtmlEncode(match.Tournament ?? string.Empty);
+                var encodedVenue =
+                    System.Net.WebUtility.HtmlEncode(match.Venue ?? string.Empty);
+
+                var details = new List<string>();
+                if (!string.IsNullOrWhiteSpace(match.Tournament))
+                {
+                    details.Add($"<strong>Tournament:</strong> {encodedTournament}");
+                }
+                if (!string.IsNullOrWhiteSpace(match.Venue))
+                {
+                    details.Add($"<strong>Venue:</strong> {encodedVenue}");
+                }
+
+                var htmlDetails = details.Count == 0
+                    ? string.Empty
+                    : $"<p>{string.Join("<br />", details)}</p>";
+
+                var htmlBody = $@"
+                    <p>ParaVolley Mpumalanga match result:</p>
+                    <h3>{encodedTeamA} {score} {encodedTeamB}</h3>
+                    {htmlDetails}";
+
+                var results = await _notificationDelivery.SendToActivePlayersAsync(
+                    "match_results",
+                    subject,
+                    textBody,
+                    htmlBody);
+
+                foreach (var result in results.Where(result => !result.Success))
+                {
+                    _logger.LogWarning(
+                        "Match {MatchId} result notification delivery reported: {Message}",
+                        match.Id,
+                        result.Message);
+                }
+            }
+            catch (Exception exception)
+            {
+                // Saving the match result must remain successful even if a
+                // configured notification provider or downstream query fails.
+                _logger.LogWarning(
+                    exception,
+                    "Match {MatchId} result was saved, but player notification delivery failed.",
+                    match.Id);
+            }
         }
 
         private Task<bool> MatchExistsAsync(int id) =>
