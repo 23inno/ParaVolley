@@ -84,6 +84,7 @@ builder.Services.AddScoped<RealCalendarImportService>();
 builder.Services.AddScoped<BackupService>();
 builder.Services.AddHostedService<BackupSchedulerService>();
 builder.Services.AddHostedService<EventReminderSchedulerService>();
+builder.Services.AddHostedService<AutomaticAbsenceSchedulerService>();
 
 builder.Services.AddScoped<
     IPasswordHasher<AppUser>,
