@@ -6,6 +6,7 @@ using SportsManagementMVC.Data;
 using SportsManagementMVC.Infrastructure;
 using SportsManagementMVC.Models;
 using SportsManagementMVC.Security;
+using SportsManagementMVC.Services;
 
 namespace SportsManagementMVC.Controllers
 {
@@ -13,10 +14,14 @@ namespace SportsManagementMVC.Controllers
     public class AttendanceController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly AttendanceNotificationService _attendanceNotifications;
 
-        public AttendanceController(ApplicationDbContext context)
+        public AttendanceController(
+            ApplicationDbContext context,
+            AttendanceNotificationService attendanceNotifications)
         {
             _context = context;
+            _attendanceNotifications = attendanceNotifications;
         }
 
         // GET: Attendance
@@ -69,24 +74,24 @@ namespace SportsManagementMVC.Controllers
                     1);
 
             var playerStatistics = attendanceRecords
-    .Where(record => record.Player != null)
-    .GroupBy(record => new
-    {
-        record.PlayerId,
-        record.Player!.Name
-    })
-    .Select(group => new
-    {
-        group.Key.PlayerId,
-        group.Key.Name,
-        Sessions = group.Count(),
-        Rate = (int)Math.Round(
-            group.Count(record =>
-                record.Status == AttendanceStatus.Present) *
-            100.0 / group.Count(),
-            0)
-    })
-    .ToList();
+                .Where(record => record.Player != null)
+                .GroupBy(record => new
+                {
+                    record.PlayerId,
+                    record.Player!.Name
+                })
+                .Select(group => new
+                {
+                    group.Key.PlayerId,
+                    group.Key.Name,
+                    Sessions = group.Count(),
+                    Rate = (int)Math.Round(
+                        group.Count(record =>
+                            record.Status == AttendanceStatus.Present) *
+                        100.0 / group.Count(),
+                        0)
+                })
+                .ToList();
 
             var topPerformer = playerStatistics
                 .OrderByDescending(item => item.Rate)
@@ -101,31 +106,31 @@ namespace SportsManagementMVC.Controllers
                 monthStart.AddMonths(1);
 
             var sessionRecords = attendanceRecords
-    .Where(record =>
-        record.Event != null &&
-        record.Player != null)
-    .GroupBy(record => new
-    {
-        record.EventId,
-        record.Event!.Title,
-        record.Event.Date,
-        Team = record.Player!.Team
-    })
-    .Select(group => new SessionRecordRow
-    {
-        Date = group.Key.Date,
-        Session = group.Key.Title,
-        Team = group.Key.Team,
-        Present = group.Count(record =>
-            record.Status == AttendanceStatus.Present),
-        Absent = group.Count(record =>
-            record.Status == AttendanceStatus.Absent),
-        MinimumAttendancePercent = minAttendancePercent
-    })
-    .OrderByDescending(record => record.Date)
-    .ThenBy(record => record.Session)
-    .ThenBy(record => record.Team)
-    .ToList();
+                .Where(record =>
+                    record.Event != null &&
+                    record.Player != null)
+                .GroupBy(record => new
+                {
+                    record.EventId,
+                    record.Event!.Title,
+                    record.Event.Date,
+                    Team = record.Player!.Team
+                })
+                .Select(group => new SessionRecordRow
+                {
+                    Date = group.Key.Date,
+                    Session = group.Key.Title,
+                    Team = group.Key.Team,
+                    Present = group.Count(record =>
+                        record.Status == AttendanceStatus.Present),
+                    Absent = group.Count(record =>
+                        record.Status == AttendanceStatus.Absent),
+                    MinimumAttendancePercent = minAttendancePercent
+                })
+                .OrderByDescending(record => record.Date)
+                .ThenBy(record => record.Session)
+                .ThenBy(record => record.Team)
+                .ToList();
 
             var playerAttendanceLookup = attendanceRecords
                 .GroupBy(record => record.PlayerId)
@@ -136,12 +141,12 @@ namespace SportsManagementMVC.Controllers
                 TotalAttendance = attendanceRecords.Count,
                 AttendanceRate = attendanceRate,
                 ActiveSessions = attendanceRecords
-    .Where(record =>
-        record.Date >= monthStart &&
-        record.Date < nextMonth)
-    .Select(record => record.EventId)
-    .Distinct()
-    .Count(),
+                    .Where(record =>
+                        record.Date >= monthStart &&
+                        record.Date < nextMonth)
+                    .Select(record => record.EventId)
+                    .Distinct()
+                    .Count(),
                 TopPerformerName = topPerformer?.Name ?? "No attendance yet",
                 TopPerformerRate = topPerformer?.Rate ?? 0,
 
@@ -238,10 +243,10 @@ namespace SportsManagementMVC.Controllers
                     .ToList(),
 
                 MostActivePlayers = playerStatistics
-    .OrderByDescending(item => item.Sessions)
-    .ThenByDescending(item => item.Rate)
-    .ThenBy(item => item.Name)
-    .Take(5)
+                    .OrderByDescending(item => item.Sessions)
+                    .ThenByDescending(item => item.Rate)
+                    .ThenBy(item => item.Name)
+                    .Take(5)
                     .Select((item, index) => new TopPlayerStat
                     {
                         Rank = index + 1,
@@ -419,10 +424,20 @@ namespace SportsManagementMVC.Controllers
         {
             if (ModelState.IsValid)
             {
+                var before = await _attendanceNotifications.GetSnapshotAsync(
+                    attendance.PlayerId,
+                    cancellationToken);
+
                 _context.Add(attendance);
                 try
                 {
                     await _context.SaveChangesAsync(cancellationToken);
+
+                    await _attendanceNotifications.NotifyIfCrossedBelowAsync(
+                        attendance.PlayerId,
+                        before,
+                        cancellationToken);
+
                     TempData["Success"] = "Attendance record was added.";
                     return RedirectToAction(nameof(Records));
                 }
@@ -456,22 +471,41 @@ namespace SportsManagementMVC.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Date,Status")] Attendance input)
+        public async Task<IActionResult> Edit(
+            int id,
+            [Bind("Id,Date,Status")] Attendance input,
+            CancellationToken cancellationToken = default)
         {
             if (id != input.Id) return NotFound();
-            var attendance = await _context.Attendances.FindAsync(id);
+            var attendance = await _context.Attendances.FindAsync(
+                new object[] { id },
+                cancellationToken);
             if (attendance == null) return NotFound();
+
             if (ModelState.IsValid)
             {
+                var before = await _attendanceNotifications.GetSnapshotAsync(
+                    attendance.PlayerId,
+                    cancellationToken);
+
                 attendance.Date = input.Date;
                 attendance.Status = input.Status;
-                await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync(cancellationToken);
+
+                await _attendanceNotifications.NotifyIfCrossedBelowAsync(
+                    attendance.PlayerId,
+                    before,
+                    cancellationToken);
+
                 TempData["Success"] = "Attendance record was updated.";
                 return RedirectToAction(nameof(Records));
             }
             input.PlayerId = attendance.PlayerId;
             input.EventId = attendance.EventId;
-            await PopulateDropdownsAsync(attendance.PlayerId, attendance.EventId);
+            await PopulateDropdownsAsync(
+                attendance.PlayerId,
+                attendance.EventId,
+                cancellationToken);
             return View(input);
         }
 
@@ -495,13 +529,28 @@ namespace SportsManagementMVC.Controllers
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
-        public async Task<IActionResult> DeleteConfirmed(int id)
+        public async Task<IActionResult> DeleteConfirmed(
+            int id,
+            CancellationToken cancellationToken = default)
         {
-            var attendance = await _context.Attendances.FindAsync(id);
+            var attendance = await _context.Attendances.FindAsync(
+                new object[] { id },
+                cancellationToken);
             if (attendance != null)
             {
+                var playerId = attendance.PlayerId;
+                var before = await _attendanceNotifications.GetSnapshotAsync(
+                    playerId,
+                    cancellationToken);
+
                 _context.Attendances.Remove(attendance);
-                await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync(cancellationToken);
+
+                await _attendanceNotifications.NotifyIfCrossedBelowAsync(
+                    playerId,
+                    before,
+                    cancellationToken);
+
                 TempData["Success"] = "Attendance record was deleted.";
             }
             return RedirectToAction(nameof(Records));
