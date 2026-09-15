@@ -59,6 +59,15 @@ fun AppBottomBar(
 
             BottomBarItem(
                 modifier = Modifier.weight(1f),
+                label = "Results",
+                symbol = "◆",
+                route = Routes.RESULTS,
+                selectedRoute = selectedRoute,
+                onNavigate = onNavigate
+            )
+
+            BottomBarItem(
+                modifier = Modifier.weight(1f),
                 label = "Scan",
                 symbol = "▣",
                 route = Routes.SCANNER,
