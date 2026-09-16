@@ -1,0 +1,44 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+    <!-- Rounded Background Plate -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#0B6E4F"
+        android:strokeWidth="2"
+        android:pathData="M30,10 L170,10 A20,20 0 0,1 190,30 L190,170 A20,20 0 0,1 170,190 L30,190 A20,20 0 0,1 10,170 L10,30 A20,20 0 0,1 30,10 Z" />
+
+    <!-- Top-Left & Bottom-Right Brush Accents -->
+    <path
+        android:fillColor="#0B6E4F"
+        android:pathData="M15,15 Q60,10 90,25 Q50,45 15,35 Z" />
+    <path
+        android:fillColor="#FFC72C"
+        android:pathData="M15,35 Q60,30 80,45 Q40,65 15,55 Z" />
+    <path
+        android:fillColor="#0B6E4F"
+        android:pathData="M185,185 Q140,190 110,175 Q150,155 185,165 Z" />
+    <path
+        android:fillColor="#FFC72C"
+        android:pathData="M185,165 Q140,170 120,155 Q160,135 185,145 Z" />
+
+    <!-- Stylized 4-Star Athletes Circle -->
+    <!-- Top Green Star -->
+    <path
+        android:fillColor="#08523B"
+        android:pathData="M100,30 Q105,50 115,55 Q135,55 120,68 Q125,85 105,75 Q100,90 95,75 Q75,85 80,68 Q65,55 85,55 Q95,50 100,30 Z" />
+    <!-- Right Gold Star -->
+    <path
+        android:fillColor="#FFC72C"
+        android:pathData="M140,60 Q135,75 138,88 Q150,100 135,108 Q130,122 118,112 Q112,125 108,110 Q98,115 104,102 Q92,92 108,92 Q120,85 140,60 Z" />
+    <!-- Bottom Green Star -->
+    <path
+        android:fillColor="#0B6E4F"
+        android:pathData="M105,120 Q100,105 88,102 Q75,102 90,90 Q85,75 102,82 Q108,70 112,85 Q130,75 125,90 Q140,102 120,102 Q110,105 105,120 Z" />
+    <!-- Left Gold Star -->
+    <path
+        android:fillColor="#FFC72C"
+        android:pathData="M70,80 Q78,70 72,58 Q60,48 75,40 Q80,26 92,36 Q98,22 102,38 Q112,32 106,46 Q118,56 102,56 Q90,62 70,80 Z" />
+</vector>
