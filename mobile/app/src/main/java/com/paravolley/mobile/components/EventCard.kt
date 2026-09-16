@@ -10,6 +10,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
+import com.paravolley.mobile.util.DateUtils
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -51,6 +52,28 @@ fun EventCard(
                     color = AppColors.GreyText
                 )
             }
+            // Shows relative time e.g., "In 3 days" or "Passed 2 days ago"
+val isPast = DateUtils.isEventPast(event.date)
+val relativeTime = DateUtils.getRelativeTimeText(event.date)
+
+Row(
+    verticalAlignment = Alignment.CenterVertically,
+    horizontalArrangement = Arrangement.spacedBy(6.dp)
+) {
+    Text(text = "🗓", fontSize = 13.sp)
+    Text(
+        text = "${event.date} • ${event.time}",
+        color = AppColors.GreyText,
+        fontSize = 13.sp
+    )
+    Spacer(modifier = Modifier.width(4.dp))
+    Text(
+        text = "($relativeTime)",
+        color = if (isPast) AppColors.GreyText else AppColors.Green,
+        fontWeight = FontWeight.Bold,
+        fontSize = 12.sp
+    )
+}
 
             Text(
                 text = event.title,
