@@ -4,27 +4,11 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.paravolley.mobile.screens.DashboardScreen
-import com.paravolley.mobile.screens.EventsScreen
-import com.paravolley.mobile.screens.LoginScreen
-import com.paravolley.mobile.screens.NotificationsScreen
-import com.paravolley.mobile.screens.ProfileScreen
-import com.paravolley.mobile.screens.ScannerScreen
+import com.paravolley.mobile.screens.*
 
 @Composable
 fun ParaVolleyApp() {
     val navController = rememberNavController()
-
-    val navigateFromBottomBar: (String) -> Unit = { route ->
-        navController.navigate(route) {
-            popUpTo(Routes.DASHBOARD) {
-                saveState = true
-            }
-
-            launchSingleTop = true
-            restoreState = true
-        }
-    }
 
     NavHost(
         navController = navController,
@@ -33,14 +17,8 @@ fun ParaVolleyApp() {
         composable(Routes.LOGIN) {
             LoginScreen(
                 onLoginSuccessful = {
-                    navController.navigate(
-                        Routes.DASHBOARD
-                    ) {
-                        popUpTo(Routes.LOGIN) {
-                            inclusive = true
-                        }
-
-                        launchSingleTop = true
+                    navController.navigate(Routes.DASHBOARD) {
+                        popUpTo(Routes.LOGIN) { inclusive = true }
                     }
                 }
             )
@@ -48,43 +26,28 @@ fun ParaVolleyApp() {
 
         composable(Routes.DASHBOARD) {
             DashboardScreen(
-                onNavigate = navigateFromBottomBar,
-                onOpenNotifications = {
-                    navController.navigate(
-                        Routes.NOTIFICATIONS
-                    ) {
-                        launchSingleTop = true
+                onNavigate = { route ->
+                    if (route != Routes.DASHBOARD) {
+                        navController.navigate(route) {
+                            popUpTo(Routes.DASHBOARD)
+                            launchSingleTop = true
+                        }
                     }
+                },
+                onOpenNotifications = {
+                    navController.navigate(Routes.NOTIFICATIONS)
                 }
             )
         }
 
         composable(Routes.EVENTS) {
             EventsScreen(
-                onNavigate = navigateFromBottomBar
-            )
-        }
-
-        composable(Routes.NOTIFICATIONS) {
-            NotificationsScreen(
-                onBack = {
-                    navController.popBackStack()
-                }
-            )
-        }
-
-        composable(Routes.PROFILE) {
-            ProfileScreen(
-                onNavigate = navigateFromBottomBar,
-                onLogout = {
-                    navController.navigate(
-                        Routes.LOGIN
-                    ) {
-                        popUpTo(Routes.DASHBOARD) {
-                            inclusive = true
+                onNavigate = { route ->
+                    if (route != Routes.EVENTS) {
+                        navController.navigate(route) {
+                            popUpTo(Routes.DASHBOARD)
+                            launchSingleTop = true
                         }
-
-                        launchSingleTop = true
                     }
                 }
             )
@@ -92,8 +55,30 @@ fun ParaVolleyApp() {
 
         composable(Routes.SCANNER) {
             ScannerScreen(
-                onBack = {
-                    navController.popBackStack()
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.NOTIFICATIONS) {
+            NotificationsScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.PROFILE) {
+            ProfileScreen(
+                onNavigate = { route ->
+                    if (route != Routes.PROFILE) {
+                        navController.navigate(route) {
+                            popUpTo(Routes.DASHBOARD)
+                            launchSingleTop = true
+                        }
+                    }
+                },
+                onLogout = {
+                    navController.navigate(Routes.LOGIN) {
+                        popUpTo(0) { inclusive = true }
+                    }
                 }
             )
         }
