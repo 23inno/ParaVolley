@@ -25,7 +25,7 @@ val releaseApiBaseUrl = providers
     ?.let { value ->
         if (value.endsWith("/")) value else "$value/"
     }
-    ?: "https://example.invalid/"
+    ?: "https://paravolley-production.up.railway.app/"
 
 val firebaseApplicationId = providers
     .gradleProperty("PARAVOLLEY_FIREBASE_APPLICATION_ID")
