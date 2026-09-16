@@ -4,7 +4,34 @@
     <h5 class="modal-title fw-bold">Edit Player</h5>
     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
 </div>
-<form asp-action="Edit" method="post" class="js-ajax-form">
+<form asp-action="Edit"
+      method="post"
+      class="js-ajax-form"
+      onsubmit="
+          if (this.dataset.submitting === 'true') {
+              event.preventDefault();
+              event.stopPropagation();
+              return false;
+          }
+
+          this.dataset.submitting = 'true';
+          this.setAttribute('aria-busy', 'true');
+
+          var submitButton = this.querySelector('[data-submit-button]');
+          var cancelButton = this.querySelector('[data-cancel-button]');
+          var statusMessage = this.querySelector('[data-submit-status]');
+          var modalContent = this.closest('.modal-content');
+          var closeButton = modalContent ? modalContent.querySelector('.btn-close') : null;
+
+          if (submitButton) {
+              submitButton.disabled = true;
+              submitButton.textContent = 'Saving Changes...';
+          }
+
+          if (cancelButton) cancelButton.disabled = true;
+          if (closeButton) closeButton.disabled = true;
+          if (statusMessage) statusMessage.classList.remove('d-none');
+      ">
     <div class="modal-body">
         <input type="hidden" asp-for="Id" />
         <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
@@ -78,8 +105,14 @@
             </select>
         </div>
     </div>
+
+    <div class="alert alert-info d-none mx-3 mb-0 py-2" data-submit-status role="status">
+        <i class="bi bi-hourglass-split me-1"></i>
+        Saving the player changes. Please wait and do not submit again.
+    </div>
+
     <div class="modal-footer">
-        <button type="submit" class="btn btn-pv"><i class="bi bi-check-lg"></i> Save Changes</button>
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-pv" data-submit-button><i class="bi bi-check-lg"></i> Save Changes</button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" data-cancel-button>Cancel</button>
     </div>
 </form>
