@@ -1,33 +1,16 @@
 package com.paravolley.mobile.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -35,184 +18,249 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.paravolley.mobile.components.ParaVolleyLogo
+import com.paravolley.mobile.data.FakePlayerRepository
 import com.paravolley.mobile.ui.theme.AppColors
 
 @Composable
 fun LoginScreen(
     onLoginSuccessful: () -> Unit
 ) {
-    var email by rememberSaveable {
-        mutableStateOf("")
-    }
-
-    var password by rememberSaveable {
-        mutableStateOf("")
-    }
-
-    var passwordVisible by rememberSaveable {
-        mutableStateOf(false)
-    }
-
-    var errorMessage by rememberSaveable {
-        mutableStateOf<String?>(null)
-    }
+    var email by rememberSaveable { mutableStateOf("thabo.mokoena@paravolley.co.za") }
+    var password by rememberSaveable { mutableStateOf("Password123!") }
+    var passwordVisible by rememberSaveable { mutableStateOf(false) }
+    var errorMessage by rememberSaveable { mutableStateOf<String?>(null) }
+    var showRegisterDialog by rememberSaveable { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(AppColors.LightBackground)
-            .safeDrawingPadding()
-            .verticalScroll(rememberScrollState())
             .imePadding()
+            .verticalScroll(rememberScrollState())
     ) {
-        Column(
+        // Hero Header with Brand Logo
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(AppColors.DarkGreen)
-                .padding(vertical = 36.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(vertical = 40.dp, horizontal = 24.dp),
+            contentAlignment = Alignment.Center
         ) {
-            Box(
-                modifier = Modifier
-                    .background(
-                        color = Color.White,
-                        shape = CircleShape
-                    )
-                    .padding(18.dp),
-                contentAlignment = Alignment.Center
-            ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                ParaVolleyLogo(size = 110.dp, showText = true)
+                Spacer(modifier = Modifier.height(10.dp))
                 Text(
-                    text = "PVM",
-                    color = AppColors.DarkGreen,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 22.sp
+                    text = "Official Athlete & Member Portal",
+                    color = Color.White.copy(alpha = 0.85f),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium
                 )
             }
-
-            Spacer(
-                modifier = Modifier.height(16.dp)
-            )
-
-            Text(
-                text = "ParaVolley Mpumalanga",
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                fontSize = 24.sp
-            )
         }
 
+        // Login Form Card
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = Color.White
-            )
+                .padding(20.dp)
+                .offset(y = (-15).dp),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
         ) {
             Column(
-                modifier = Modifier.padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                modifier = Modifier.padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = "Player Login",
+                    text = "Athlete Login",
                     color = AppColors.DarkGreen,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.ExtraBold,
                     fontSize = 22.sp
+                )
+                Text(
+                    text = "Enter your credentials to access team schedules, matches and QR attendance check-ins.",
+                    color = AppColors.GreyText,
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp
                 )
 
                 OutlinedTextField(
-                    modifier = Modifier.fillMaxWidth(),
                     value = email,
                     onValueChange = {
                         email = it
                         errorMessage = null
                     },
-                    label = {
-                        Text("Email or username")
-                    },
-                    singleLine = true
+                    label = { Text("Email Address") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
                 )
 
                 OutlinedTextField(
-                    modifier = Modifier.fillMaxWidth(),
                     value = password,
                     onValueChange = {
                         password = it
                         errorMessage = null
                     },
-                    label = {
-                        Text("Password")
-                    },
+                    label = { Text("Password") },
                     singleLine = true,
-                    visualTransformation =
-                        if (passwordVisible) {
-                            VisualTransformation.None
-                        } else {
-                            PasswordVisualTransformation()
-                        },
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
-                        TextButton(
-                            onClick = {
-                                passwordVisible = !passwordVisible
-                            }
-                        ) {
+                        TextButton(onClick = { passwordVisible = !passwordVisible }) {
                             Text(
-                                text =
-                                    if (passwordVisible) {
-                                        "Hide"
-                                    } else {
-                                        "Show"
-                                    }
+                                text = if (passwordVisible) "Hide" else "Show",
+                                color = AppColors.Green,
+                                fontWeight = FontWeight.Bold
                             )
                         }
-                    }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
                 )
 
-                TextButton(
-                    modifier = Modifier.align(Alignment.End),
-                    onClick = {}
-                ) {
-                    Text("Forgot password?")
-                }
-
-                errorMessage?.let { message ->
+                errorMessage?.let { msg ->
                     Text(
-                        text = message,
-                        color = Color.Red
+                        text = msg,
+                        color = AppColors.DangerRed,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
                     )
                 }
 
                 Button(
-                    modifier = Modifier.fillMaxWidth(),
                     onClick = {
-                        if (
-                            email.isBlank() ||
-                            password.isBlank()
-                        ) {
-                            errorMessage =
-                                "Enter your email and password."
+                        if (email.isBlank() || password.isBlank()) {
+                            errorMessage = "Please enter both email and password."
                         } else {
                             onLoginSuccessful()
                         }
                     },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = AppColors.Yellow,
                         contentColor = AppColors.DarkText
                     )
                 ) {
                     Text(
-                        text = "Login",
-                        fontWeight = FontWeight.Bold
+                        text = "Sign In",
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 16.sp
                     )
                 }
 
-                Text(
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    text = "Prototype: use any email and password.",
-                    color = AppColors.GreyText,
-                    textAlign = TextAlign.Center
-                )
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(onClick = { showRegisterDialog = true }) {
+                        Text(
+                            text = "New Player? Register",
+                            color = AppColors.Green,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    TextButton(onClick = {
+                        email = "thabo.mokoena@paravolley.co.za"
+                        password = "Password123!"
+                        onLoginSuccessful()
+                    }) {
+                        Text(
+                            text = "Demo Auto-Fill",
+                            color = AppColors.GreyText,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
             }
         }
     }
+
+    if (showRegisterDialog) {
+        RegisterPlayerDialog(
+            onDismiss = { showRegisterDialog = false },
+            onRegistered = {
+                showRegisterDialog = false
+                onLoginSuccessful()
+            }
+        )
+    }
+}
+
+@Composable
+private fun RegisterPlayerDialog(
+    onDismiss: () -> Unit,
+    onRegistered: () -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var regEmail by remember { mutableStateOf("") }
+    var phone by remember { mutableStateOf("") }
+    var classification by remember { mutableStateOf("1.5 Minimal Impairment") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Register as ParaVolley Athlete",
+                fontWeight = FontWeight.Bold,
+                color = AppColors.DarkGreen
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    text = "Player registrations are verified according to World ParaVolley classification guidelines.",
+                    fontSize = 12.sp,
+                    color = AppColors.GreyText
+                )
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Full Name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = regEmail,
+                    onValueChange = { regEmail = it },
+                    label = { Text("Email Address") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = phone,
+                    onValueChange = { phone = it },
+                    label = { Text("Phone Number") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = classification,
+                    onValueChange = { classification = it },
+                    label = { Text("Medical Classification") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onRegistered,
+                colors = ButtonDefaults.buttonColors(containerColor = AppColors.Yellow, contentColor = AppColors.DarkText)
+            ) {
+                Text("Submit Application", fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = AppColors.GreyText)
+            }
+        }
+    )
 }
