@@ -4,7 +4,42 @@
     <h5 class="modal-title fw-bold">Create Announcement</h5>
     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
 </div>
-<form asp-action="Create" method="post" class="js-ajax-form">
+<form asp-action="Create"
+      method="post"
+      class="js-ajax-form"
+      onsubmit="
+          if (this.dataset.submitting === 'true') {
+              event.preventDefault();
+              event.stopPropagation();
+              return false;
+          }
+
+          this.dataset.submitting = 'true';
+          this.setAttribute('aria-busy', 'true');
+
+          var publishButton = this.querySelector('[data-publish-button]');
+          var cancelButton = this.querySelector('[data-cancel-button]');
+          var statusMessage = this.querySelector('[data-publish-status]');
+          var modalContent = this.closest('.modal-content');
+          var closeButton = modalContent ? modalContent.querySelector('.btn-close') : null;
+
+          if (publishButton) {
+              publishButton.disabled = true;
+              publishButton.textContent = 'Publishing...';
+          }
+
+          if (cancelButton) {
+              cancelButton.disabled = true;
+          }
+
+          if (closeButton) {
+              closeButton.disabled = true;
+          }
+
+          if (statusMessage) {
+              statusMessage.classList.remove('d-none');
+          }
+      ">
     <div class="modal-body">
         <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
@@ -53,8 +88,18 @@
 
         <input type="hidden" asp-for="Views" value="0" />
     </div>
+
+    <div class="alert alert-info d-none mx-3 mb-0 py-2" data-publish-status role="status">
+        <i class="bi bi-hourglass-split me-1"></i>
+        Publishing the announcement and sending notifications. Please wait and do not click Publish again.
+    </div>
+
     <div class="modal-footer">
-        <button type="submit" class="btn btn-pv"><i class="bi bi-check-lg"></i> Publish</button>
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-pv" data-publish-button>
+            <i class="bi bi-check-lg"></i> Publish
+        </button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" data-cancel-button>
+            Cancel
+        </button>
     </div>
 </form>
