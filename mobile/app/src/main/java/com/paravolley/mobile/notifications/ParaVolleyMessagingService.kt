@@ -47,15 +47,22 @@ class ParaVolleyMessagingService :
                 ?: remoteMessage.data["body"]
                 ?: "You have a new ParaVolley update."
 
+        val destination =
+            NotificationRouter.destinationForTitle(
+                title
+            )
+
         showNotification(
             title = title,
-            body = body
+            body = body,
+            destination = destination
         )
     }
 
     private fun showNotification(
         title: String,
-        body: String
+        body: String,
+        destination: String
     ) {
         createNotificationChannel()
 
@@ -70,6 +77,10 @@ class ParaVolleyMessagingService :
             return
         }
 
+        val notificationId =
+            System.currentTimeMillis()
+                .toInt()
+
         val openAppIntent = Intent(
             this,
             MainActivity::class.java
@@ -77,11 +88,20 @@ class ParaVolleyMessagingService :
             flags =
                 Intent.FLAG_ACTIVITY_CLEAR_TOP or
                     Intent.FLAG_ACTIVITY_SINGLE_TOP
+
+            putExtra(
+                NotificationRouter.EXTRA_DESTINATION,
+                destination
+            )
+            putExtra(
+                NotificationRouter.EXTRA_TITLE,
+                title
+            )
         }
 
         val pendingIntent = PendingIntent.getActivity(
             this,
-            0,
+            notificationId,
             openAppIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or
                 PendingIntent.FLAG_IMMUTABLE
@@ -107,8 +127,7 @@ class ParaVolleyMessagingService :
 
         NotificationManagerCompat.from(this)
             .notify(
-                System.currentTimeMillis()
-                    .toInt(),
+                notificationId,
                 notification
             )
     }
