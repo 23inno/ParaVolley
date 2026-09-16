@@ -12,7 +12,32 @@
 
 <form asp-action="Create"
       method="post"
-      class="js-ajax-form">
+      class="js-ajax-form"
+      onsubmit="
+          if (this.dataset.submitting === 'true') {
+              event.preventDefault();
+              event.stopPropagation();
+              return false;
+          }
+
+          this.dataset.submitting = 'true';
+          this.setAttribute('aria-busy', 'true');
+
+          var submitButton = this.querySelector('[data-submit-button]');
+          var cancelButton = this.querySelector('[data-cancel-button]');
+          var statusMessage = this.querySelector('[data-submit-status]');
+          var modalContent = this.closest('.modal-content');
+          var closeButton = modalContent ? modalContent.querySelector('.btn-close') : null;
+
+          if (submitButton) {
+              submitButton.disabled = true;
+              submitButton.textContent = 'Saving Event...';
+          }
+
+          if (cancelButton) cancelButton.disabled = true;
+          if (closeButton) closeButton.disabled = true;
+          if (statusMessage) statusMessage.classList.remove('d-none');
+      ">
 
     <div class="modal-body">
 
@@ -186,11 +211,16 @@
 
     </div>
 
+    <div class="alert alert-info d-none mx-3 mb-0 py-2" data-submit-status role="status">
+        <i class="bi bi-hourglass-split me-1"></i>
+        Saving the event and sending any enabled notifications. Please wait and do not submit again.
+    </div>
 
     <div class="modal-footer">
 
         <button type="submit"
-                class="btn btn-pv">
+                class="btn btn-pv"
+                data-submit-button>
 
             <i class="bi bi-check-lg"></i>
             Save Event
@@ -199,7 +229,8 @@
 
         <button type="button"
                 class="btn btn-outline-secondary"
-                data-bs-dismiss="modal">
+                data-bs-dismiss="modal"
+                data-cancel-button>
 
             Cancel
 
