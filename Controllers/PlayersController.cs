@@ -1,5 +1,8 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using SportsManagementMVC.Data;
 using SportsManagementMVC.Infrastructure;
@@ -12,10 +15,14 @@ namespace SportsManagementMVC.Controllers
     public class PlayersController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly IPasswordHasher<AppUser> _passwordHasher;
 
-        public PlayersController(ApplicationDbContext context)
+        public PlayersController(
+            ApplicationDbContext context,
+            IPasswordHasher<AppUser> passwordHasher)
         {
             _context = context;
+            _passwordHasher = passwordHasher;
         }
 
         // GET: Players
@@ -127,27 +134,244 @@ namespace SportsManagementMVC.Controllers
         }
 
         // GET: Players/Details/5
-        public async Task<IActionResult> Details(int? id)
+        public async Task<IActionResult> Details(
+            int? id,
+            CancellationToken cancellationToken = default)
         {
             if (id == null) return NotFound();
 
-            var player = await _context.Players.FirstOrDefaultAsync(p => p.Id == id);
+            var player = await _context.Players
+                .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+
             if (player == null) return NotFound();
 
             if (User.IsInRole(nameof(AppUserRole.Coach)))
             {
                 return View("CoachDetails", new CoachPlayerViewModel
                 {
-                    Id = player.Id, Name = player.Name, Position = player.Position,
-                    Team = player.Team, Status = player.Status, Matches = player.Matches
+                    Id = player.Id,
+                    Name = player.Name,
+                    Position = player.Position,
+                    Team = player.Team,
+                    Status = player.Status,
+                    Matches = player.Matches
                 });
             }
+
+            ViewBag.MobileAppUser = await _context.AppUsers
+                .AsNoTracking()
+                .FirstOrDefaultAsync(
+                    user =>
+                        user.Role == AppUserRole.Player &&
+                        user.PlayerId == player.Id,
+                    cancellationToken);
 
             if (IsAjaxRequest())
             {
                 return PartialView("_DetailsPartial", player);
             }
+
             return View(player);
+        }
+
+        // POST: Players/SaveMobileAccess/5
+        // Creates a Player AppUser when one does not exist, or resets the
+        // linked mobile password and re-activates the account when it does.
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
+        [EnableRateLimiting("sensitive")]
+        public async Task<IActionResult> SaveMobileAccess(
+            int id,
+            string? password,
+            string? confirmPassword,
+            CancellationToken cancellationToken = default)
+        {
+            var player = await _context.Players
+                .FirstOrDefaultAsync(
+                    item => item.Id == id,
+                    cancellationToken);
+
+            if (player == null)
+            {
+                return NotFound();
+            }
+
+            if (player.Status != PlayerStatus.Active)
+            {
+                TempData["Error"] =
+                    "Activate this player record before enabling mobile app access.";
+
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            var normalizedEmail =
+                (player.Email ?? string.Empty)
+                    .Trim()
+                    .ToLowerInvariant();
+
+            if (string.IsNullOrWhiteSpace(normalizedEmail) ||
+                normalizedEmail.Length > 200 ||
+                !new EmailAddressAttribute().IsValid(normalizedEmail))
+            {
+                TempData["Error"] =
+                    "The player must have a valid email address before mobile app access can be configured.";
+
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            if (string.IsNullOrEmpty(password) ||
+                password.Length < 8 ||
+                password.Length > 128)
+            {
+                TempData["Error"] =
+                    "The mobile app password must be between 8 and 128 characters.";
+
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            if (password != confirmPassword)
+            {
+                TempData["Error"] =
+                    "The mobile app password and confirmation do not match.";
+
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            var linkedAccount = await _context.AppUsers
+                .FirstOrDefaultAsync(
+                    user => user.PlayerId == id,
+                    cancellationToken);
+
+            var emailAccount = await _context.AppUsers
+                .FirstOrDefaultAsync(
+                    user => user.NormalizedEmail == normalizedEmail,
+                    cancellationToken);
+
+            if (linkedAccount != null &&
+                emailAccount != null &&
+                linkedAccount.Id != emailAccount.Id)
+            {
+                TempData["Error"] =
+                    "Mobile access could not be configured because this player email is already used by another authentication account.";
+
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            var account = linkedAccount ?? emailAccount;
+            var created = account == null;
+
+            if (account != null)
+            {
+                if (account.Role != AppUserRole.Player ||
+                    (account.PlayerId.HasValue &&
+                     account.PlayerId.Value != id))
+                {
+                    TempData["Error"] =
+                        "Mobile access could not be configured because the email belongs to a different authentication account.";
+
+                    return RedirectToAction(nameof(Details), new { id });
+                }
+
+                account.Email = normalizedEmail;
+                account.NormalizedEmail = normalizedEmail;
+                account.PlayerId = id;
+                account.IsActive = true;
+            }
+            else
+            {
+                account = new AppUser
+                {
+                    Email = normalizedEmail,
+                    NormalizedEmail = normalizedEmail,
+                    Role = AppUserRole.Player,
+                    IsActive = true,
+                    PlayerId = id
+                };
+
+                _context.AppUsers.Add(account);
+            }
+
+            account.PasswordHash =
+                _passwordHasher.HashPassword(
+                    account,
+                    password);
+
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException exception)
+                when (DatabaseConflictClassifier.IsUniqueViolation(
+                    exception,
+                    _context.Database,
+                    "IX_AppUsers_NormalizedEmail"))
+            {
+                TempData["Error"] =
+                    "Mobile access could not be configured because this email is already used by another authentication account.";
+
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            TempData["Success"] = created
+                ? $"Mobile app access was created and activated for {player.Email}."
+                : $"Mobile app password was reset and access activated for {player.Email}.";
+
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        // POST: Players/ToggleMobileAccess/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
+        [EnableRateLimiting("sensitive")]
+        public async Task<IActionResult> ToggleMobileAccess(
+            int id,
+            CancellationToken cancellationToken = default)
+        {
+            var player = await _context.Players
+                .AsNoTracking()
+                .FirstOrDefaultAsync(
+                    item => item.Id == id,
+                    cancellationToken);
+
+            if (player == null)
+            {
+                return NotFound();
+            }
+
+            var account = await _context.AppUsers
+                .FirstOrDefaultAsync(
+                    user =>
+                        user.Role == AppUserRole.Player &&
+                        user.PlayerId == id,
+                    cancellationToken);
+
+            if (account == null)
+            {
+                TempData["Error"] =
+                    "This player does not have a mobile app account yet.";
+
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            if (!account.IsActive &&
+                player.Status != PlayerStatus.Active)
+            {
+                TempData["Error"] =
+                    "Activate the player record before re-activating mobile app access.";
+
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            account.IsActive = !account.IsActive;
+            await _context.SaveChangesAsync(cancellationToken);
+
+            TempData["Success"] = account.IsActive
+                ? $"Mobile app access was activated for {account.Email}."
+                : $"Mobile app access was deactivated for {account.Email}.";
+
+            return RedirectToAction(nameof(Details), new { id });
         }
 
         // GET: Players/Create
