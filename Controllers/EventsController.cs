@@ -13,6 +13,7 @@ namespace SportsManagementMVC.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly NotificationDeliveryService _notificationDelivery;
+        private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<EventsController> _logger;
 
         public EventsController(
@@ -20,6 +21,7 @@ namespace SportsManagementMVC.Controllers
             EmailService emailService,
             IConfiguration configuration,
             ILogger<NotificationDeliveryService> notificationLogger,
+            IServiceScopeFactory scopeFactory,
             ILogger<EventsController> logger)
         {
             _context = context;
@@ -28,6 +30,7 @@ namespace SportsManagementMVC.Controllers
                 emailService,
                 configuration,
                 notificationLogger);
+            _scopeFactory = scopeFactory;
             _logger = logger;
         }
 
@@ -190,7 +193,7 @@ namespace SportsManagementMVC.Controllers
 
                 if (ShouldNotifyEventReminder(previous: null, ev))
                 {
-                    await NotifyEventReminderAsync(ev);
+                    QueueEventReminder(ev);
                 }
 
                 if (IsAjaxRequest())
@@ -256,7 +259,7 @@ namespace SportsManagementMVC.Controllers
 
                 if (shouldNotifyReminder)
                 {
-                    await NotifyEventReminderAsync(ev);
+                    QueueEventReminder(ev);
                 }
 
                 if (IsAjaxRequest())
@@ -345,79 +348,62 @@ namespace SportsManagementMVC.Controllers
                    !string.Equals(previous.Description, current.Description, StringComparison.Ordinal);
         }
 
-        private async Task NotifyEventReminderAsync(Event ev)
+        private void QueueEventReminder(Event ev)
         {
-            try
+            var subject = $"Event reminder: {ev.Title}";
+            var dateText = ev.Date.ToString("dd MMM yyyy");
+            var timeText = ev.Time?.Trim() ?? string.Empty;
+            var locationText = ev.Location?.Trim() ?? string.Empty;
+
+            var scheduleText = $"{dateText} at {timeText}";
+            if (!string.IsNullOrWhiteSpace(locationText))
             {
-                var subject = $"Event reminder: {ev.Title}";
-                var dateText = ev.Date.ToString("dd MMM yyyy");
-                var timeText = ev.Time.Trim();
-                var locationText = ev.Location.Trim();
-
-                var scheduleText = $"{dateText} at {timeText}";
-                if (!string.IsNullOrWhiteSpace(locationText))
-                {
-                    scheduleText += $" at {locationText}";
-                }
-
-                var textBody = ev.Status == EventStatus.Cancelled
-                    ? $"Event cancelled: {ev.Title}, scheduled for {scheduleText}, has been cancelled."
-                    : $"Upcoming event: {ev.Title} is scheduled for {scheduleText}.";
-
-                var encodedTitle =
-                    System.Net.WebUtility.HtmlEncode(ev.Title);
-                var encodedDate =
-                    System.Net.WebUtility.HtmlEncode(dateText);
-                var encodedTime =
-                    System.Net.WebUtility.HtmlEncode(timeText);
-                var encodedLocation =
-                    System.Net.WebUtility.HtmlEncode(locationText);
-                var encodedType =
-                    System.Net.WebUtility.HtmlEncode(ev.Type.ToString());
-
-                var locationHtml = string.IsNullOrWhiteSpace(locationText)
-                    ? string.Empty
-                    : $"<br /><strong>Location:</strong> {encodedLocation}";
-
-                var htmlBody = ev.Status == EventStatus.Cancelled
-                    ? $@"
-                        <p>ParaVolley Mpumalanga event update:</p>
-                        <h3>{encodedTitle}</h3>
-                        <p><strong>Status:</strong> Cancelled<br />
-                        <strong>Date:</strong> {encodedDate}<br />
-                        <strong>Time:</strong> {encodedTime}
-                        {locationHtml}</p>"
-                    : $@"
-                        <p>ParaVolley Mpumalanga event reminder:</p>
-                        <h3>{encodedTitle}</h3>
-                        <p><strong>Type:</strong> {encodedType}<br />
-                        <strong>Date:</strong> {encodedDate}<br />
-                        <strong>Time:</strong> {encodedTime}
-                        {locationHtml}</p>";
-
-                var results = await _notificationDelivery.SendToActivePlayersAsync(
-                    "event_reminders",
-                    subject,
-                    textBody,
-                    htmlBody);
-
-                foreach (var result in results.Where(result => !result.Success))
-                {
-                    _logger.LogWarning(
-                        "Event {EventId} reminder delivery reported: {Message}",
-                        ev.Id,
-                        result.Message);
-                }
+                scheduleText += $" at {locationText}";
             }
-            catch (Exception exception)
-            {
-                // Saving an event must remain successful even if a configured
-                // notification provider or downstream query fails.
-                _logger.LogWarning(
-                    exception,
-                    "Event {EventId} was saved, but player reminder delivery failed.",
-                    ev.Id);
-            }
+
+            var textBody = ev.Status == EventStatus.Cancelled
+                ? $"Event cancelled: {ev.Title}, scheduled for {scheduleText}, has been cancelled."
+                : $"Upcoming event: {ev.Title} is scheduled for {scheduleText}.";
+
+            var encodedTitle =
+                System.Net.WebUtility.HtmlEncode(ev.Title);
+            var encodedDate =
+                System.Net.WebUtility.HtmlEncode(dateText);
+            var encodedTime =
+                System.Net.WebUtility.HtmlEncode(timeText);
+            var encodedLocation =
+                System.Net.WebUtility.HtmlEncode(locationText);
+            var encodedType =
+                System.Net.WebUtility.HtmlEncode(ev.Type.ToString());
+
+            var locationHtml = string.IsNullOrWhiteSpace(locationText)
+                ? string.Empty
+                : $"<br /><strong>Location:</strong> {encodedLocation}";
+
+            var htmlBody = ev.Status == EventStatus.Cancelled
+                ? $@"
+                    <p>ParaVolley Mpumalanga event update:</p>
+                    <h3>{encodedTitle}</h3>
+                    <p><strong>Status:</strong> Cancelled<br />
+                    <strong>Date:</strong> {encodedDate}<br />
+                    <strong>Time:</strong> {encodedTime}
+                    {locationHtml}</p>"
+                : $@"
+                    <p>ParaVolley Mpumalanga event reminder:</p>
+                    <h3>{encodedTitle}</h3>
+                    <p><strong>Type:</strong> {encodedType}<br />
+                    <strong>Date:</strong> {encodedDate}<br />
+                    <strong>Time:</strong> {encodedTime}
+                    {locationHtml}</p>";
+
+            BackgroundNotificationDispatcher.QueuePlayerNotification(
+                _scopeFactory,
+                _logger,
+                "event_reminders",
+                subject,
+                textBody,
+                htmlBody,
+                $"event {ev.Id} reminder");
         }
 
         private Task<bool> EventExistsAsync(int id) =>
