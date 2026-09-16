@@ -1,12 +1,21 @@
 @model Event
+@{
+    var canManageEvents = User.IsInRole("Admin") || User.IsInRole("Coach");
+    var registrations = ViewBag.EventRegistrations as List<EventRegistration> ?? new List<EventRegistration>();
+    var activeRegistrations = registrations
+        .Where(r => r.Status == EventRegistrationStatus.Registered)
+        .ToList();
+}
 
 <div class="modal-header">
     <h5 class="modal-title fw-bold">Event Details</h5>
     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
 </div>
+
 <div class="modal-body">
     <h4 class="fw-bold mb-3">@Model.Title</h4>
     <p class="text-muted">@Model.Description</p>
+
     <dl class="row mb-0">
         <dt class="col-sm-4 text-muted">Type</dt>
         <dd class="col-sm-8">@Model.Type</dd>
@@ -23,8 +32,68 @@
         <dt class="col-sm-4 text-muted">Participants</dt>
         <dd class="col-sm-8">@Model.Participants</dd>
     </dl>
+
+    @if (canManageEvents)
+    {
+        <div class="mt-4 pt-4 border-top">
+            <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+                <div>
+                    <h6 class="fw-bold mb-1">Player Registrations</h6>
+                    <div class="text-muted small">Mobile app registrations for this event.</div>
+                </div>
+                <span class="badge bg-success">@activeRegistrations.Count registered</span>
+            </div>
+
+            @if (!registrations.Any())
+            {
+                <div class="alert alert-light border mb-0">
+                    <i class="bi bi-people me-2"></i>No players have registered for this event yet.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Player</th>
+                                <th>Email</th>
+                                <th>Team</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var registration in registrations)
+                            {
+                                <tr>
+                                    <td class="fw-semibold">@registration.Player.Name</td>
+                                    <td>@registration.Player.Email</td>
+                                    <td>@registration.Player.Team</td>
+                                    <td>
+                                        @if (registration.Status == EventRegistrationStatus.Registered)
+                                        {
+                                            <span class="badge bg-success">Registered</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">Cancelled</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    }
 </div>
+
 <div class="modal-footer">
-    @if (User.IsInRole("Admin") || (User.IsInRole("Coach") && Model.Type == EventType.Practice)) { <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-pv js-modal-trigger"><i class="bi bi-pencil"></i> Edit</a><a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-outline-danger js-modal-trigger"><i class="bi bi-trash"></i> Delete</a> }
+    @if (User.IsInRole("Admin") || (User.IsInRole("Coach") && Model.Type == EventType.Practice))
+    {
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-pv js-modal-trigger"><i class="bi bi-pencil"></i> Edit</a>
+        <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-outline-danger js-modal-trigger"><i class="bi bi-trash"></i> Delete</a>
+    }
     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
 </div>
