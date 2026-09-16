@@ -14,6 +14,7 @@ namespace SportsManagementMVC.Controllers
         private readonly ApplicationDbContext _context;
         private readonly EmailService _emailService;
         private readonly NotificationDeliveryService _notificationDelivery;
+        private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<AnnouncementsController> _logger;
 
         public AnnouncementsController(
@@ -21,6 +22,7 @@ namespace SportsManagementMVC.Controllers
             EmailService emailService,
             IConfiguration configuration,
             ILogger<NotificationDeliveryService> notificationLogger,
+            IServiceScopeFactory scopeFactory,
             ILogger<AnnouncementsController> logger)
         {
             _context = context;
@@ -30,6 +32,7 @@ namespace SportsManagementMVC.Controllers
                 emailService,
                 configuration,
                 notificationLogger);
+            _scopeFactory = scopeFactory;
             _logger = logger;
         }
 
@@ -254,13 +257,7 @@ namespace SportsManagementMVC.Controllers
                 await _context.SaveChangesAsync();
                 TempData["Success"] = $"Announcement \"{announcement.Title}\" was published.";
 
-                // Public newsletter subscriptions stay independent from the
-                // Admin notification-preference switches.
-                await NotifySubscribersAsync(announcement);
-
-                // Deliver the system-level announcement notification to active
-                // players according to Settings -> Notifications.
-                await NotifyPlayersAsync(announcement);
+                QueueAnnouncementNotifications(announcement);
 
                 if (IsAjaxRequest())
                 {
@@ -276,71 +273,51 @@ namespace SportsManagementMVC.Controllers
             return View(announcement);
         }
 
-        private async Task NotifySubscribersAsync(Announcement announcement)
+        private void QueueAnnouncementNotifications(Announcement announcement)
         {
-            var subscribers = await _context.Subscribers.ToListAsync();
+            var category = announcement.Category
+                .ToString()
+                .ToLowerInvariant();
+
             var subject = $"New announcement: {announcement.Title}";
-            var body = $@"
+            var encodedTitle =
+                System.Net.WebUtility.HtmlEncode(announcement.Title);
+            var encodedExcerpt =
+                System.Net.WebUtility.HtmlEncode(announcement.Excerpt);
+            var encodedCategory =
+                System.Net.WebUtility.HtmlEncode(category);
+
+            var subscriberBody = $@"
                 <p>Hi there,</p>
-                <p>ParaVolley Mpumalanga just published a new {announcement.Category.ToString().ToLower()}:</p>
-                <h3>{announcement.Title}</h3>
-                <p>{announcement.Excerpt}</p>
+                <p>ParaVolley Mpumalanga just published a new {encodedCategory}:</p>
+                <h3>{encodedTitle}</h3>
+                <p>{encodedExcerpt}</p>
                 <p><em>You're receiving this because you subscribed to News &amp; Announcements updates.</em></p>";
 
-            foreach (var sub in subscribers)
-            {
-                await _emailService.SendAsync(sub.Email, subject, body);
-            }
-        }
+            BackgroundNotificationDispatcher.QueueSubscriberBroadcast(
+                _scopeFactory,
+                _logger,
+                subject,
+                subscriberBody,
+                $"announcement {announcement.Id} subscribers");
 
-        private async Task NotifyPlayersAsync(Announcement announcement)
-        {
-            try
-            {
-                var category = announcement.Category
-                    .ToString()
-                    .ToLowerInvariant();
+            var textBody =
+                $"ParaVolley Mpumalanga published a new {category}: " +
+                $"{announcement.Title}. {announcement.Excerpt}";
 
-                var subject = $"New announcement: {announcement.Title}";
-                var textBody =
-                    $"ParaVolley Mpumalanga published a new {category}: " +
-                    $"{announcement.Title}. {announcement.Excerpt}";
+            var playerHtmlBody = $@"
+                <p>ParaVolley Mpumalanga published a new {encodedCategory}.</p>
+                <h3>{encodedTitle}</h3>
+                <p>{encodedExcerpt}</p>";
 
-                var encodedTitle =
-                    System.Net.WebUtility.HtmlEncode(announcement.Title);
-                var encodedExcerpt =
-                    System.Net.WebUtility.HtmlEncode(announcement.Excerpt);
-                var encodedCategory =
-                    System.Net.WebUtility.HtmlEncode(category);
-
-                var htmlBody = $@"
-                    <p>ParaVolley Mpumalanga published a new {encodedCategory}.</p>
-                    <h3>{encodedTitle}</h3>
-                    <p>{encodedExcerpt}</p>";
-
-                var results = await _notificationDelivery.SendToActivePlayersAsync(
-                    "announcement",
-                    subject,
-                    textBody,
-                    htmlBody);
-
-                foreach (var result in results.Where(result => !result.Success))
-                {
-                    _logger.LogWarning(
-                        "Announcement {AnnouncementId} notification delivery reported: {Message}",
-                        announcement.Id,
-                        result.Message);
-                }
-            }
-            catch (Exception exception)
-            {
-                // Publishing an announcement must remain successful even if a
-                // configured notification provider or downstream query fails.
-                _logger.LogWarning(
-                    exception,
-                    "Announcement {AnnouncementId} was published, but player notification delivery failed.",
-                    announcement.Id);
-            }
+            BackgroundNotificationDispatcher.QueuePlayerNotification(
+                _scopeFactory,
+                _logger,
+                "announcement",
+                subject,
+                textBody,
+                playerHtmlBody,
+                $"announcement {announcement.Id} players");
         }
 
         // POST: Announcements/Subscribe
@@ -379,14 +356,16 @@ namespace SportsManagementMVC.Controllers
             });
             await _context.SaveChangesAsync();
 
-            var sent = await _emailService.SendAsync(
+            BackgroundNotificationDispatcher.QueueEmail(
+                _scopeFactory,
+                _logger,
                 email,
                 "You're subscribed to ParaVolley Mpumalanga News",
-                "<p>Thanks for subscribing!</p><p>You'll now receive an email every time we publish a new announcement, event, or news update.</p>");
+                "<p>Thanks for subscribing!</p><p>You'll now receive an email every time we publish a new announcement, event, or news update.</p>",
+                $"subscriber confirmation {email}");
 
-            TempData["Success"] = sent
-                ? "Subscribed successfully. Check your inbox for a confirmation email."
-                : "Subscribed successfully.";
+            TempData["Success"] =
+                "Subscribed successfully. A confirmation email is being sent.";
 
             return RedirectToAction(nameof(Index));
         }
