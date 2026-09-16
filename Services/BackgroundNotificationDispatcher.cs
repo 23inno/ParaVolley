@@ -3,107 +3,116 @@ using SportsManagementMVC.Data;
 
 namespace SportsManagementMVC.Services;
 
-public sealed class BackgroundNotificationDispatcher
+public static class BackgroundNotificationDispatcher
 {
-    private readonly IServiceScopeFactory _scopeFactory;
-    private readonly ILogger<BackgroundNotificationDispatcher> _logger;
-
-    public BackgroundNotificationDispatcher(
+    public static void QueuePlayerNotification(
         IServiceScopeFactory scopeFactory,
-        ILogger<BackgroundNotificationDispatcher> logger)
-    {
-        _scopeFactory = scopeFactory;
-        _logger = logger;
-    }
-
-    public void QueuePlayerNotification(
+        ILogger logger,
         string eventKey,
         string subject,
         string textBody,
         string? htmlBody = null,
         string? context = null)
     {
-        Queue(async services =>
-        {
-            var delivery =
-                services.GetRequiredService<NotificationDeliveryService>();
-
-            var results = await delivery.SendToActivePlayersAsync(
-                eventKey,
-                subject,
-                textBody,
-                htmlBody);
-
-            foreach (var result in results.Where(result => !result.Success))
+        Queue(
+            scopeFactory,
+            logger,
+            async services =>
             {
-                _logger.LogWarning(
-                    "Background notification {Context} reported: {Message}",
-                    context ?? eventKey,
-                    result.Message);
-            }
-        }, context ?? eventKey);
+                var delivery =
+                    services.GetRequiredService<NotificationDeliveryService>();
+
+                var results = await delivery.SendToActivePlayersAsync(
+                    eventKey,
+                    subject,
+                    textBody,
+                    htmlBody);
+
+                foreach (var result in results.Where(result => !result.Success))
+                {
+                    logger.LogWarning(
+                        "Background notification {Context} reported: {Message}",
+                        context ?? eventKey,
+                        result.Message);
+                }
+            },
+            context ?? eventKey);
     }
 
-    public void QueueSubscriberBroadcast(
+    public static void QueueSubscriberBroadcast(
+        IServiceScopeFactory scopeFactory,
+        ILogger logger,
         string subject,
         string bodyHtml,
         string context)
     {
-        Queue(async services =>
-        {
-            var db = services.GetRequiredService<ApplicationDbContext>();
-            var emailService = services.GetRequiredService<EmailService>();
-
-            var emails = await db.Subscribers
-                .AsNoTracking()
-                .Select(subscriber => subscriber.Email)
-                .Where(email => email != "")
-                .Distinct()
-                .ToListAsync();
-
-            foreach (var email in emails)
+        Queue(
+            scopeFactory,
+            logger,
+            async services =>
             {
-                var sent = await emailService.SendAsync(
-                    email,
-                    subject,
-                    bodyHtml);
+                var db = services.GetRequiredService<ApplicationDbContext>();
+                var emailService = services.GetRequiredService<EmailService>();
 
-                if (!sent)
+                var emails = await db.Subscribers
+                    .AsNoTracking()
+                    .Select(subscriber => subscriber.Email)
+                    .Where(email => email != "")
+                    .Distinct()
+                    .ToListAsync();
+
+                foreach (var email in emails)
                 {
-                    _logger.LogWarning(
-                        "Background subscriber email {Context} was not accepted for {Email}.",
-                        context,
-                        email);
+                    var sent = await emailService.SendAsync(
+                        email,
+                        subject,
+                        bodyHtml);
+
+                    if (!sent)
+                    {
+                        logger.LogWarning(
+                            "Background subscriber email {Context} was not accepted for {Email}.",
+                            context,
+                            email);
+                    }
                 }
-            }
-        }, context);
+            },
+            context);
     }
 
-    public void QueueEmail(
+    public static void QueueEmail(
+        IServiceScopeFactory scopeFactory,
+        ILogger logger,
         string toEmail,
         string subject,
         string bodyHtml,
         string context)
     {
-        Queue(async services =>
-        {
-            var emailService = services.GetRequiredService<EmailService>();
-            var sent = await emailService.SendAsync(
-                toEmail,
-                subject,
-                bodyHtml);
-
-            if (!sent)
+        Queue(
+            scopeFactory,
+            logger,
+            async services =>
             {
-                _logger.LogWarning(
-                    "Background email {Context} was not accepted for {Email}.",
-                    context,
-                    toEmail);
-            }
-        }, context);
+                var emailService = services.GetRequiredService<EmailService>();
+                var sent = await emailService.SendAsync(
+                    toEmail,
+                    subject,
+                    bodyHtml);
+
+                if (!sent)
+                {
+                    logger.LogWarning(
+                        "Background email {Context} was not accepted for {Email}.",
+                        context,
+                        toEmail);
+                }
+            },
+            context);
     }
 
-    private void Queue(
+    private static void Queue(
+        IServiceScopeFactory scopeFactory,
+        ILogger logger,
         Func<IServiceProvider, Task> work,
         string context)
     {
@@ -111,12 +120,12 @@ public sealed class BackgroundNotificationDispatcher
         {
             try
             {
-                using var scope = _scopeFactory.CreateScope();
+                using var scope = scopeFactory.CreateScope();
                 await work(scope.ServiceProvider);
             }
             catch (Exception exception)
             {
-                _logger.LogWarning(
+                logger.LogWarning(
                     exception,
                     "Background notification task {Context} failed.",
                     context);
