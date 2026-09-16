@@ -13,6 +13,7 @@ namespace SportsManagementMVC.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly NotificationDeliveryService _notificationDelivery;
+        private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<MatchesController> _logger;
 
         public MatchesController(
@@ -20,6 +21,7 @@ namespace SportsManagementMVC.Controllers
             EmailService emailService,
             IConfiguration configuration,
             ILogger<NotificationDeliveryService> notificationLogger,
+            IServiceScopeFactory scopeFactory,
             ILogger<MatchesController> logger)
         {
             _context = context;
@@ -28,6 +30,7 @@ namespace SportsManagementMVC.Controllers
                 emailService,
                 configuration,
                 notificationLogger);
+            _scopeFactory = scopeFactory;
             _logger = logger;
         }
 
@@ -217,7 +220,7 @@ namespace SportsManagementMVC.Controllers
 
                 if (ShouldNotifyMatchResult(previous: null, match))
                 {
-                    await NotifyMatchResultAsync(match);
+                    QueueMatchResult(match);
                 }
 
                 if (IsAjaxRequest())
@@ -286,7 +289,7 @@ namespace SportsManagementMVC.Controllers
 
                 if (shouldNotifyResult)
                 {
-                    await NotifyMatchResultAsync(match);
+                    QueueMatchResult(match);
                 }
 
                 if (IsAjaxRequest())
@@ -368,82 +371,65 @@ namespace SportsManagementMVC.Controllers
             match.ScoreA.HasValue &&
             match.ScoreB.HasValue;
 
-        private async Task NotifyMatchResultAsync(Match match)
+        private void QueueMatchResult(Match match)
         {
-            try
+            var score = $"{match.ScoreA}-{match.ScoreB}";
+            var subject =
+                $"Match result: {match.TeamA} {score} {match.TeamB}";
+
+            var contextParts = new List<string>();
+            if (!string.IsNullOrWhiteSpace(match.Tournament))
             {
-                var score = $"{match.ScoreA}-{match.ScoreB}";
-                var subject =
-                    $"Match result: {match.TeamA} {score} {match.TeamB}";
-
-                var contextParts = new List<string>();
-                if (!string.IsNullOrWhiteSpace(match.Tournament))
-                {
-                    contextParts.Add(match.Tournament.Trim());
-                }
-                if (!string.IsNullOrWhiteSpace(match.Venue))
-                {
-                    contextParts.Add(match.Venue.Trim());
-                }
-
-                var contextText = contextParts.Count == 0
-                    ? string.Empty
-                    : $" ({string.Join(" - ", contextParts)})";
-
-                var textBody =
-                    $"Final result: {match.TeamA} {score} {match.TeamB}{contextText}.";
-
-                var encodedTeamA =
-                    System.Net.WebUtility.HtmlEncode(match.TeamA);
-                var encodedTeamB =
-                    System.Net.WebUtility.HtmlEncode(match.TeamB);
-                var encodedTournament =
-                    System.Net.WebUtility.HtmlEncode(match.Tournament ?? string.Empty);
-                var encodedVenue =
-                    System.Net.WebUtility.HtmlEncode(match.Venue ?? string.Empty);
-
-                var details = new List<string>();
-                if (!string.IsNullOrWhiteSpace(match.Tournament))
-                {
-                    details.Add($"<strong>Tournament:</strong> {encodedTournament}");
-                }
-                if (!string.IsNullOrWhiteSpace(match.Venue))
-                {
-                    details.Add($"<strong>Venue:</strong> {encodedVenue}");
-                }
-
-                var htmlDetails = details.Count == 0
-                    ? string.Empty
-                    : $"<p>{string.Join("<br />", details)}</p>";
-
-                var htmlBody = $@"
-                    <p>ParaVolley Mpumalanga match result:</p>
-                    <h3>{encodedTeamA} {score} {encodedTeamB}</h3>
-                    {htmlDetails}";
-
-                var results = await _notificationDelivery.SendToActivePlayersAsync(
-                    "match_results",
-                    subject,
-                    textBody,
-                    htmlBody);
-
-                foreach (var result in results.Where(result => !result.Success))
-                {
-                    _logger.LogWarning(
-                        "Match {MatchId} result notification delivery reported: {Message}",
-                        match.Id,
-                        result.Message);
-                }
+                contextParts.Add(match.Tournament.Trim());
             }
-            catch (Exception exception)
+            if (!string.IsNullOrWhiteSpace(match.Venue))
             {
-                // Saving the match result must remain successful even if a
-                // configured notification provider or downstream query fails.
-                _logger.LogWarning(
-                    exception,
-                    "Match {MatchId} result was saved, but player notification delivery failed.",
-                    match.Id);
+                contextParts.Add(match.Venue.Trim());
             }
+
+            var contextText = contextParts.Count == 0
+                ? string.Empty
+                : $" ({string.Join(" - ", contextParts)})";
+
+            var textBody =
+                $"Final result: {match.TeamA} {score} {match.TeamB}{contextText}.";
+
+            var encodedTeamA =
+                System.Net.WebUtility.HtmlEncode(match.TeamA);
+            var encodedTeamB =
+                System.Net.WebUtility.HtmlEncode(match.TeamB);
+            var encodedTournament =
+                System.Net.WebUtility.HtmlEncode(match.Tournament ?? string.Empty);
+            var encodedVenue =
+                System.Net.WebUtility.HtmlEncode(match.Venue ?? string.Empty);
+
+            var details = new List<string>();
+            if (!string.IsNullOrWhiteSpace(match.Tournament))
+            {
+                details.Add($"<strong>Tournament:</strong> {encodedTournament}");
+            }
+            if (!string.IsNullOrWhiteSpace(match.Venue))
+            {
+                details.Add($"<strong>Venue:</strong> {encodedVenue}");
+            }
+
+            var htmlDetails = details.Count == 0
+                ? string.Empty
+                : $"<p>{string.Join("<br />", details)}</p>";
+
+            var htmlBody = $@"
+                <p>ParaVolley Mpumalanga match result:</p>
+                <h3>{encodedTeamA} {score} {encodedTeamB}</h3>
+                {htmlDetails}";
+
+            BackgroundNotificationDispatcher.QueuePlayerNotification(
+                _scopeFactory,
+                _logger,
+                "match_results",
+                subject,
+                textBody,
+                htmlBody,
+                $"match {match.Id} result");
         }
 
         private Task<bool> MatchExistsAsync(int id) =>
