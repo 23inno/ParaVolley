@@ -110,17 +110,43 @@ namespace SportsManagementMVC.Controllers
 
         // GET: Events/Details/5
         [AllowAnonymous]
-        public async Task<IActionResult> Details(int? id)
+        public async Task<IActionResult> Details(
+            int? id,
+            CancellationToken cancellationToken = default)
         {
             if (id == null) return NotFound();
 
-            var ev = await _context.Events.FirstOrDefaultAsync(e => e.Id == id);
+            var ev = await _context.Events
+                .AsNoTracking()
+                .FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
+
             if (ev == null) return NotFound();
+
+            var canManageEvents =
+                User.IsInRole(nameof(AppUserRole.Admin)) ||
+                User.IsInRole(nameof(AppUserRole.Coach));
+
+            if (canManageEvents)
+            {
+                ViewBag.EventRegistrations =
+                    await _context.EventRegistrations
+                        .AsNoTracking()
+                        .Include(registration => registration.Player)
+                        .Where(registration => registration.EventId == id.Value)
+                        .OrderBy(registration => registration.Status)
+                        .ThenBy(registration => registration.Player.Name)
+                        .ToListAsync(cancellationToken);
+            }
+            else
+            {
+                ViewBag.EventRegistrations = new List<EventRegistration>();
+            }
 
             if (IsAjaxRequest())
             {
                 return PartialView("_DetailsPartial", ev);
             }
+
             return View(ev);
         }
 
