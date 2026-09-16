@@ -21,6 +21,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.paravolley.mobile.network.SessionEvents
 import com.paravolley.mobile.network.SessionManager
+import com.paravolley.mobile.notifications.NotificationRouter
 import com.paravolley.mobile.screens.DashboardScreen
 import com.paravolley.mobile.screens.EventsScreen
 import com.paravolley.mobile.screens.LoginScreen
@@ -32,7 +33,10 @@ import com.paravolley.mobile.screens.ScannerScreen
 import kotlinx.coroutines.delay
 
 @Composable
-fun ParaVolleyApp() {
+fun ParaVolleyApp(
+    notificationRoute: String? = null,
+    onNotificationRouteConsumed: () -> Unit = {}
+) {
     val navController = rememberNavController()
     val context = LocalContext.current
     val sessionManager = SessionManager(
@@ -54,6 +58,23 @@ fun ParaVolleyApp() {
         }
     }
 
+    LaunchedEffect(notificationRoute) {
+        val destination = notificationRoute
+
+        if (
+            NotificationRouter.isSupportedDestination(
+                destination
+            ) &&
+            sessionManager.hasValidPlayerSession()
+        ) {
+            navController.navigate(destination!!) {
+                launchSingleTop = true
+            }
+
+            onNotificationRouteConsumed()
+        }
+    }
+
     val navigateFromBottomBar: (String) -> Unit = { route ->
         navController.navigate(route) {
             popUpTo(Routes.DASHBOARD) {
@@ -72,6 +93,15 @@ fun ParaVolleyApp() {
         composable(Routes.LOGIN) {
             LoginScreen(
                 onLoginSuccessful = {
+                    val pendingDestination =
+                        notificationRoute
+                            ?.takeIf {
+                                NotificationRouter
+                                    .isSupportedDestination(
+                                        it
+                                    )
+                            }
+
                     navController.navigate(
                         Routes.DASHBOARD
                     ) {
@@ -80,6 +110,21 @@ fun ParaVolleyApp() {
                         }
 
                         launchSingleTop = true
+                    }
+
+                    if (
+                        pendingDestination != null &&
+                        pendingDestination != Routes.DASHBOARD
+                    ) {
+                        navController.navigate(
+                            pendingDestination
+                        ) {
+                            launchSingleTop = true
+                        }
+                    }
+
+                    if (pendingDestination != null) {
+                        onNotificationRouteConsumed()
                     }
                 },
                 onRegister = {
