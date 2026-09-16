@@ -1,29 +1,16 @@
 package com.paravolley.mobile.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -38,26 +25,12 @@ fun ProfileScreen(
     onNavigate: (String) -> Unit,
     onLogout: () -> Unit
 ) {
-    val player =
-        FakePlayerRepository.currentPlayer
+    val player = FakePlayerRepository.currentPlayer.value
+    var isEditing by rememberSaveable { mutableStateOf(false) }
 
-    var editing by rememberSaveable {
-        mutableStateOf(false)
-    }
-
-    var location by rememberSaveable {
-        mutableStateOf(player.location)
-    }
-
-    var phone by rememberSaveable {
-        mutableStateOf(player.phone)
-    }
-
-    var emergencyPhone by rememberSaveable {
-        mutableStateOf(
-            player.emergencyContactPhone
-        )
-    }
+    var location by rememberSaveable { mutableStateOf(player.location) }
+    var phone by rememberSaveable { mutableStateOf(player.phone) }
+    var emergencyPhone by rememberSaveable { mutableStateOf(player.emergencyContactPhone) }
 
     Scaffold(
         containerColor = AppColors.LightBackground,
@@ -70,215 +43,184 @@ fun ProfileScreen(
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier.padding(innerPadding),
-            contentPadding = PaddingValues(
-                bottom = 24.dp
-            )
+            contentPadding = PaddingValues(bottom = 24.dp)
         ) {
+            // Athlete Profile Hero
             item {
-                Column(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(AppColors.DarkGreen)
-                        .padding(24.dp),
-                    horizontalAlignment =
-                        Alignment.CenterHorizontally
+                        .padding(vertical = 32.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .background(
-                                color = Color.White,
-                                shape = CircleShape
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Box(
+                            modifier = Modifier
+                                .size(76.dp)
+                                .clip(CircleShape)
+                                .background(AppColors.Yellow),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "${player.firstName.first()}${player.surname.first()}",
+                                color = AppColors.DarkText,
+                                fontWeight = FontWeight.Black,
+                                fontSize = 28.sp
                             )
-                            .padding(24.dp),
-                        contentAlignment =
-                            Alignment.Center
-                    ) {
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
                         Text(
-                            text = player.firstName
-                                .first()
-                                .toString(),
-                            color = AppColors.DarkGreen,
+                            text = player.fullName,
+                            color = Color.White,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 22.sp
+                        )
+
+                        Text(
+                            text = "${player.playerNumber} • ${player.position}",
+                            color = AppColors.Yellow,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 28.sp
+                            fontSize = 14.sp
+                        )
+
+                        Text(
+                            text = player.classification,
+                            color = Color.White.copy(alpha = 0.85f),
+                            fontSize = 12.sp
                         )
                     }
-
-                    Text(
-                        modifier = Modifier.padding(
-                            top = 12.dp
-                        ),
-                        text = player.fullName,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 25.sp
-                    )
-
-                    Text(
-                        text =
-                            "${player.playerNumber} • ${player.position}",
-                        color = Color.White
-                    )
                 }
             }
 
+            // Athlete Information Card
             item {
                 ProfileSection(
-                    title = "Personal Information",
-                    fields = listOf(
-                        "Age" to
-                                "${player.age} years old",
-                        "Position" to
-                                player.position,
-                        "Classification" to
-                                player.classification,
-                        "Location" to
-                                location
+                    title = "Athlete Classification & Details",
+                    items = listOf(
+                        "World ParaVolley Class" to player.classification,
+                        "Registered Team" to player.team,
+                        "Player Position" to player.position,
+                        "Age" to "${player.age} Years",
+                        "Location" to location,
+                        "Status" to player.status
                     )
                 )
             }
 
+            // Contact Information
             item {
                 ProfileSection(
                     title = "Contact Information",
-                    fields = listOf(
-                        "Email" to player.email,
-                        "Phone" to phone
+                    items = listOf(
+                        "Email Address" to player.email,
+                        "Phone Number" to phone
                     )
                 )
             }
 
+            // Emergency Contact
             item {
                 ProfileSection(
-                    title = "Emergency Contact",
-                    fields = listOf(
-                        "Name" to
-                                player.emergencyContactName,
-                        "Relationship" to
-                                player.emergencyContactRelationship,
-                        "Phone" to
-                                emergencyPhone
+                    title = "Emergency Contact (Next of Kin)",
+                    items = listOf(
+                        "Contact Name" to player.emergencyContactName,
+                        "Relationship" to player.emergencyContactRelationship,
+                        "Emergency Phone" to emergencyPhone
                     )
                 )
             }
 
-            if (editing) {
+            // Inline Edit Mode
+            if (isEditing) {
                 item {
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = Color.White
-                        )
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White)
                     ) {
                         Column(
-                            modifier = Modifier.padding(
-                                16.dp
-                            ),
-                            verticalArrangement =
-                                Arrangement.spacedBy(12.dp)
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Text(
-                                text = "Edit Profile",
-                                color = AppColors.DarkGreen,
+                                text = "Edit Personal Details",
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 20.sp
+                                color = AppColors.DarkGreen,
+                                fontSize = 16.sp
                             )
-
                             OutlinedTextField(
-                                modifier =
-                                    Modifier.fillMaxWidth(),
                                 value = location,
-                                onValueChange = {
-                                    location = it
-                                },
-                                label = {
-                                    Text("Location")
-                                },
-                                singleLine = true
+                                onValueChange = { location = it },
+                                label = { Text("Location") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
                             )
-
                             OutlinedTextField(
-                                modifier =
-                                    Modifier.fillMaxWidth(),
                                 value = phone,
-                                onValueChange = {
-                                    phone = it
-                                },
-                                label = {
-                                    Text("Phone")
-                                },
-                                singleLine = true
+                                onValueChange = { phone = it },
+                                label = { Text("Phone") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
                             )
-
                             OutlinedTextField(
-                                modifier =
-                                    Modifier.fillMaxWidth(),
                                 value = emergencyPhone,
-                                onValueChange = {
-                                    emergencyPhone = it
-                                },
-                                label = {
-                                    Text(
-                                        "Emergency phone"
-                                    )
-                                },
-                                singleLine = true
+                                onValueChange = { emergencyPhone = it },
+                                label = { Text("Emergency Phone") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
                             )
-
                             Button(
-                                modifier =
-                                    Modifier.fillMaxWidth(),
-                                onClick = {
-                                    editing = false
-                                },
-                                colors =
-                                    ButtonDefaults.buttonColors(
-                                        containerColor =
-                                            AppColors.Yellow,
-                                        contentColor =
-                                            AppColors.DarkText
-                                    )
+                                onClick = { isEditing = false },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = AppColors.Yellow,
+                                    contentColor = AppColors.DarkText
+                                )
                             ) {
-                                Text("Save Changes")
+                                Text("Save Profile Updates", fontWeight = FontWeight.Bold)
                             }
                         }
                     }
                 }
             } else {
                 item {
-                    Button(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(
-                                start = 16.dp,
-                                end = 16.dp,
-                                top = 8.dp
-                            ),
-                        onClick = {
-                            editing = true
-                        },
-                        colors =
-                            ButtonDefaults.buttonColors(
-                                containerColor =
-                                    AppColors.Yellow,
-                                contentColor =
-                                    AppColors.DarkText
+                    Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
+                        Button(
+                            onClick = { isEditing = true },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(46.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = AppColors.LightGreen,
+                                contentColor = AppColors.DarkGreen
                             )
-                    ) {
-                        Text("Edit Profile")
+                        ) {
+                            Text("Edit Contact Details", fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
 
+            // Sign Out Button
             item {
-                OutlinedButton(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    onClick = onLogout
-                ) {
-                    Text("Logout")
+                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+                    OutlinedButton(
+                        onClick = onLogout,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(46.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = AppColors.DangerRed)
+                    ) {
+                        Text("Sign Out", fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
@@ -288,43 +230,36 @@ fun ProfileScreen(
 @Composable
 private fun ProfileSection(
     title: String,
-    fields: List<Pair<String, String>>
+    items: List<Pair<String, String>>
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(
-                horizontal = 16.dp,
-                vertical = 8.dp
-            ),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        )
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement =
-                Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(
                 text = title,
-                color = AppColors.DarkGreen,
                 fontWeight = FontWeight.Bold,
-                fontSize = 19.sp
+                color = AppColors.DarkGreen,
+                fontSize = 15.sp
             )
 
-            fields.forEach { field ->
-                Column {
-                    Text(
-                        text = field.first,
-                        color = AppColors.GreyText
-                    )
-
-                    Text(
-                        text = field.second,
-                        fontWeight = FontWeight.Medium
-                    )
+            items.forEach { (label, value) ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(text = label, color = AppColors.GreyText, fontSize = 12.sp)
+                    Text(text = value, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
                 }
+                Divider(color = AppColors.Border.copy(alpha = 0.5f))
             }
         }
     }
