@@ -10,7 +10,7 @@ fun String.asBuildConfigString(): String =
         "\""
 
 val debugApiBaseUrl = providers
-    .gradleProperty("PARAVOLLEY_API_BASE_URL")
+    .gradleProperty("PARAVOLLEY_DEBUG_API_BASE_URL")
     .orNull
     ?.trim()
     ?.let { value ->
