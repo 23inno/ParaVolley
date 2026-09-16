@@ -1,21 +1,27 @@
 package com.paravolley.mobile
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.mutableStateOf
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.paravolley.mobile.navigation.ParaVolleyApp
 import com.paravolley.mobile.network.RetrofitClient
 import com.paravolley.mobile.network.SessionManager
+import com.paravolley.mobile.notifications.NotificationRouter
 import com.paravolley.mobile.notifications.PushNotifications
 import com.paravolley.mobile.ui.theme.ParaVolleyMobileTheme
 
 class MainActivity : ComponentActivity() {
+
+    private val notificationRoute =
+        mutableStateOf<String?>(null)
 
     override fun onCreate(
         savedInstanceState: Bundle?
@@ -39,15 +45,60 @@ class MainActivity : ComponentActivity() {
             )
         }
 
+        handleNotificationIntent(intent)
         requestNotificationPermissionIfNeeded()
 
         enableEdgeToEdge()
 
         setContent {
             ParaVolleyMobileTheme {
-                ParaVolleyApp()
+                ParaVolleyApp(
+                    notificationRoute =
+                        notificationRoute.value,
+                    onNotificationRouteConsumed = {
+                        notificationRoute.value = null
+                    }
+                )
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleNotificationIntent(intent)
+    }
+
+    private fun handleNotificationIntent(
+        intent: Intent?
+    ) {
+        val explicitDestination =
+            intent?.getStringExtra(
+                NotificationRouter.EXTRA_DESTINATION
+            )
+
+        val dataTitle =
+            intent?.getStringExtra(
+                NotificationRouter.EXTRA_TITLE
+            )
+
+        val destination =
+            when {
+                NotificationRouter
+                    .isSupportedDestination(
+                        explicitDestination
+                    ) -> explicitDestination
+
+                !dataTitle.isNullOrBlank() ->
+                    NotificationRouter
+                        .destinationForTitle(
+                            dataTitle
+                        )
+
+                else -> null
+            }
+
+        notificationRoute.value = destination
     }
 
     private fun requestNotificationPermissionIfNeeded() {
