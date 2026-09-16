@@ -1,32 +1,23 @@
 package com.paravolley.mobile.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.paravolley.mobile.components.AppBottomBar
-import com.paravolley.mobile.components.EventCard
+import com.paravolley.mobile.components.*
 import com.paravolley.mobile.data.FakePlayerRepository
 import com.paravolley.mobile.navigation.Routes
 import com.paravolley.mobile.ui.theme.AppColors
@@ -36,15 +27,10 @@ fun DashboardScreen(
     onNavigate: (String) -> Unit,
     onOpenNotifications: () -> Unit
 ) {
-    val player = FakePlayerRepository.currentPlayer
-
-    val upcomingEvents =
-        FakePlayerRepository.events.filter {
-            !it.isPast
-        }
-
-    val notificationPreview =
-        FakePlayerRepository.notifications.take(3)
+    val player = FakePlayerRepository.currentPlayer.value
+    val upcomingEvents = FakePlayerRepository.events.filter { !it.isPast }
+    val announcements = FakePlayerRepository.announcements
+    val matches = FakePlayerRepository.recentMatches
 
     Scaffold(
         containerColor = AppColors.LightBackground,
@@ -57,81 +43,189 @@ fun DashboardScreen(
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier.padding(innerPadding),
-            contentPadding = PaddingValues(
-                bottom = 24.dp
-            )
+            contentPadding = PaddingValues(bottom = 24.dp)
         ) {
+            // Header: Athlete Greeting & Notification Bell
             item {
-                Column(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(AppColors.DarkGreen)
-                        .padding(22.dp)
+                        .padding(horizontal = 20.dp, vertical = 24.dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement =
-                            Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column {
-                            Text(
-                                text = "Welcome,",
-                                color = Color.White
-                            )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(52.dp)
+                                    .clip(CircleShape)
+                                    .background(AppColors.Yellow),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "${player.firstName.first()}${player.surname.first()}",
+                                    color = AppColors.DarkText,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 18.sp
+                                )
+                            }
 
-                            Text(
-                                text = player.firstName,
-                                color = Color.White,
-                                fontSize = 28.sp,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Column {
+                                Text(
+                                    text = "Welcome back,",
+                                    color = Color.White.copy(alpha = 0.85f),
+                                    fontSize = 12.sp
+                                )
+                                Text(
+                                    text = player.fullName,
+                                    color = Color.White,
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "${player.team} • ${player.playerNumber}",
+                                    color = AppColors.Yellow,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
                         }
 
-                        Button(
-                            onClick = onOpenNotifications,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = AppColors.Yellow,
-                                contentColor = AppColors.DarkText
-                            )
+                        // Notifications Badge Button
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .clip(CircleShape)
+                                .background(Color.White.copy(alpha = 0.15f))
+                                .clickable(onClick = onOpenNotifications),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Text("2 new")
+                            Text(text = "🔔", fontSize = 18.sp)
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .offset(x = 2.dp, y = (-2).dp)
+                                    .size(16.dp)
+                                    .clip(CircleShape)
+                                    .background(AppColors.Yellow),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "2",
+                                    color = AppColors.DarkText,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                            }
                         }
                     }
                 }
             }
 
+            // Summary Statistics KPI Row
             item {
-                DashboardHeading(
-                    title = "Upcoming Events",
-                    buttonText = "View all",
-                    onButtonClick = {
-                        onNavigate(Routes.EVENTS)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    StatCard(
+                        modifier = Modifier.weight(1f),
+                        title = "Attendance",
+                        value = "${player.attendanceRate.toInt()}%",
+                        iconChar = "📈",
+                        accentColor = AppColors.Green
+                    )
+                    StatCard(
+                        modifier = Modifier.weight(1f),
+                        title = "Registered",
+                        value = "${FakePlayerRepository.events.count { it.isRegistered }}",
+                        iconChar = "🎟️",
+                        accentColor = AppColors.Yellow
+                    )
+                    StatCard(
+                        modifier = Modifier.weight(1f),
+                        title = "Matches",
+                        value = "${player.totalMatches}",
+                        iconChar = "🏐",
+                        accentColor = Color(0xFF3B82F6)
+                    )
+                }
+            }
+
+            // Quick Action Bar
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = AppColors.DarkGreen)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Training Attendance QR",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            )
+                            Text(
+                                text = "Scan session code displayed by coach",
+                                color = Color.White.copy(alpha = 0.8f),
+                                fontSize = 12.sp
+                            )
+                        }
+
+                        Button(
+                            onClick = { onNavigate(Routes.SCANNER) },
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = AppColors.Yellow,
+                                contentColor = AppColors.DarkText
+                            )
+                        ) {
+                            Text(text = "Scan Now", fontWeight = FontWeight.ExtraBold)
+                        }
                     }
+                }
+            }
+
+            // Upcoming Events Section
+            item {
+                SectionHeader(
+                    title = "Upcoming Fixtures & Events",
+                    actionText = "View All",
+                    onActionClick = { onNavigate(Routes.EVENTS) }
                 )
             }
 
             item {
                 LazyRow(
-                    contentPadding = PaddingValues(
-                        horizontal = 16.dp
-                    ),
-                    horizontalArrangement =
-                        Arrangement.spacedBy(12.dp)
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    items(
-                        upcomingEvents.take(3)
-                    ) { event ->
-                        Column(
-                            modifier =
-                                Modifier.fillParentMaxWidth(
-                                    0.88f
-                                )
-                        ) {
+                    items(upcomingEvents.take(4)) { event ->
+                        Box(modifier = Modifier.width(280.dp)) {
                             EventCard(
                                 event = event,
-                                buttonText = "View details",
+                                buttonText = if (event.isRegistered) "✓ Registered" else "Register Participation",
                                 onButtonClick = {
-                                    onNavigate(Routes.EVENTS)
+                                    FakePlayerRepository.toggleRegistration(event.id)
                                 }
                             )
                         }
@@ -139,106 +233,33 @@ fun DashboardScreen(
                 }
             }
 
+            // Announcements & News
             item {
-                Text(
-                    modifier = Modifier.padding(
-                        start = 16.dp,
-                        top = 24.dp,
-                        bottom = 12.dp
-                    ),
-                    text = "Quick Actions",
-                    color = AppColors.DarkGreen,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 21.sp
+                SectionHeader(
+                    title = "Announcements",
+                    actionText = null,
+                    onActionClick = {}
                 )
             }
 
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    horizontalArrangement =
-                        Arrangement.spacedBy(12.dp)
-                ) {
-                    Button(
-                        modifier = Modifier.weight(1f),
-                        onClick = {
-                            onNavigate(Routes.SCANNER)
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = AppColors.Yellow,
-                            contentColor = AppColors.DarkText
-                        )
-                    ) {
-                        Text("Scan QR")
-                    }
-
-                    Button(
-                        modifier = Modifier.weight(1f),
-                        onClick = {
-                            onNavigate(Routes.EVENTS)
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = AppColors.DarkGreen
-                        )
-                    ) {
-                        Text("View events")
-                    }
+            items(announcements) { announcement ->
+                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 5.dp)) {
+                    AnnouncementCard(announcement = announcement)
                 }
             }
 
+            // Recent Matches Section
             item {
-                DashboardHeading(
-                    title = "Notifications",
-                    buttonText = "View all",
-                    onButtonClick = onOpenNotifications
+                SectionHeader(
+                    title = "Team Fixtures & Results",
+                    actionText = null,
+                    onActionClick = {}
                 )
             }
 
-            items(notificationPreview) { notification ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(
-                            horizontal = 16.dp,
-                            vertical = 5.dp
-                        ),
-                    colors = CardDefaults.cardColors(
-                        containerColor =
-                            if (notification.isRead) {
-                                Color.White
-                            } else {
-                                AppColors.UnreadBlue
-                            }
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Text(
-                            text = notification.title,
-                            color = AppColors.DarkGreen,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Spacer(
-                            modifier = Modifier.height(4.dp)
-                        )
-
-                        Text(
-                            text = notification.message
-                        )
-
-                        Spacer(
-                            modifier = Modifier.height(5.dp)
-                        )
-
-                        Text(
-                            text = notification.timeAgo,
-                            color = AppColors.GreyText
-                        )
-                    }
+            items(matches) { match ->
+                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 5.dp)) {
+                    MatchFixtureCard(match = match)
                 }
             }
         }
@@ -246,34 +267,32 @@ fun DashboardScreen(
 }
 
 @Composable
-private fun DashboardHeading(
+private fun SectionHeader(
     title: String,
-    buttonText: String,
-    onButtonClick: () -> Unit
+    actionText: String?,
+    onActionClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(
-                start = 16.dp,
-                end = 8.dp,
-                top = 20.dp,
-                bottom = 8.dp
-            ),
-        horizontalArrangement =
-            Arrangement.SpaceBetween
+            .padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = title,
             color = AppColors.DarkGreen,
-            fontWeight = FontWeight.Bold,
-            fontSize = 21.sp
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = 18.sp
         )
-
-        TextButton(
-            onClick = onButtonClick
-        ) {
-            Text(buttonText)
+        if (actionText != null) {
+            Text(
+                text = actionText,
+                color = AppColors.Green,
+                fontWeight = FontWeight.Bold,
+                fontSize = 13.sp,
+                modifier = Modifier.clickable(onClick = onActionClick)
+            )
         }
     }
 }
