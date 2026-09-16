@@ -3,6 +3,7 @@ package com.paravolley.mobile.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import com.paravolley.mobile.util.DateUtils
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -43,10 +44,16 @@ fun EventsScreen(
         mutableStateListOf<Int>()
     }
 
-    val displayedEvents =
-        FakePlayerRepository.events.filter {
-            it.isPast == showPastEvents
-        }
+       val displayedEvents = FakePlayerRepository.events.filter { event ->
+    // Checks the real-time calendar date rather than a static boolean
+    val isPast = DateUtils.isEventPast(event.date)
+    val matchesPastFilter = (isPast == showPastEvents)
+    
+    val matchesCategory = if (selectedCategory == "All") true 
+                          else event.category.equals(selectedCategory, ignoreCase = true)
+                          
+    matchesPastFilter && matchesCategory
+} 
 
     Scaffold(
         containerColor = AppColors.LightBackground,
