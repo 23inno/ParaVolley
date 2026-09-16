@@ -1,19 +1,19 @@
 package com.paravolley.mobile.components
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -27,102 +27,91 @@ fun AppBottomBar(
 ) {
     Surface(
         color = Color.White,
-        shadowElevation = 8.dp
+        shadowElevation = 12.dp,
+        modifier = Modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(
-                    horizontal = 4.dp,
-                    vertical = 6.dp
-                ),
-            horizontalArrangement =
-                Arrangement.SpaceEvenly
+                .navigationBarsPadding()
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.SpaceAround,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            BottomBarItem(
-                modifier = Modifier.weight(1f),
+            BottomNavItem(
                 label = "Home",
-                symbol = "⌂",
+                iconChar = "🏠",
                 route = Routes.DASHBOARD,
-                selectedRoute = selectedRoute,
-                onNavigate = onNavigate
+                isSelected = selectedRoute == Routes.DASHBOARD,
+                onClick = { onNavigate(Routes.DASHBOARD) }
             )
-
-            BottomBarItem(
-                modifier = Modifier.weight(1f),
+            BottomNavItem(
                 label = "Events",
-                symbol = "▤",
+                iconChar = "📅",
                 route = Routes.EVENTS,
-                selectedRoute = selectedRoute,
-                onNavigate = onNavigate
+                isSelected = selectedRoute == Routes.EVENTS,
+                onClick = { onNavigate(Routes.EVENTS) }
             )
-
-            BottomBarItem(
-                modifier = Modifier.weight(1f),
-                label = "Scan",
-                symbol = "▣",
+            BottomNavItem(
+                label = "Scan QR",
+                iconChar = "📷",
                 route = Routes.SCANNER,
-                selectedRoute = selectedRoute,
-                onNavigate = onNavigate
+                isSelected = selectedRoute == Routes.SCANNER,
+                isScanAction = true,
+                onClick = { onNavigate(Routes.SCANNER) }
             )
-
-            BottomBarItem(
-                modifier = Modifier.weight(1f),
+            BottomNavItem(
                 label = "Profile",
-                symbol = "●",
+                iconChar = "👤",
                 route = Routes.PROFILE,
-                selectedRoute = selectedRoute,
-                onNavigate = onNavigate
+                isSelected = selectedRoute == Routes.PROFILE,
+                onClick = { onNavigate(Routes.PROFILE) }
             )
         }
     }
 }
 
 @Composable
-private fun BottomBarItem(
-    modifier: Modifier,
+private fun BottomNavItem(
     label: String,
-    symbol: String,
+    iconChar: String,
     route: String,
-    selectedRoute: String,
-    onNavigate: (String) -> Unit
+    isSelected: Boolean,
+    isScanAction: Boolean = false,
+    onClick: () -> Unit
 ) {
-    val selected = selectedRoute == route
-
-    TextButton(
-        modifier = modifier.height(64.dp),
-        onClick = {
-            onNavigate(route)
-        },
-        colors = ButtonDefaults.textButtonColors(
-            containerColor =
-                if (selected) {
-                    AppColors.Yellow
-                } else {
-                    Color.Transparent
-                },
-            contentColor = AppColors.DarkGreen
-        )
+    Column(
+        modifier = Modifier
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        Column(
-            horizontalAlignment =
-                Alignment.CenterHorizontally
+        Box(
+            modifier = Modifier
+                .clip(CircleShape)
+                .background(
+                    if (isScanAction) AppColors.Yellow
+                    else if (isSelected) AppColors.LightGreen
+                    else Color.Transparent
+                )
+                .padding(if (isScanAction) 8.dp else 4.dp),
+            contentAlignment = Alignment.Center
         ) {
             Text(
-                text = symbol,
-                fontSize = 18.sp
-            )
-
-            Text(
-                text = label,
-                fontSize = 12.sp,
-                fontWeight =
-                    if (selected) {
-                        FontWeight.Bold
-                    } else {
-                        FontWeight.Normal
-                    }
+                text = iconChar,
+                fontSize = if (isScanAction) 20.sp else 18.sp
             )
         }
+
+        Spacer(modifier = Modifier.height(2.dp))
+
+        Text(
+            text = label,
+            fontSize = 11.sp,
+            color = if (isSelected) AppColors.Green else AppColors.GreyText,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+        )
     }
 }
