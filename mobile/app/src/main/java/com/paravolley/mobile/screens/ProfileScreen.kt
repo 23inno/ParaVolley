@@ -117,12 +117,16 @@ fun ProfileScreen(
     var draftAge by remember { mutableStateOf("") }
     var draftEmail by remember { mutableStateOf("") }
     var draftPhone by remember { mutableStateOf("") }
+    var draftEmergencyName by remember { mutableStateOf("") }
+    var draftEmergencyPhone by remember { mutableStateOf("") }
 
     fun startEditing() {
         val current = player ?: return
         draftAge = current.age.toString()
         draftEmail = current.email
         draftPhone = current.phone
+        draftEmergencyName = current.emergencyContactName
+        draftEmergencyPhone = current.emergencyContactPhone
         actionMessage = null
         isEditing = true
     }
@@ -132,19 +136,20 @@ fun ProfileScreen(
         actionMessage = null
     }
 
-    fun loadProfilePhoto() {
-        scope.launch {
-            playerRepository.getProfilePhoto()
-                .onSuccess { bytes ->
-                    profilePhoto = bytes?.toImageBitmapOrNull()
-                }
-        }
-    }
-
     val photoPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
         if (uri != null) {
+            val preview = runCatching {
+                context.contentResolver.openInputStream(uri)
+                    ?.use { it.readBytes() }
+                    ?.toImageBitmapOrNull()
+            }.getOrNull()
+
+            if (preview != null) {
+                profilePhoto = preview
+            }
+
             scope.launch {
                 isPhotoUploading = true
                 actionMessage = null
@@ -154,8 +159,11 @@ fun ProfileScreen(
                         player = updated
                         playerRepository.getProfilePhoto()
                             .onSuccess { bytes ->
-                                profilePhoto = bytes?.toImageBitmapOrNull()
+                                bytes?.toImageBitmapOrNull()?.let { savedPhoto ->
+                                    profilePhoto = savedPhoto
+                                }
                             }
+
                         Toast.makeText(
                             context,
                             "Profile photo updated.",
@@ -163,8 +171,9 @@ fun ProfileScreen(
                         ).show()
                     }
                     .onFailure { failure ->
-                        actionMessage = failure.message
-                            ?: "Could not upload the profile photo."
+                        actionMessage =
+                            "The photo preview is shown, but it could not be saved. " +
+                                (failure.message ?: "Please try again.")
                     }
 
                 isPhotoUploading = false
@@ -182,6 +191,7 @@ fun ProfileScreen(
         playerResult
             .onSuccess { loaded ->
                 player = loaded
+
                 if (loaded.hasProfilePhoto) {
                     playerRepository.getProfilePhoto()
                         .onSuccess { bytes ->
@@ -207,7 +217,10 @@ fun ProfileScreen(
     Scaffold(
         containerColor = ProfileBackground,
         bottomBar = {
-            AppBottomBar(selectedRoute = Routes.PROFILE, onNavigate = onNavigate)
+            AppBottomBar(
+                selectedRoute = Routes.PROFILE,
+                onNavigate = onNavigate
+            )
         }
     ) { innerPadding ->
         when {
@@ -233,7 +246,9 @@ fun ProfileScreen(
                     color = AppColors.Error,
                     textAlign = TextAlign.Center
                 )
+
                 Spacer(Modifier.size(14.dp))
+
                 OutlinedButton(
                     onClick = {
                         sessionManager.clearSession()
@@ -256,12 +271,16 @@ fun ProfileScreen(
                 draftAge = draftAge,
                 draftEmail = draftEmail,
                 draftPhone = draftPhone,
+                draftEmergencyName = draftEmergencyName,
+                draftEmergencyPhone = draftEmergencyPhone,
                 actionMessage = actionMessage,
                 onEdit = ::startEditing,
                 onCancelEdit = ::cancelEditing,
                 onAgeChange = { draftAge = it.filter(Char::isDigit).take(3) },
                 onEmailChange = { draftEmail = it },
                 onPhoneChange = { draftPhone = it },
+                onEmergencyNameChange = { draftEmergencyName = it.take(120) },
+                onEmergencyPhoneChange = { draftEmergencyPhone = it.take(30) },
                 onPickPhoto = {
                     if (!isPhotoUploading) {
                         photoPicker.launch("image/*")
@@ -272,6 +291,8 @@ fun ProfileScreen(
                     val age = draftAge.toIntOrNull()
                     val email = draftEmail.trim()
                     val phone = draftPhone.trim()
+                    val emergencyName = draftEmergencyName.trim()
+                    val emergencyPhone = draftEmergencyPhone.trim()
 
                     val validationMessage = when {
                         age == null || age !in 5..100 ->
@@ -283,6 +304,12 @@ fun ProfileScreen(
 
                         phone.isBlank() ->
                             "Enter a phone number."
+
+                        emergencyName.isBlank() ->
+                            "Enter the emergency contact's name."
+
+                        emergencyPhone.isBlank() ->
+                            "Enter the emergency contact's phone number."
 
                         else -> null
                     }
@@ -304,7 +331,9 @@ fun ProfileScreen(
                         playerRepository.updateProfile(
                             age = age!!,
                             email = email,
-                            phone = phone
+                            phone = phone,
+                            emergencyContactName = emergencyName,
+                            emergencyContactPhone = emergencyPhone
                         )
                             .onSuccess { updated ->
                                 player = updated
@@ -356,12 +385,16 @@ private fun ProfileContent(
     draftAge: String,
     draftEmail: String,
     draftPhone: String,
+    draftEmergencyName: String,
+    draftEmergencyPhone: String,
     actionMessage: String?,
     onEdit: () -> Unit,
     onCancelEdit: () -> Unit,
     onAgeChange: (String) -> Unit,
     onEmailChange: (String) -> Unit,
     onPhoneChange: (String) -> Unit,
+    onEmergencyNameChange: (String) -> Unit,
+    onEmergencyPhoneChange: (String) -> Unit,
     onPickPhoto: () -> Unit,
     onSave: () -> Unit,
     onLogout: () -> Unit
@@ -377,7 +410,14 @@ private fun ProfileContent(
 
     val total = attendance.size
     val present = attendance.count { it.status.equals("Present", true) }
-    val rate = if (total == 0) 0.0 else present.toDouble() / total.toDouble() * 100.0
+    val rate = if (total == 0) {
+        0.0
+    } else {
+        present.toDouble() / total.toDouble() * 100.0
+    }
+
+    val joinedDate = formatProfileDate(player.joinedDate.orEmpty())
+        .ifBlank { "Not recorded" }
 
     LazyColumn(
         modifier = Modifier
@@ -400,7 +440,7 @@ private fun ProfileContent(
 
         item {
             ProfileStatsRow(
-                attendanceRecords = total,
+                joinedDate = joinedDate,
                 matches = player.matches,
                 attendanceRate = rate
             )
@@ -414,7 +454,10 @@ private fun ProfileContent(
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     color = AppColors.Error.copy(alpha = 0.08f),
                     shape = RoundedCornerShape(10.dp),
-                    border = BorderStroke(1.dp, AppColors.Error.copy(alpha = 0.20f))
+                    border = BorderStroke(
+                        1.dp,
+                        AppColors.Error.copy(alpha = 0.20f)
+                    )
                 ) {
                     Text(
                         modifier = Modifier.padding(12.dp),
@@ -439,10 +482,26 @@ private fun ProfileContent(
                         keyboardType = KeyboardType.Number,
                         onValueChange = onAgeChange
                     ),
-                    ProfileRow(Icons.Filled.SportsVolleyball, "Position", player.position),
-                    ProfileRow(Icons.Filled.Groups, "Team", player.team),
-                    ProfileRow(Icons.Filled.Info, "Classification", player.disability),
-                    ProfileRow(Icons.Filled.CheckCircle, "Status", player.status)
+                    ProfileRow(
+                        Icons.Filled.SportsVolleyball,
+                        "Position",
+                        player.position
+                    ),
+                    ProfileRow(
+                        Icons.Filled.Groups,
+                        "Team",
+                        player.team
+                    ),
+                    ProfileRow(
+                        Icons.Filled.Info,
+                        "Classification",
+                        player.disability
+                    ),
+                    ProfileRow(
+                        Icons.Filled.CheckCircle,
+                        "Status",
+                        player.status
+                    )
                 ),
                 isEditing = isEditing
             )
@@ -475,10 +534,40 @@ private fun ProfileContent(
             )
         }
 
+        item {
+            ProfileInfoCard(
+                title = "Emergency Contact Information",
+                rows = listOf(
+                    ProfileRow(
+                        icon = Icons.Filled.Info,
+                        label = "Contact Name",
+                        value = player.emergencyContactName,
+                        editable = true,
+                        editValue = draftEmergencyName,
+                        keyboardType = KeyboardType.Text,
+                        onValueChange = onEmergencyNameChange
+                    ),
+                    ProfileRow(
+                        icon = Icons.Filled.Phone,
+                        label = "Contact Phone",
+                        value = player.emergencyContactPhone,
+                        editable = true,
+                        editValue = draftEmergencyPhone,
+                        keyboardType = KeyboardType.Phone,
+                        onValueChange = onEmergencyPhoneChange
+                    )
+                ),
+                isEditing = isEditing
+            )
+        }
+
         if (isEditing) {
             item {
                 Column(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    modifier = Modifier.padding(
+                        horizontal = 16.dp,
+                        vertical = 8.dp
+                    ),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text(
@@ -511,7 +600,9 @@ private fun ProfileContent(
                                 modifier = Modifier.size(19.dp)
                             )
                         }
+
                         Spacer(Modifier.width(8.dp))
+
                         Text(
                             if (isSaving) "Saving..." else "Save Changes",
                             fontWeight = FontWeight.SemiBold
@@ -547,7 +638,9 @@ private fun ProfileContent(
             }
 
             attendance.isEmpty() -> item {
-                EmptyAttendanceCard("No attendance records are available yet.")
+                EmptyAttendanceCard(
+                    "No attendance records are available yet."
+                )
             }
 
             else -> items(
@@ -568,7 +661,10 @@ private fun ProfileContent(
                     containerColor = Color.White,
                     contentColor = AppColors.Error
                 ),
-                border = BorderStroke(1.dp, AppColors.Error.copy(alpha = 0.28f)),
+                border = BorderStroke(
+                    1.dp,
+                    AppColors.Error.copy(alpha = 0.28f)
+                ),
                 shape = RoundedCornerShape(12.dp),
                 contentPadding = PaddingValues(vertical = 13.dp)
             ) {
@@ -616,8 +712,16 @@ private fun ProfileHeader(
                 onClick = if (isEditing) onCancelEdit else onEdit
             ) {
                 Icon(
-                    imageVector = if (isEditing) Icons.Filled.Close else Icons.Filled.Edit,
-                    contentDescription = if (isEditing) "Cancel editing" else "Edit profile",
+                    imageVector = if (isEditing) {
+                        Icons.Filled.Close
+                    } else {
+                        Icons.Filled.Edit
+                    },
+                    contentDescription = if (isEditing) {
+                        "Cancel editing"
+                    } else {
+                        "Edit profile"
+                    },
                     tint = Color.White,
                     modifier = Modifier.size(21.dp)
                 )
@@ -629,13 +733,19 @@ private fun ProfileHeader(
         Box(
             modifier = Modifier
                 .size(98.dp)
-                .clickable(enabled = !isPhotoUploading, onClick = onPickPhoto),
+                .clickable(
+                    enabled = !isPhotoUploading,
+                    onClick = onPickPhoto
+                ),
             contentAlignment = Alignment.Center
         ) {
             Box(
                 modifier = Modifier
                     .size(94.dp)
-                    .background(Color.White.copy(alpha = 0.14f), CircleShape),
+                    .background(
+                        Color.White.copy(alpha = 0.14f),
+                        CircleShape
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Box(
@@ -665,7 +775,9 @@ private fun ProfileHeader(
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(Color.Black.copy(alpha = 0.28f)),
+                                .background(
+                                    Color.Black.copy(alpha = 0.28f)
+                                ),
                             contentAlignment = Alignment.Center
                         ) {
                             CircularProgressIndicator(
@@ -719,26 +831,12 @@ private fun ProfileHeader(
             color = Color.White.copy(alpha = 0.80f),
             fontSize = 13.sp
         )
-
-        Surface(
-            modifier = Modifier.padding(top = 10.dp),
-            color = Color.White.copy(alpha = 0.14f),
-            shape = RoundedCornerShape(999.dp)
-        ) {
-            Text(
-                modifier = Modifier.padding(horizontal = 13.dp, vertical = 5.dp),
-                text = player.status.ifBlank { "Player" },
-                color = Color.White,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
     }
 }
 
 @Composable
 private fun ProfileStatsRow(
-    attendanceRecords: Int,
+    joinedDate: String,
     matches: Int,
     attendanceRate: Double
 ) {
@@ -753,12 +851,24 @@ private fun ProfileStatsRow(
                 .padding(vertical = 15.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            ProfileStat("Attendance", attendanceRecords.toString(), Modifier.weight(1f))
-            ProfileStat("Matches", matches.toString(), Modifier.weight(1f))
             ProfileStat(
-                "Rate",
-                String.format(Locale.getDefault(), "%.0f%%", attendanceRate),
-                Modifier.weight(1f)
+                label = "Joined",
+                value = joinedDate,
+                modifier = Modifier.weight(1f)
+            )
+            ProfileStat(
+                label = "Matches",
+                value = matches.toString(),
+                modifier = Modifier.weight(1f)
+            )
+            ProfileStat(
+                label = "Attendance Rate",
+                value = String.format(
+                    Locale.getDefault(),
+                    "%.0f%%",
+                    attendanceRate
+                ),
+                modifier = Modifier.weight(1f)
             )
         }
     }
@@ -771,19 +881,24 @@ private fun ProfileStat(
     modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = modifier,
+        modifier = modifier.padding(horizontal = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
             text = value,
             color = ProfileGreen,
             fontWeight = FontWeight.SemiBold,
-            fontSize = 19.sp
+            fontSize = if (label == "Joined") 13.sp else 19.sp,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
         )
         Text(
             text = label,
             color = ProfileMuted,
-            fontSize = 11.sp
+            fontSize = 10.sp,
+            textAlign = TextAlign.Center,
+            maxLines = 2
         )
     }
 }
@@ -809,9 +924,13 @@ private fun ProfileInfoCard(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
         border = BorderStroke(1.dp, ProfileBorder),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 1.dp
+        )
     ) {
         Column(
             modifier = Modifier.padding(17.dp),
@@ -825,7 +944,10 @@ private fun ProfileInfoCard(
             )
 
             rows.forEach { row ->
-                ProfileInfoRow(row = row, isEditing = isEditing)
+                ProfileInfoRow(
+                    row = row,
+                    isEditing = isEditing
+                )
             }
         }
     }
@@ -840,7 +962,10 @@ private fun ProfileInfoRow(
         Box(
             modifier = Modifier
                 .size(40.dp)
-                .background(Color(0xFFF0F7F3), RoundedCornerShape(10.dp)),
+                .background(
+                    Color(0xFFF0F7F3),
+                    RoundedCornerShape(10.dp)
+                ),
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -914,7 +1039,9 @@ private fun EmptyAttendanceCard(message: String) {
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 5.dp),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
         border = BorderStroke(1.dp, ProfileBorder)
     ) {
         Text(
@@ -935,9 +1062,13 @@ private fun AttendanceCard(attendance: AttendanceResponse) {
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 5.dp),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
         border = BorderStroke(1.dp, ProfileBorder),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 1.dp
+        )
     ) {
         Row(
             modifier = Modifier.padding(14.dp),
@@ -959,7 +1090,11 @@ private fun AttendanceCard(attendance: AttendanceResponse) {
                 Icon(
                     Icons.Filled.CheckCircle,
                     contentDescription = null,
-                    tint = if (present) ProfileGreen else AppColors.Error,
+                    tint = if (present) {
+                        ProfileGreen
+                    } else {
+                        AppColors.Error
+                    },
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -984,7 +1119,11 @@ private fun AttendanceCard(attendance: AttendanceResponse) {
                     )
                     Text(
                         text = attendance.status,
-                        color = if (present) ProfileGreen else AppColors.Error,
+                        color = if (present) {
+                            ProfileGreen
+                        } else {
+                            AppColors.Error
+                        },
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 11.sp
                     )
@@ -994,7 +1133,9 @@ private fun AttendanceCard(attendance: AttendanceResponse) {
                     text = listOf(
                         formatProfileDate(attendance.eventDate),
                         formatProfileTime(attendance.eventTime)
-                    ).filter { it.isNotBlank() }.joinToString(" • "),
+                    )
+                        .filter { it.isNotBlank() }
+                        .joinToString(" • "),
                     color = ProfileMuted,
                     fontSize = 12.sp
                 )
@@ -1027,9 +1168,19 @@ private fun formatProfileDate(raw: String): String {
     if (value.isBlank()) return ""
 
     return try {
-        val isoDate = if (value.length >= 10) value.substring(0, 10) else value
+        val isoDate = if (value.length >= 10) {
+            value.substring(0, 10)
+        } else {
+            value
+        }
+
         LocalDate.parse(isoDate)
-            .format(DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.getDefault()))
+            .format(
+                DateTimeFormatter.ofPattern(
+                    "dd MMM yyyy",
+                    Locale.getDefault()
+                )
+            )
     } catch (_: Exception) {
         value
     }
@@ -1039,7 +1190,10 @@ private fun formatProfileTime(raw: String): String {
     val value = raw.trim()
     if (value.isBlank()) return ""
 
-    val candidate = value.substringBefore(" - ").substringBefore("–").trim()
+    val candidate = value
+        .substringBefore(" - ")
+        .substringBefore("–")
+        .trim()
 
     return try {
         val time = when {
@@ -1052,7 +1206,12 @@ private fun formatProfileTime(raw: String): String {
             else -> return value
         }
 
-        time.format(DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault()))
+        time.format(
+            DateTimeFormatter.ofPattern(
+                "HH:mm",
+                Locale.getDefault()
+            )
+        )
     } catch (_: Exception) {
         value
     }
