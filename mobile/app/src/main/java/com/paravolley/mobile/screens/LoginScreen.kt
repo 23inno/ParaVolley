@@ -1,8 +1,9 @@
 package com.paravolley.mobile.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,11 +16,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
@@ -36,8 +42,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -55,348 +61,227 @@ fun LoginScreen(
     onLoginSuccessful: () -> Unit,
     onRegister: () -> Unit
 ) {
-    var email by rememberSaveable {
-        mutableStateOf("")
-    }
-
-    var password by rememberSaveable {
-        mutableStateOf("")
-    }
-
-    var passwordVisible by rememberSaveable {
-        mutableStateOf(false)
-    }
-
-    var errorMessage by rememberSaveable {
-        mutableStateOf<String?>(null)
-    }
-
-    var isLoading by rememberSaveable {
-        mutableStateOf(false)
-    }
+    var email by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+    var passwordVisible by rememberSaveable { mutableStateOf(false) }
+    var errorMessage by rememberSaveable { mutableStateOf<String?>(null) }
+    var isLoading by rememberSaveable { mutableStateOf(false) }
 
     val context = LocalContext.current
+    val authRepository = remember { AuthRepository() }
+    val sessionManager = remember { SessionManager(context.applicationContext) }
+    val coroutineScope = rememberCoroutineScope()
 
-    val authRepository = remember {
-        AuthRepository()
-    }
-
-    val sessionManager = remember {
-        SessionManager(
-            context.applicationContext
-        )
-    }
-
-    val coroutineScope =
-        rememberCoroutineScope()
-
-    val loginFieldColors =
-        OutlinedTextFieldDefaults.colors(
-            focusedTextColor = AppColors.DarkText,
-            unfocusedTextColor = AppColors.DarkText,
-            disabledTextColor = AppColors.GreyText,
-            cursorColor = AppColors.DarkGreen,
-            focusedLabelColor = AppColors.DarkGreen,
-            unfocusedLabelColor = AppColors.GreyText,
-            disabledLabelColor = AppColors.GreyText,
-            focusedBorderColor = AppColors.DarkGreen,
-            unfocusedBorderColor = AppColors.GreyText,
-            disabledBorderColor = Color.LightGray,
-            focusedTrailingIconColor = AppColors.DarkGreen,
-            unfocusedTrailingIconColor = AppColors.DarkGreen
-        )
+    val fieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = AppColors.DarkText,
+        unfocusedTextColor = AppColors.DarkText,
+        cursorColor = AppColors.Green,
+        focusedBorderColor = AppColors.Green,
+        unfocusedBorderColor = AppColors.Border,
+        focusedLabelColor = AppColors.Green,
+        unfocusedLabelColor = AppColors.GreyText,
+        focusedLeadingIconColor = AppColors.Green,
+        unfocusedLeadingIconColor = Color(0xFF9CA3AF),
+        focusedTrailingIconColor = AppColors.Green,
+        unfocusedTrailingIconColor = Color(0xFF9CA3AF),
+        focusedContainerColor = Color.White,
+        unfocusedContainerColor = Color.White
+    )
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                AppColors.LightBackground
-            )
+            .background(Color.White)
             .safeDrawingPadding()
-            .verticalScroll(
-                rememberScrollState()
-            )
+            .verticalScroll(rememberScrollState())
             .imePadding()
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    AppColors.DarkGreen
-                )
-                .padding(
-                    vertical = 42.dp
-                ),
-            horizontalAlignment =
-                Alignment.CenterHorizontally
+                .background(AppColors.Green)
+                .padding(top = 40.dp, bottom = 30.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Image(
-                painter = painterResource(
-                    id = R.drawable.paravolley_mpumalanga_logo
-                ),
-                contentDescription =
-                    "ParaVolley Mpumalanga logo",
+                painter = painterResource(R.drawable.paravolley_mpumalanga_logo),
+                contentDescription = "ParaVolley Mpumalanga logo",
                 modifier = Modifier
-                    .size(116.dp)
-                    .clip(RoundedCornerShape(16.dp))
+                    .size(96.dp)
+                    .clip(RoundedCornerShape(14.dp))
             )
-
-            Spacer(
-                modifier =
-                    Modifier.height(16.dp)
-            )
-
+            Spacer(Modifier.height(14.dp))
             Text(
-                text =
-                    "ParaVolley Mpumalanga",
+                text = "ParaVolley Mpumalanga",
                 color = Color.White,
-                fontWeight =
-                    FontWeight.Bold,
+                fontWeight = FontWeight.SemiBold,
                 fontSize = 24.sp
+            )
+            Text(
+                modifier = Modifier.padding(top = 4.dp),
+                text = "Player Portal",
+                color = Color.White.copy(alpha = 0.78f),
+                fontSize = 14.sp
             )
         }
 
-        Card(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
-            shape = RoundedCornerShape(20.dp),
-            colors =
-                CardDefaults.cardColors(
-                    containerColor =
-                        Color.White
-                ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 5.dp)
+                .padding(horizontal = 24.dp, vertical = 30.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
-            Column(
-                modifier =
-                    Modifier.padding(
-                        20.dp
-                    ),
-                verticalArrangement =
-                    Arrangement.spacedBy(
-                        14.dp
-                    )
-            ) {
+            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
                 Text(
-                    text = "Player Login",
-                    color =
-                        AppColors.DarkGreen,
-                    fontWeight =
-                        FontWeight.Bold,
-                    fontSize = 22.sp
+                    text = "Welcome back",
+                    color = AppColors.DarkText,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold
                 )
-
                 Text(
-                    text = "Access your training and tournament portal",
-                    color = AppColors.GreyText
+                    text = "Sign in to access your events, attendance and player profile.",
+                    color = AppColors.GreyText,
+                    fontSize = 14.sp
                 )
+            }
 
-                OutlinedTextField(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth(),
-                    value = email,
-                    onValueChange = {
-                        email = it
-                        errorMessage = null
-                    },
-                    label = {
-                        Text("Email")
-                    },
-                    shape = RoundedCornerShape(12.dp),
-                    singleLine = true,
-                    enabled = !isLoading,
-                    colors = loginFieldColors
-                )
+            OutlinedTextField(
+                modifier = Modifier.fillMaxWidth(),
+                value = email,
+                onValueChange = {
+                    email = it
+                    errorMessage = null
+                },
+                enabled = !isLoading,
+                label = { Text("Email or Username") },
+                placeholder = { Text("Enter your email") },
+                leadingIcon = {
+                    Icon(Icons.Filled.Email, contentDescription = null)
+                },
+                singleLine = true,
+                shape = RoundedCornerShape(10.dp),
+                colors = fieldColors
+            )
 
-                OutlinedTextField(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth(),
-                    value = password,
-                    onValueChange = {
-                        password = it
-                        errorMessage = null
-                    },
-                    label = {
-                        Text("Password")
-                    },
-                    shape = RoundedCornerShape(12.dp),
-                    singleLine = true,
-                    enabled = !isLoading,
-                    colors = loginFieldColors,
-                    visualTransformation =
-                        if (
-                            passwordVisible
-                        ) {
-                            VisualTransformation
-                                .None
-                        } else {
-                            PasswordVisualTransformation()
-                        },
-                    trailingIcon = {
-                        TextButton(
-                            enabled =
-                                !isLoading,
-                            onClick = {
-                                passwordVisible =
-                                    !passwordVisible
-                            }
-                        ) {
-                            Text(
-                                text =
-                                    if (
-                                        passwordVisible
-                                    ) {
-                                        "Hide"
-                                    } else {
-                                        "Show"
-                                    }
-                            )
-                        }
+            OutlinedTextField(
+                modifier = Modifier.fillMaxWidth(),
+                value = password,
+                onValueChange = {
+                    password = it
+                    errorMessage = null
+                },
+                enabled = !isLoading,
+                label = { Text("Password") },
+                placeholder = { Text("Enter your password") },
+                leadingIcon = {
+                    Icon(Icons.Filled.Lock, contentDescription = null)
+                },
+                trailingIcon = {
+                    IconButton(
+                        enabled = !isLoading,
+                        onClick = { passwordVisible = !passwordVisible }
+                    ) {
+                        Icon(
+                            imageVector = if (passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                            contentDescription = if (passwordVisible) "Hide password" else "Show password"
+                        )
                     }
-                )
+                },
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                singleLine = true,
+                shape = RoundedCornerShape(10.dp),
+                colors = fieldColors
+            )
 
-                TextButton(
-                    modifier =
-                        Modifier.align(
-                            Alignment.End
-                        ),
-                    enabled = !isLoading,
-                    onClick = {}
+            TextButton(
+                modifier = Modifier.align(Alignment.End),
+                enabled = !isLoading,
+                onClick = { }
+            ) {
+                Text("Forgot Password?", color = AppColors.Green)
+            }
+
+            errorMessage?.let { message ->
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = AppColors.Error.copy(alpha = 0.08f),
+                    shape = RoundedCornerShape(10.dp)
                 ) {
                     Text(
-                        "Forgot password?"
+                        modifier = Modifier.padding(12.dp),
+                        text = message,
+                        color = AppColors.Error,
+                        fontSize = 13.sp
                     )
                 }
+            }
 
-                errorMessage?.let {
-                    message ->
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        color = AppColors.Error.copy(alpha = 0.1f),
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Text(
-                            modifier = Modifier.padding(12.dp),
-                            text = message,
-                            color = AppColors.Error
-                        )
+            Button(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                enabled = !isLoading,
+                onClick = {
+                    if (email.isBlank() || password.isBlank()) {
+                        errorMessage = "Enter your email and password."
+                        return@Button
                     }
-                }
 
-                Button(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
-                    enabled = !isLoading,
-                    onClick = {
-                        if (
-                            email.isBlank() ||
-                            password.isBlank()
-                        ) {
-                            errorMessage =
-                                "Enter your email and password."
-
-                            return@Button
-                        }
-
-                        isLoading = true
-                        errorMessage = null
-
-                        coroutineScope.launch {
-                            val result =
-                                authRepository
-                                    .login(
-                                        email =
-                                            email,
-                                        password =
-                                            password
-                                    )
-
-                            result
-                                .onSuccess {
-                                    loginResponse ->
-
-                                    isLoading =
-                                        false
-
-                                    if (
-                                        loginResponse
-                                            .user
-                                            .role
-                                            .equals(
-                                                "Player",
-                                                ignoreCase =
-                                                    true
-                                            )
-                                    ) {
-                                        sessionManager
-                                            .saveLogin(
-                                                loginResponse
-                                            )
-
-                                        onLoginSuccessful()
-                                    } else {
-                                        errorMessage =
-                                            "This mobile app is for player accounts only."
-                                    }
+                    isLoading = true
+                    errorMessage = null
+                    coroutineScope.launch {
+                        authRepository.login(email = email, password = password)
+                            .onSuccess { response ->
+                                isLoading = false
+                                if (response.user.role.equals("Player", ignoreCase = true)) {
+                                    sessionManager.saveLogin(response)
+                                    onLoginSuccessful()
+                                } else {
+                                    errorMessage = "This mobile app is for player accounts only."
                                 }
-                                .onFailure {
-                                    exception ->
-
-                                    isLoading =
-                                        false
-
-                                    errorMessage =
-                                        exception
-                                            .message
-                                            ?: "Login failed."
-                                }
-                        }
-                    },
-                    colors =
-                        ButtonDefaults
-                            .buttonColors(
-                                containerColor =
-                                    AppColors.Yellow,
-                                contentColor =
-                                    AppColors.DarkText
-                            ),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator()
-                    } else {
-                        Text(
-                            text = "Login",
-                            fontWeight =
-                                FontWeight.Bold
-                        )
+                            }
+                            .onFailure { exception ->
+                                isLoading = false
+                                errorMessage = exception.message ?: "Login failed."
+                            }
                     }
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = AppColors.Yellow,
+                    contentColor = AppColors.DarkText
+                ),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(22.dp),
+                        color = AppColors.DarkText,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Login", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
+            }
 
+            Spacer(Modifier.height(12.dp))
+
+            Text(
+                modifier = Modifier.fillMaxWidth(),
+                text = "Don't have an account?",
+                color = AppColors.GreyText,
+                textAlign = TextAlign.Center,
+                fontSize = 14.sp
+            )
+            TextButton(
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isLoading,
+                onClick = onRegister
+            ) {
                 Text(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth(),
-                    text =
-                        "Sign in using your approved ParaVolley player account.",
-                    color =
-                        AppColors.GreyText,
-                    textAlign =
-                        TextAlign.Center
+                    text = "Register as a Player",
+                    color = AppColors.Green,
+                    fontWeight = FontWeight.SemiBold
                 )
-
-                TextButton(
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !isLoading,
-                    onClick = onRegister
-                ) {
-                    Text("Create a player account")
-                }
             }
         }
     }
