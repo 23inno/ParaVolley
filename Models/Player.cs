@@ -37,6 +37,13 @@ namespace SportsManagementMVC.Models
         [Required, Phone]
         public string Phone { get; set; } = string.Empty;
 
+        [Display(Name = "Emergency Contact")]
+        [StringLength(200)]
+        public string EmergencyContact { get; set; } = string.Empty;
+
+        [Display(Name = "Joined")]
+        public DateTime? JoinedAtUtc { get; set; }
+
         [Display(Name = "Disability Classification")]
         public string Disability { get; set; } = string.Empty;
 
@@ -44,6 +51,6 @@ namespace SportsManagementMVC.Models
         public ICollection<Attendance>? AttendanceRecords { get; set; }
 
         public ICollection<EventRegistration> EventRegistrations { get; set; } =
-    new List<EventRegistration>();
+            new List<EventRegistration>();
     }
 }
