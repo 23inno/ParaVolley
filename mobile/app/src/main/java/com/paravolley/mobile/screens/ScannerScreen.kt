@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -161,9 +162,6 @@ fun ScannerScreen(onBack: () -> Unit) {
             )
         }
 
-        // Use one even tint over the camera instead of separate top/side/bottom blocks.
-        // The previous four-block overlay did not line up with the vertically-offset
-        // scanner frame on all screen sizes, which created visible dark bars/lines.
         Box(
             modifier = Modifier
                 .fillMaxSize()
