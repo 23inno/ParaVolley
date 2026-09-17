@@ -53,7 +53,9 @@ class PlayerRepository(
     suspend fun updateProfile(
         age: Int,
         email: String,
-        phone: String
+        phone: String,
+        emergencyContactName: String,
+        emergencyContactPhone: String
     ): Result<PlayerProfileResponse> {
         val authorization = authorizationHeader()
             ?: return missingSession()
@@ -64,7 +66,9 @@ class PlayerRepository(
                 request = UpdatePlayerProfileRequest(
                     age = age,
                     email = email.trim(),
-                    phone = phone.trim()
+                    phone = phone.trim(),
+                    emergencyContactName = emergencyContactName.trim(),
+                    emergencyContactPhone = emergencyContactPhone.trim()
                 )
             )
 
@@ -134,18 +138,6 @@ class PlayerRepository(
             ?: return missingSession()
 
         val contentResolver = appContext.contentResolver
-        val mimeType = contentResolver.getType(uri)
-            ?.lowercase()
-            ?.substringBefore(';')
-
-        val fileName = when (mimeType) {
-            "image/jpeg", "image/jpg" -> "profile.jpg"
-            "image/png" -> "profile.png"
-            "image/webp" -> "profile.webp"
-            else -> return Result.failure(
-                Exception("Choose a JPG, PNG, or WEBP image.")
-            )
-        }
 
         val declaredSize = try {
             contentResolver.openFileDescriptor(uri, "r")
@@ -185,13 +177,24 @@ class PlayerRepository(
             )
         }
 
+        val declaredMimeType = contentResolver.getType(uri)
+            ?.lowercase()
+            ?.substringBefore(';')
+
+        val imageType = detectImageType(
+            declaredMimeType = declaredMimeType,
+            bytes = bytes
+        ) ?: return Result.failure(
+            Exception("Choose a JPG, PNG, or WEBP image.")
+        )
+
         return try {
             val requestBody = bytes.toRequestBody(
-                (mimeType ?: "application/octet-stream").toMediaType()
+                imageType.mimeType.toMediaType()
             )
             val photoPart = MultipartBody.Part.createFormData(
                 "photo",
-                fileName,
+                imageType.fileName,
                 requestBody
             )
 
@@ -220,6 +223,60 @@ class PlayerRepository(
                 Exception("Could not upload the profile photo.", exception)
             )
         }
+    }
+
+    private fun detectImageType(
+        declaredMimeType: String?,
+        bytes: ByteArray
+    ): ProfileImageType? {
+        when (declaredMimeType) {
+            "image/jpeg", "image/jpg" -> return ProfileImageType(
+                mimeType = "image/jpeg",
+                fileName = "profile.jpg"
+            )
+
+            "image/png" -> return ProfileImageType(
+                mimeType = "image/png",
+                fileName = "profile.png"
+            )
+
+            "image/webp" -> return ProfileImageType(
+                mimeType = "image/webp",
+                fileName = "profile.webp"
+            )
+        }
+
+        if (
+            bytes.size >= 3 &&
+            bytes[0] == 0xFF.toByte() &&
+            bytes[1] == 0xD8.toByte() &&
+            bytes[2] == 0xFF.toByte()
+        ) {
+            return ProfileImageType("image/jpeg", "profile.jpg")
+        }
+
+        val pngSignature = byteArrayOf(
+            0x89.toByte(), 0x50, 0x4E, 0x47,
+            0x0D, 0x0A, 0x1A, 0x0A
+        )
+
+        if (
+            bytes.size >= pngSignature.size &&
+            bytes.copyOfRange(0, pngSignature.size)
+                .contentEquals(pngSignature)
+        ) {
+            return ProfileImageType("image/png", "profile.png")
+        }
+
+        if (
+            bytes.size >= 12 &&
+            String(bytes, 0, 4, Charsets.US_ASCII) == "RIFF" &&
+            String(bytes, 8, 4, Charsets.US_ASCII) == "WEBP"
+        ) {
+            return ProfileImageType("image/webp", "profile.webp")
+        }
+
+        return null
     }
 
     private fun authorizationHeader(): String? {
@@ -267,6 +324,11 @@ class PlayerRepository(
 
     private data class ApiError(
         val message: String?
+    )
+
+    private data class ProfileImageType(
+        val mimeType: String,
+        val fileName: String
     )
 
     companion object {
