@@ -52,6 +52,7 @@ import com.paravolley.mobile.ui.theme.AppColors
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationsScreen(
+    initialAnnouncementId: Int? = null,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -63,12 +64,22 @@ fun NotificationsScreen(
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(initialAnnouncementId) {
         isLoading = true
         errorMessage = null
         repository.getAnnouncements()
-            .onSuccess {
-                announcements = it
+            .onSuccess { loadedAnnouncements ->
+                announcements = loadedAnnouncements
+
+                initialAnnouncementId?.let { targetId ->
+                    loadedAnnouncements
+                        .firstOrNull { it.id == targetId }
+                        ?.let { targetAnnouncement ->
+                            readAnnouncementIds = readAnnouncementIds + targetAnnouncement.id
+                            selectedAnnouncement = targetAnnouncement
+                        }
+                }
+
                 isLoading = false
             }
             .onFailure {
