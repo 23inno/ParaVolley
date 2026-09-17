@@ -120,8 +120,7 @@ class AnnouncementsRepository(
                 )
             }
         } catch (_: Exception) {
-            // The local read state is already saved, so the notification remains read
-            // even if the server is temporarily unavailable.
+            // Local persistence keeps the item read even if the server is unavailable.
             Result.success(Unit)
         }
     }
@@ -157,7 +156,7 @@ class AnnouncementsRepository(
 
     private fun locallyReadAnnouncementIds(): Set<Int> {
         return readPreferences
-            .getStringSet(READ_IDS_KEY, emptySet())
+            .getStringSet(readIdsKey(), emptySet())
             .orEmpty()
             .mapNotNull(String::toIntOrNull)
             .toSet()
@@ -168,16 +167,22 @@ class AnnouncementsRepository(
     }
 
     private fun rememberAnnouncementsRead(announcementIds: Collection<Int>) {
+        val key = readIdsKey()
         val ids = readPreferences
-            .getStringSet(READ_IDS_KEY, emptySet())
+            .getStringSet(key, emptySet())
             .orEmpty()
             .toMutableSet()
 
         announcementIds.forEach { ids.add(it.toString()) }
 
         readPreferences.edit()
-            .putStringSet(READ_IDS_KEY, ids)
+            .putStringSet(key, ids)
             .apply()
+    }
+
+    private fun readIdsKey(): String {
+        val playerId = sessionManager.getPlayerId() ?: 0
+        return "read_announcement_ids_$playerId"
     }
 
     private fun authorizationHeader(): String? {
@@ -220,8 +225,4 @@ class AnnouncementsRepository(
     private data class ApiError(
         val message: String?
     )
-
-    companion object {
-        private const val READ_IDS_KEY = "read_announcement_ids"
-    }
 }
