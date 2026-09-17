@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
@@ -16,17 +17,27 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.FlashOff
+import androidx.compose.material.icons.filled.FlashOn
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
@@ -37,8 +48,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,20 +77,17 @@ import kotlinx.coroutines.launch
 @Composable
 fun ScannerScreen(onBack: () -> Unit) {
     val context = LocalContext.current
-    val repository = remember {
-        QrAttendanceRepository(context.applicationContext)
-    }
+    val repository = remember { QrAttendanceRepository(context.applicationContext) }
     val coroutineScope = rememberCoroutineScope()
+
     var qrToken by remember { mutableStateOf("") }
     var isCheckingIn by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var checkInResult by remember { mutableStateOf<QrCheckInResponse?>(null) }
+    var torchEnabled by remember { mutableStateOf(false) }
     var cameraPermissionGranted by remember {
         mutableStateOf(
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.CAMERA
-            ) == PackageManager.PERMISSION_GRANTED
+            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
         )
     }
 
@@ -93,18 +101,16 @@ fun ScannerScreen(onBack: () -> Unit) {
     }
 
     LaunchedEffect(Unit) {
-        if (!cameraPermissionGranted) {
-            permissionLauncher.launch(Manifest.permission.CAMERA)
-        }
+        if (!cameraPermissionGranted) permissionLauncher.launch(Manifest.permission.CAMERA)
     }
 
     fun submitCheckIn(token: String) {
         val cleanToken = token.trim()
         if (cleanToken.isBlank() || isCheckingIn) return
-
         isCheckingIn = true
         errorMessage = null
         checkInResult = null
+
         coroutineScope.launch {
             repository.checkIn(cleanToken)
                 .onSuccess {
@@ -121,147 +127,190 @@ fun ScannerScreen(onBack: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF111714))
+            .background(Color.Black)
             .safeDrawingPadding()
     ) {
+        if (cameraPermissionGranted) {
+            QrCameraPreview(
+                modifier = Modifier.fillMaxSize(),
+                enabled = !isCheckingIn && checkInResult == null,
+                torchEnabled = torchEnabled,
+                onQrCodeDetected = { token ->
+                    qrToken = token
+                    submitCheckIn(token)
+                }
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFF161B19))
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.35f))
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Surface(color = Color.Black.copy(alpha = 0.35f), shape = CircleShape) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                }
+            }
+            Text(
+                text = "Scan to Check In",
+                color = Color.White,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 18.sp
+            )
+            Surface(color = Color.Black.copy(alpha = 0.35f), shape = CircleShape) {
+                IconButton(
+                    enabled = cameraPermissionGranted,
+                    onClick = { torchEnabled = !torchEnabled }
+                ) {
+                    Icon(
+                        imageVector = if (torchEnabled) Icons.Filled.FlashOn else Icons.Filled.FlashOff,
+                        contentDescription = "Toggle flash",
+                        tint = if (torchEnabled) AppColors.Yellow else Color.White
+                    )
+                }
+            }
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(20.dp),
+                .padding(horizontal = 24.dp, vertical = 72.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.Center
         ) {
-            Button(
-                modifier = Modifier.align(Alignment.Start),
-                onClick = onBack,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = AppColors.Yellow,
-                    contentColor = AppColors.DarkText
-                )
-            ) { Text("Back") }
-
-            Text(
-                text = "QR Attendance",
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                fontSize = 26.sp
-            )
-
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(280.dp)
-                    .clip(RoundedCornerShape(18.dp))
-                    .border(4.dp, AppColors.Yellow, RoundedCornerShape(18.dp)),
+                    .size(280.dp)
+                    .clip(RoundedCornerShape(22.dp))
+                    .border(4.dp, AppColors.Yellow, RoundedCornerShape(22.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                if (cameraPermissionGranted) {
-                    QrCameraPreview(
-                        enabled = !isCheckingIn && checkInResult == null,
-                        onQrCodeDetected = { detectedToken ->
-                            qrToken = detectedToken
-                            submitCheckIn(detectedToken)
-                        }
-                    )
-                } else {
-                    Text(
-                        text = "Camera access is unavailable.\nUse manual token entry below.",
-                        color = Color.White,
-                        textAlign = TextAlign.Center
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Filled.QrCodeScanner,
+                    contentDescription = null,
+                    tint = AppColors.Yellow.copy(alpha = 0.35f),
+                    modifier = Modifier.size(42.dp)
+                )
             }
-
+            Spacer(Modifier.height(22.dp))
             Text(
-                text = "Point the camera at an active attendance QR code, or enter its token manually.",
-                color = Color.White,
-                textAlign = TextAlign.Center
-            )
-
-            Surface(
-                color = AppColors.Yellow.copy(alpha = 0.14f),
-                contentColor = AppColors.Yellow,
-                shape = RoundedCornerShape(999.dp)
-            ) {
-                Text(
-                    text = if (isCheckingIn) "Checking attendance…" else "Scanner ready",
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-
-            OutlinedTextField(
-                modifier = Modifier.fillMaxWidth(),
-                value = qrToken,
-                onValueChange = {
-                    qrToken = it
-                    errorMessage = null
-                    checkInResult = null
-                },
-                label = { Text("QR attendance token") },
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    cursorColor = AppColors.Yellow,
-                    focusedLabelColor = AppColors.Yellow,
-                    unfocusedLabelColor = Color.White,
-                    focusedBorderColor = AppColors.Yellow,
-                    unfocusedBorderColor = Color.White
-                )
-            )
-
-            Button(
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !isCheckingIn && qrToken.isNotBlank(),
-                onClick = { submitCheckIn(qrToken) },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = AppColors.Yellow,
-                    contentColor = AppColors.DarkText
-                ),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                if (isCheckingIn) {
-                    CircularProgressIndicator()
+                text = if (cameraPermissionGranted) {
+                    "Align the QR code within the frame to check in"
                 } else {
-                    Text("Check In", fontWeight = FontWeight.Bold)
+                    "Camera access is unavailable. Enter the attendance token below."
+                },
+                color = Color.White,
+                textAlign = TextAlign.Center,
+                fontSize = 15.sp
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = if (isCheckingIn) "Checking attendance…" else "Make sure the QR code is clear and well lit",
+                color = if (isCheckingIn) AppColors.Yellow else Color.White.copy(alpha = 0.65f),
+                textAlign = TextAlign.Center,
+                fontSize = 12.sp
+            )
+        }
+
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            checkInResult?.let { result ->
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = Color.White,
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(15.dp),
+                        verticalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        Text("Check-in successful", color = AppColors.Green, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                        Text(result.playerName, color = AppColors.DarkText, fontWeight = FontWeight.SemiBold)
+                        Text(result.eventTitle, color = AppColors.DarkText)
+                        Text("${result.eventDate} • ${result.eventTime}", color = AppColors.GreyText, fontSize = 12.sp)
+                        Text(result.eventLocation, color = AppColors.GreyText, fontSize = 12.sp)
+                    }
                 }
             }
 
-            errorMessage?.let {
-                Text(
-                    text = it,
-                    color = Color(0xFFFF8A80),
-                    textAlign = TextAlign.Center,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-
-            checkInResult?.let { result ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color.White, RoundedCornerShape(16.dp))
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(5.dp)
+            errorMessage?.let { message ->
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = Color(0xFF3B1717).copy(alpha = 0.92f),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
-                        "Check-in successful",
-                        color = AppColors.DarkGreen,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
+                        modifier = Modifier.padding(12.dp),
+                        text = message,
+                        color = Color(0xFFFFB4AB),
+                        textAlign = TextAlign.Center,
+                        fontSize = 12.sp
                     )
-                    Text(result.playerName, fontWeight = FontWeight.Medium)
-                    Text(result.eventTitle)
-                    Text("${result.eventDate} • ${result.eventTime}")
-                    Text(result.eventLocation)
-                    Text(
-                        "Attendance: ${result.status}",
-                        color = AppColors.Green,
-                        fontWeight = FontWeight.Bold
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(
+                    modifier = Modifier.weight(1f),
+                    value = qrToken,
+                    onValueChange = {
+                        qrToken = it
+                        errorMessage = null
+                        checkInResult = null
+                    },
+                    label = { Text("Manual token") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        cursorColor = AppColors.Yellow,
+                        focusedLabelColor = AppColors.Yellow,
+                        unfocusedLabelColor = Color.White.copy(alpha = 0.7f),
+                        focusedBorderColor = AppColors.Yellow,
+                        unfocusedBorderColor = Color.White.copy(alpha = 0.45f),
+                        focusedContainerColor = Color.Black.copy(alpha = 0.45f),
+                        unfocusedContainerColor = Color.Black.copy(alpha = 0.45f)
                     )
+                )
+                Spacer(Modifier.width(8.dp))
+                Button(
+                    enabled = !isCheckingIn && qrToken.isNotBlank(),
+                    onClick = { submitCheckIn(qrToken) },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AppColors.Yellow,
+                        contentColor = AppColors.DarkText
+                    ),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    if (isCheckingIn) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = AppColors.DarkText, strokeWidth = 2.dp)
+                    } else {
+                        Text("Check In", fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
@@ -270,7 +319,9 @@ fun ScannerScreen(onBack: () -> Unit) {
 
 @Composable
 private fun QrCameraPreview(
+    modifier: Modifier = Modifier,
     enabled: Boolean,
+    torchEnabled: Boolean,
     onQrCodeDetected: (String) -> Unit
 ) {
     val context = LocalContext.current
@@ -285,8 +336,13 @@ private fun QrCameraPreview(
                 .build()
         )
     }
+    var boundCamera by remember { mutableStateOf<Camera?>(null) }
     var lastToken by remember { mutableStateOf<String?>(null) }
     var lastScanAt by remember { mutableStateOf(0L) }
+
+    LaunchedEffect(torchEnabled, boundCamera) {
+        boundCamera?.cameraControl?.enableTorch(torchEnabled)
+    }
 
     DisposableEffect(Unit) {
         onDispose {
@@ -296,9 +352,11 @@ private fun QrCameraPreview(
     }
 
     AndroidView(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier,
         factory = { previewContext ->
-            val previewView = PreviewView(previewContext)
+            val previewView = PreviewView(previewContext).apply {
+                scaleType = PreviewView.ScaleType.FILL_CENTER
+            }
             val providerFuture = ProcessCameraProvider.getInstance(previewContext)
 
             providerFuture.addListener({
@@ -311,15 +369,9 @@ private fun QrCameraPreview(
                     .build()
 
                 analysis.setAnalyzer(cameraExecutor) { imageProxy ->
-                    analyzeQrImage(
-                        imageProxy,
-                        barcodeScanner
-                    ) { token ->
+                    analyzeQrImage(imageProxy, barcodeScanner) { token ->
                         val now = System.currentTimeMillis()
-                        if (
-                            scanningEnabled &&
-                            (token != lastToken || now - lastScanAt > 3000)
-                        ) {
+                        if (scanningEnabled && (token != lastToken || now - lastScanAt > 3000)) {
                             lastToken = token
                             lastScanAt = now
                             previewView.post { currentOnDetected(token) }
@@ -328,7 +380,7 @@ private fun QrCameraPreview(
                 }
 
                 cameraProvider.unbindAll()
-                cameraProvider.bindToLifecycle(
+                boundCamera = cameraProvider.bindToLifecycle(
                     lifecycleOwner,
                     CameraSelector.DEFAULT_BACK_CAMERA,
                     preview,
@@ -353,11 +405,7 @@ private fun analyzeQrImage(
         return
     }
 
-    val inputImage = InputImage.fromMediaImage(
-        mediaImage,
-        imageProxy.imageInfo.rotationDegrees
-    )
-
+    val inputImage = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
     scanner.process(inputImage)
         .addOnSuccessListener { barcodes ->
             barcodes.firstNotNullOfOrNull { it.rawValue }
