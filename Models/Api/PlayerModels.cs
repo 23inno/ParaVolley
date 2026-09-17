@@ -22,7 +22,9 @@ namespace SportsManagementMVC.Models.Api
 
         public string Phone { get; set; } = string.Empty;
 
-        public string EmergencyContact { get; set; } = string.Empty;
+        public string EmergencyContactName { get; set; } = string.Empty;
+
+        public string EmergencyContactPhone { get; set; } = string.Empty;
 
         public string? JoinedDate { get; set; }
 
@@ -42,7 +44,10 @@ namespace SportsManagementMVC.Models.Api
         [Required, Phone, StringLength(50)]
         public string Phone { get; set; } = string.Empty;
 
-        [Required, StringLength(200)]
-        public string EmergencyContact { get; set; } = string.Empty;
+        [Required, StringLength(120)]
+        public string EmergencyContactName { get; set; } = string.Empty;
+
+        [Required, Phone, StringLength(30)]
+        public string EmergencyContactPhone { get; set; } = string.Empty;
     }
 }
