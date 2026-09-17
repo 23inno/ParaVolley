@@ -1,5 +1,6 @@
 package com.paravolley.mobile.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -97,7 +98,7 @@ fun DashboardScreen(
     }
 
     Scaffold(
-        containerColor = AppColors.LightBackground,
+        containerColor = Color.White,
         bottomBar = {
             AppBottomBar(
                 selectedRoute = Routes.DASHBOARD,
@@ -152,7 +153,11 @@ private fun ErrorState(
         Spacer(Modifier.height(12.dp))
         Button(
             onClick = onRetry,
-            colors = ButtonDefaults.buttonColors(containerColor = AppColors.Yellow, contentColor = AppColors.DarkText)
+            colors = ButtonDefaults.buttonColors(
+                containerColor = AppColors.Yellow,
+                contentColor = AppColors.DarkText
+            ),
+            shape = RoundedCornerShape(10.dp)
         ) {
             Text("Try Again", fontWeight = FontWeight.SemiBold)
         }
@@ -192,8 +197,8 @@ private fun DashboardContent(
                 EmptyCard("No upcoming events are available.")
             } else {
                 LazyRow(
-                    contentPadding = PaddingValues(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    contentPadding = PaddingValues(horizontal = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     items(dashboard.upcomingEvents.take(5), key = { it.id }) { event ->
                         DashboardEventCard(
@@ -209,24 +214,24 @@ private fun DashboardContent(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFFF3F4F6))
-                    .padding(horizontal = 16.dp, vertical = 20.dp)
+                    .padding(top = 24.dp)
+                    .background(Color(0xFFF9FAFB))
+                    .padding(horizontal = 24.dp, vertical = 24.dp)
             ) {
                 Text(
                     text = "Quick Actions",
                     color = AppColors.DarkText,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.SemiBold,
                     fontSize = 18.sp
                 )
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(16.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     QuickActionCard(
                         modifier = Modifier.weight(1f),
                         title = "Scan QR",
-                        subtitle = "Attendance check-in",
                         icon = Icons.Filled.QrCodeScanner,
                         iconBackground = AppColors.Yellow,
                         borderColor = AppColors.Yellow,
@@ -235,7 +240,6 @@ private fun DashboardContent(
                     QuickActionCard(
                         modifier = Modifier.weight(1f),
                         title = "View Events",
-                        subtitle = "Schedule & register",
                         icon = Icons.Filled.CalendarMonth,
                         iconBackground = AppColors.Green,
                         borderColor = AppColors.Green,
@@ -243,6 +247,22 @@ private fun DashboardContent(
                         onClick = { onNavigate(Routes.EVENTS) }
                     )
                 }
+            }
+        }
+
+        item {
+            SectionHeader(
+                title = "Notifications",
+                action = "View All",
+                onAction = onOpenNotifications
+            )
+        }
+
+        if (dashboard.recentAnnouncements.isEmpty()) {
+            item { EmptyCard("No announcements are available.") }
+        } else {
+            items(dashboard.recentAnnouncements.take(3), key = { it.id }) { announcement ->
+                AnnouncementCard(announcement)
             }
         }
 
@@ -256,22 +276,6 @@ private fun DashboardContent(
 
         item {
             SummaryGrid(dashboard)
-        }
-
-        item {
-            SectionHeader(
-                title = "Recent Announcements",
-                action = "View All",
-                onAction = onOpenNotifications
-            )
-        }
-
-        if (dashboard.recentAnnouncements.isEmpty()) {
-            item { EmptyCard("No announcements are available.") }
-        } else {
-            items(dashboard.recentAnnouncements.take(3), key = { it.id }) { announcement ->
-                AnnouncementCard(announcement)
-            }
         }
 
         item {
@@ -301,7 +305,7 @@ private fun DashboardHeader(
         modifier = Modifier
             .fillMaxWidth()
             .background(AppColors.Green)
-            .padding(horizontal = 20.dp, vertical = 22.dp),
+            .padding(horizontal = 24.dp, vertical = 24.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -313,45 +317,50 @@ private fun DashboardHeader(
                 painter = painterResource(R.drawable.paravolley_mpumalanga_logo),
                 contentDescription = "ParaVolley Mpumalanga logo",
                 modifier = Modifier
-                    .size(50.dp)
-                    .clip(RoundedCornerShape(10.dp))
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(8.dp))
             )
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "Welcome,",
-                    color = Color.White.copy(alpha = 0.78f),
+                    color = Color.White.copy(alpha = 0.8f),
                     fontSize = 13.sp
                 )
                 Text(
                     text = dashboard.player.name,
                     color = Color.White,
                     fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = listOf(dashboard.player.position, dashboard.player.team)
-                        .filter { it.isNotBlank() }
-                        .joinToString(" • "),
-                    color = Color.White.copy(alpha = 0.82f),
-                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
             }
         }
-        Spacer(Modifier.width(8.dp))
-        Surface(
-            color = Color.White.copy(alpha = 0.16f),
-            shape = CircleShape
-        ) {
-            IconButton(onClick = onOpenNotifications) {
-                Icon(
-                    imageVector = Icons.Filled.Notifications,
-                    contentDescription = "Announcements",
-                    tint = Color.White
+
+        Spacer(Modifier.width(10.dp))
+
+        Box {
+            Surface(
+                color = Color.White.copy(alpha = 0.2f),
+                shape = CircleShape
+            ) {
+                IconButton(onClick = onOpenNotifications) {
+                    Icon(
+                        imageVector = Icons.Filled.Notifications,
+                        contentDescription = "Notifications",
+                        tint = Color.White,
+                        modifier = Modifier.size(21.dp)
+                    )
+                }
+            }
+
+            if (dashboard.recentAnnouncements.isNotEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .size(11.dp)
+                        .background(AppColors.Yellow, CircleShape)
                 )
             }
         }
@@ -367,24 +376,29 @@ private fun SectionHeader(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 16.dp, end = 10.dp, top = 22.dp, bottom = 10.dp),
+            .padding(start = 24.dp, end = 14.dp, top = 24.dp, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(
             text = title,
             color = AppColors.DarkText,
-            fontWeight = FontWeight.Bold,
+            fontWeight = FontWeight.SemiBold,
             fontSize = 18.sp
         )
         if (action.isNotBlank()) {
             TextButton(onClick = onAction) {
-                Text(text = action, color = AppColors.Green, fontWeight = FontWeight.SemiBold)
+                Text(
+                    text = action,
+                    color = AppColors.Green,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 13.sp
+                )
                 Icon(
                     imageVector = Icons.Filled.ChevronRight,
                     contentDescription = null,
                     tint = AppColors.Green,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(17.dp)
                 )
             }
         }
@@ -397,11 +411,11 @@ private fun DashboardEventCard(
     onOpenEvents: () -> Unit
 ) {
     Card(
-        modifier = Modifier.width(292.dp),
+        modifier = Modifier.width(280.dp),
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = CardDefaults.outlinedCardBorder(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        border = BorderStroke(1.dp, Color(0xFFF3F4F6)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -416,17 +430,19 @@ private fun DashboardEventCard(
                     modifier = Modifier.weight(1f),
                     text = event.title,
                     color = AppColors.DarkText,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
                 Spacer(Modifier.width(8.dp))
                 Pill(text = event.type)
             }
-            InfoRow(Icons.Filled.Event, event.date)
+
+            InfoRow(Icons.Filled.CalendarMonth, event.date)
             InfoRow(Icons.Filled.Schedule, event.time)
             InfoRow(Icons.Filled.LocationOn, event.location)
+
             Button(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = onOpenEvents,
@@ -436,7 +452,11 @@ private fun DashboardEventCard(
                 ),
                 shape = RoundedCornerShape(9.dp)
             ) {
-                Text("View Details", fontWeight = FontWeight.Bold)
+                Text(
+                    text = "View Details",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 13.sp
+                )
             }
         }
     }
@@ -446,7 +466,6 @@ private fun DashboardEventCard(
 private fun QuickActionCard(
     modifier: Modifier,
     title: String,
-    subtitle: String,
     icon: ImageVector,
     iconBackground: Color,
     borderColor: Color,
@@ -458,24 +477,35 @@ private fun QuickActionCard(
         onClick = onClick,
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = androidx.compose.foundation.BorderStroke(1.dp, borderColor.copy(alpha = 0.45f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        border = BorderStroke(2.dp, borderColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
         Column(
-            modifier = Modifier.padding(15.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 22.dp, horizontal = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box(
                 modifier = Modifier
-                    .size(46.dp)
+                    .size(48.dp)
                     .background(iconBackground, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(24.dp))
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.size(24.dp)
+                )
             }
-            Spacer(Modifier.height(9.dp))
-            Text(title, color = AppColors.DarkText, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-            Text(subtitle, color = AppColors.GreyText, fontSize = 11.sp)
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = title,
+                color = AppColors.DarkText,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.sp
+            )
         }
     }
 }
@@ -485,7 +515,7 @@ private fun SummaryGrid(dashboard: PlayerDashboardResponse) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 24.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -530,7 +560,8 @@ private fun SummaryTile(
         modifier = modifier,
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = CardDefaults.outlinedCardBorder()
+        border = BorderStroke(1.dp, AppColors.Border),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
             modifier = Modifier.padding(14.dp),
@@ -542,12 +573,26 @@ private fun SummaryTile(
                     .background(AppColors.LightGreen, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(icon, contentDescription = null, tint = AppColors.Green, modifier = Modifier.size(19.dp))
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = AppColors.Green,
+                    modifier = Modifier.size(19.dp)
+                )
             }
             Spacer(Modifier.width(10.dp))
             Column {
-                Text(value, color = AppColors.DarkText, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                Text(label, color = AppColors.GreyText, fontSize = 11.sp)
+                Text(
+                    text = value,
+                    color = AppColors.DarkText,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
+                )
+                Text(
+                    text = label,
+                    color = AppColors.GreyText,
+                    fontSize = 11.sp
+                )
             }
         }
     }
@@ -558,19 +603,28 @@ private fun AnnouncementCard(announcement: DashboardAnnouncement) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 5.dp),
+            .padding(horizontal = 24.dp, vertical = 5.dp),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = CardDefaults.outlinedCardBorder()
+        border = BorderStroke(1.dp, Color(0xFFF3F4F6)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
-        Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.Top) {
+        Row(
+            modifier = Modifier.padding(14.dp),
+            verticalAlignment = Alignment.Top
+        ) {
             Box(
                 modifier = Modifier
                     .size(40.dp)
                     .background(AppColors.LightGreen, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Filled.Campaign, contentDescription = null, tint = AppColors.Green, modifier = Modifier.size(20.dp))
+                Icon(
+                    imageVector = Icons.Filled.Notifications,
+                    contentDescription = null,
+                    tint = AppColors.Green,
+                    modifier = Modifier.size(20.dp)
+                )
             }
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -579,11 +633,16 @@ private fun AnnouncementCard(announcement: DashboardAnnouncement) {
                         modifier = Modifier.weight(1f),
                         text = announcement.title,
                         color = AppColors.DarkText,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Text(announcement.date, color = AppColors.GreyText, fontSize = 11.sp)
+                    Text(
+                        text = announcement.date,
+                        color = AppColors.GreyText,
+                        fontSize = 10.sp
+                    )
                 }
                 Spacer(Modifier.height(4.dp))
                 Text(
@@ -594,8 +653,13 @@ private fun AnnouncementCard(announcement: DashboardAnnouncement) {
                     overflow = TextOverflow.Ellipsis
                 )
                 if (announcement.isPinned) {
-                    Spacer(Modifier.height(5.dp))
-                    Text("PINNED", color = AppColors.Green, fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = "PINNED",
+                        color = AppColors.Green,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 10.sp
+                    )
                 }
             }
         }
@@ -607,16 +671,29 @@ private fun MatchCard(match: DashboardMatch) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 5.dp),
+            .padding(horizontal = 24.dp, vertical = 5.dp),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = CardDefaults.outlinedCardBorder()
+        border = BorderStroke(1.dp, AppColors.Border)
     ) {
-        Column(modifier = Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(
+            modifier = Modifier.padding(15.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Filled.EmojiEvents, contentDescription = null, tint = AppColors.Green, modifier = Modifier.size(20.dp))
+                Icon(
+                    imageVector = Icons.Filled.EmojiEvents,
+                    contentDescription = null,
+                    tint = AppColors.Green,
+                    modifier = Modifier.size(20.dp)
+                )
                 Spacer(Modifier.width(8.dp))
-                Text(match.tournament, color = AppColors.Green, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                Text(
+                    text = match.tournament,
+                    color = AppColors.Green,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 12.sp
+                )
             }
             Text(
                 text = "${match.teamA}  ${match.scoreA ?: "-"}  •  ${match.scoreB ?: "-"}  ${match.teamB}",
@@ -624,8 +701,16 @@ private fun MatchCard(match: DashboardMatch) {
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp
             )
-            Text("${match.date} • ${match.time}", color = AppColors.GreyText, fontSize = 12.sp)
-            Text(match.venue, color = AppColors.GreyText, fontSize = 12.sp)
+            Text(
+                text = "${match.date} • ${match.time}",
+                color = AppColors.GreyText,
+                fontSize = 12.sp
+            )
+            Text(
+                text = match.venue,
+                color = AppColors.GreyText,
+                fontSize = 12.sp
+            )
         }
     }
 }
@@ -633,7 +718,12 @@ private fun MatchCard(match: DashboardMatch) {
 @Composable
 private fun InfoRow(icon: ImageVector, value: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, contentDescription = null, tint = AppColors.GreyText, modifier = Modifier.size(17.dp))
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = AppColors.Green,
+            modifier = Modifier.size(15.dp)
+        )
         Spacer(Modifier.width(7.dp))
         Text(
             text = value,
@@ -655,7 +745,7 @@ private fun Pill(text: String) {
         Text(
             text = text,
             modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Medium,
             fontSize = 10.sp
         )
     }
@@ -666,10 +756,10 @@ private fun EmptyCard(text: String) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 24.dp),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = CardDefaults.outlinedCardBorder()
+        border = BorderStroke(1.dp, AppColors.Border)
     ) {
         Text(
             modifier = Modifier.padding(18.dp),
