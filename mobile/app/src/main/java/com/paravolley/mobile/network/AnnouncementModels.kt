@@ -9,5 +9,6 @@ data class AnnouncementResponse(
     val date: String,
     val category: String,
     val isPinned: Boolean,
-    val views: Int
+    val views: Int,
+    val isRead: Boolean = false
 )
