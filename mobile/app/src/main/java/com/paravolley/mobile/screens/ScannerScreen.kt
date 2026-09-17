@@ -2,6 +2,7 @@ package com.paravolley.mobile.screens
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.view.ViewGroup
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.Camera
@@ -31,14 +32,12 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
-import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -84,7 +83,6 @@ import java.util.concurrent.Executors
 import kotlinx.coroutines.launch
 
 private val ScannerYellow = Color(0xFFFBBF24)
-private val ScannerOverlay = Color.Black.copy(alpha = 0.60f)
 
 @Composable
 fun ScannerScreen(onBack: () -> Unit) {
@@ -163,7 +161,14 @@ fun ScannerScreen(onBack: () -> Unit) {
             )
         }
 
-        ScannerCameraOverlay()
+        // Use one even tint over the camera instead of separate top/side/bottom blocks.
+        // The previous four-block overlay did not line up with the vertically-offset
+        // scanner frame on all screen sizes, which created visible dark bars/lines.
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.14f))
+        )
 
         ScannerTopBar(
             onBack = onBack,
@@ -204,7 +209,7 @@ fun ScannerScreen(onBack: () -> Unit) {
                     !cameraPermissionGranted -> "Use the manual attendance code below"
                     else -> "Make sure the QR code is well-lit and in focus"
                 },
-                color = if (isCheckingIn) ScannerYellow else Color.White.copy(alpha = 0.62f),
+                color = if (isCheckingIn) ScannerYellow else Color.White.copy(alpha = 0.70f),
                 textAlign = TextAlign.Center,
                 fontSize = 13.sp
             )
@@ -240,7 +245,7 @@ private fun ScannerTopBar(
     ) {
         Surface(
             modifier = Modifier.align(Alignment.CenterStart),
-            color = Color.Black.copy(alpha = 0.28f),
+            color = Color.Black.copy(alpha = 0.34f),
             shape = RoundedCornerShape(12.dp)
         ) {
             IconButton(onClick = onBack) {
@@ -262,7 +267,7 @@ private fun ScannerTopBar(
 
         Surface(
             modifier = Modifier.align(Alignment.CenterEnd),
-            color = Color.Black.copy(alpha = 0.28f),
+            color = Color.Black.copy(alpha = 0.34f),
             shape = RoundedCornerShape(12.dp)
         ) {
             IconButton(
@@ -276,40 +281,6 @@ private fun ScannerTopBar(
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun ScannerCameraOverlay() {
-    Box(modifier = Modifier.fillMaxSize()) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(190.dp)
-                .align(Alignment.TopCenter)
-                .background(ScannerOverlay)
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(310.dp)
-                .align(Alignment.BottomCenter)
-                .background(ScannerOverlay)
-        )
-        Box(
-            modifier = Modifier
-                .width(42.dp)
-                .height(280.dp)
-                .align(Alignment.CenterStart)
-                .background(ScannerOverlay)
-        )
-        Box(
-            modifier = Modifier
-                .width(42.dp)
-                .height(280.dp)
-                .align(Alignment.CenterEnd)
-                .background(ScannerOverlay)
-        )
     }
 }
 
@@ -456,7 +427,7 @@ private fun ManualCheckInPanel(
 
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            color = Color.Black.copy(alpha = 0.58f),
+            color = Color.Black.copy(alpha = 0.62f),
             shape = RoundedCornerShape(16.dp),
             border = androidx.compose.foundation.BorderStroke(
                 1.dp,
@@ -475,7 +446,7 @@ private fun ManualCheckInPanel(
                 )
                 Text(
                     text = "Enter the attendance token manually to check in.",
-                    color = Color.White.copy(alpha = 0.65f),
+                    color = Color.White.copy(alpha = 0.70f),
                     fontSize = 12.sp
                 )
 
@@ -494,12 +465,12 @@ private fun ManualCheckInPanel(
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White,
                             cursorColor = ScannerYellow,
-                            focusedPlaceholderColor = Color.White.copy(alpha = 0.45f),
-                            unfocusedPlaceholderColor = Color.White.copy(alpha = 0.45f),
+                            focusedPlaceholderColor = Color.White.copy(alpha = 0.48f),
+                            unfocusedPlaceholderColor = Color.White.copy(alpha = 0.48f),
                             focusedBorderColor = ScannerYellow,
                             unfocusedBorderColor = Color.White.copy(alpha = 0.38f),
-                            focusedContainerColor = Color.Black.copy(alpha = 0.22f),
-                            unfocusedContainerColor = Color.Black.copy(alpha = 0.22f)
+                            focusedContainerColor = Color.Black.copy(alpha = 0.28f),
+                            unfocusedContainerColor = Color.Black.copy(alpha = 0.28f)
                         )
                     )
 
@@ -570,6 +541,11 @@ private fun QrCameraPreview(
         modifier = modifier,
         factory = { previewContext ->
             val previewView = PreviewView(previewContext).apply {
+                layoutParams = ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
+                implementationMode = PreviewView.ImplementationMode.COMPATIBLE
                 scaleType = PreviewView.ScaleType.FILL_CENTER
             }
             val providerFuture = ProcessCameraProvider.getInstance(previewContext)
