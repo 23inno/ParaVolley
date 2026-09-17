@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
@@ -25,6 +26,7 @@ import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.SportsVolleyball
 import androidx.compose.material3.Button
@@ -32,7 +34,9 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -49,6 +53,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -79,6 +84,7 @@ fun ProfileScreen(
     LaunchedEffect(Unit) {
         isLoading = true
         errorMessage = null
+
         val playerResult = playerRepository.getProfile()
         val attendanceResult = attendanceRepository.getMyAttendance()
 
@@ -89,15 +95,21 @@ fun ProfileScreen(
         attendanceResult
             .onSuccess { attendance = it }
             .onFailure {
-                if (errorMessage == null) errorMessage = it.message ?: "Could not load attendance."
+                if (errorMessage == null) {
+                    errorMessage = it.message ?: "Could not load attendance."
+                }
             }
+
         isLoading = false
     }
 
     Scaffold(
         containerColor = AppColors.LightBackground,
         bottomBar = {
-            AppBottomBar(selectedRoute = Routes.PROFILE, onNavigate = onNavigate)
+            AppBottomBar(
+                selectedRoute = Routes.PROFILE,
+                onNavigate = onNavigate
+            )
         }
     ) { innerPadding ->
         when {
@@ -118,7 +130,11 @@ fun ProfileScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(errorMessage ?: "Could not load the player profile.", color = AppColors.Error)
+                Text(
+                    text = errorMessage ?: "Could not load the player profile.",
+                    color = AppColors.Error,
+                    textAlign = TextAlign.Center
+                )
                 Spacer(Modifier.size(14.dp))
                 OutlinedButton(
                     onClick = {
@@ -135,6 +151,7 @@ fun ProfileScreen(
                 attendance = attendance,
                 attendanceError = errorMessage,
                 innerPadding = innerPadding,
+                onBack = { onNavigate(Routes.DASHBOARD) },
                 onLogout = {
                     sessionManager.clearSession()
                     onLogout()
@@ -150,17 +167,9 @@ private fun ProfileContent(
     attendance: List<AttendanceResponse>,
     attendanceError: String?,
     innerPadding: PaddingValues,
+    onBack: () -> Unit,
     onLogout: () -> Unit
 ) {
-    val initials = player.name
-        .trim()
-        .split(Regex("\\s+"))
-        .filter(String::isNotBlank)
-        .take(2)
-        .mapNotNull { it.firstOrNull()?.uppercase() }
-        .joinToString("")
-        .ifBlank { "PV" }
-
     val total = attendance.size
     val present = attendance.count { it.status.equals("Present", true) }
     val absent = attendance.count { it.status.equals("Absent", true) }
@@ -177,54 +186,85 @@ private fun ProfileContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(AppColors.Green)
-                    .padding(horizontal = 20.dp, vertical = 22.dp),
+                    .padding(horizontal = 8.dp, vertical = 10.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    modifier = Modifier.fillMaxWidth(),
-                    text = "My Profile",
-                    color = Color.White,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(Modifier.size(18.dp))
-                Box(
-                    modifier = Modifier
-                        .size(88.dp)
-                        .background(Color.White.copy(alpha = 0.15f), CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    IconButton(
+                        modifier = Modifier.align(Alignment.CenterStart),
+                        onClick = onBack
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.White
+                        )
+                    }
+
+                    Text(
+                        modifier = Modifier.align(Alignment.Center),
+                        text = "My Profile",
+                        color = Color.White,
+                        fontSize = 19.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                Spacer(Modifier.size(12.dp))
+
+                Box {
                     Box(
                         modifier = Modifier
-                            .size(78.dp)
+                            .size(82.dp)
+                            .background(Color.White, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Person,
+                            contentDescription = null,
+                            tint = AppColors.Green,
+                            modifier = Modifier.size(42.dp)
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .size(24.dp)
                             .background(AppColors.Yellow, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = initials,
+                            text = "PV",
                             color = AppColors.DarkText,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 28.sp
+                            fontSize = 8.sp
                         )
                     }
                 }
-                Spacer(Modifier.size(11.dp))
+
+                Spacer(Modifier.size(10.dp))
+
                 Text(
                     text = player.name,
                     color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 23.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 19.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+
                 Text(
-                    text = listOf(player.position, player.team).filter { it.isNotBlank() }.joinToString(" • "),
-                    color = Color.White.copy(alpha = 0.82f),
+                    text = listOf(player.position, player.team)
+                        .filter { it.isNotBlank() }
+                        .joinToString(" • "),
+                    color = Color.White.copy(alpha = 0.8f),
                     fontSize = 13.sp
                 )
+
                 Surface(
-                    modifier = Modifier.padding(top = 10.dp),
-                    color = Color.White.copy(alpha = 0.14f),
+                    modifier = Modifier.padding(top = 9.dp, bottom = 8.dp),
+                    color = Color.White.copy(alpha = 0.15f),
                     shape = RoundedCornerShape(999.dp)
                 ) {
                     Text(
@@ -239,19 +279,23 @@ private fun ProfileContent(
         }
 
         item {
-            ProfileStats(total = total, present = present, absent = absent, rate = rate)
+            ProfileStats(
+                total = total,
+                present = present,
+                rate = rate
+            )
         }
 
         item {
             ProfileInfoCard(
-                title = "Player Information",
+                title = "Personal Information",
                 rows = listOf(
                     ProfileRow(Icons.Filled.Badge, "Player ID", player.id.toString()),
                     ProfileRow(Icons.Filled.CalendarMonth, "Age", "${player.age} years old"),
                     ProfileRow(Icons.Filled.SportsVolleyball, "Position", player.position),
                     ProfileRow(Icons.Filled.Groups, "Team", player.team),
                     ProfileRow(Icons.Filled.CheckCircle, "Matches", player.matches.toString()),
-                    ProfileRow(Icons.Filled.Info, "Disability / Classification", player.disability)
+                    ProfileRow(Icons.Filled.Info, "Classification", player.disability)
                 )
             )
         }
@@ -270,9 +314,9 @@ private fun ProfileContent(
             Text(
                 modifier = Modifier.padding(start = 16.dp, top = 20.dp, bottom = 8.dp),
                 text = "Attendance History",
-                color = AppColors.DarkText,
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp
+                color = AppColors.Green,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 17.sp
             )
         }
 
@@ -299,20 +343,24 @@ private fun ProfileContent(
         }
 
         item {
-            Button(
+            OutlinedButton(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(horizontal = 16.dp, vertical = 16.dp),
                 onClick = onLogout,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = AppColors.Error.copy(alpha = 0.08f),
-                    contentColor = AppColors.Error
-                ),
-                shape = RoundedCornerShape(10.dp)
+                shape = RoundedCornerShape(10.dp),
+                border = BorderStroke(1.5.dp, AppColors.Border),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = AppColors.DarkText
+                )
             ) {
-                Icon(Icons.Filled.Logout, contentDescription = null, modifier = Modifier.size(19.dp))
+                Icon(
+                    imageVector = Icons.Filled.Logout,
+                    contentDescription = null,
+                    modifier = Modifier.size(19.dp)
+                )
                 Spacer(Modifier.width(8.dp))
-                Text("Logout", fontWeight = FontWeight.Bold)
+                Text("Logout", fontWeight = FontWeight.SemiBold)
             }
         }
     }
@@ -325,67 +373,109 @@ private data class ProfileRow(
 )
 
 @Composable
-private fun ProfileStats(total: Int, present: Int, absent: Int, rate: Double) {
-    Card(
+private fun ProfileStats(
+    total: Int,
+    present: Int,
+    rate: Double
+) {
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, AppColors.Border)
+            .background(Color.White)
+            .padding(vertical = 14.dp)
     ) {
-        Column(modifier = Modifier.padding(15.dp)) {
-            Text("Attendance Summary", color = AppColors.DarkText, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-            Spacer(Modifier.size(12.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                StatValue("Records", total.toString(), Modifier.weight(1f))
-                StatValue("Present", present.toString(), Modifier.weight(1f))
-                StatValue("Absent", absent.toString(), Modifier.weight(1f))
-                StatValue("Rate", String.format("%.0f%%", rate), Modifier.weight(1f))
-            }
-        }
+        StatValue("Records", total.toString(), Modifier.weight(1f))
+        ProfileStatDivider()
+        StatValue("Present", present.toString(), Modifier.weight(1f))
+        ProfileStatDivider()
+        StatValue("Rate", String.format("%.0f%%", rate), Modifier.weight(1f))
+    }
+    HorizontalDivider(color = Color(0xFFF3F4F6))
+}
+
+@Composable
+private fun ProfileStatDivider() {
+    Box(
+        modifier = Modifier
+            .width(1.dp)
+            .size(width = 1.dp, height = 34.dp)
+            .background(Color(0xFFF3F4F6))
+    )
+}
+
+@Composable
+private fun StatValue(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = value,
+            color = AppColors.Green,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 18.sp
+        )
+        Text(
+            text = label,
+            color = AppColors.GreyText,
+            fontSize = 10.sp
+        )
     }
 }
 
 @Composable
-private fun StatValue(label: String, value: String, modifier: Modifier = Modifier) {
-    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, color = AppColors.Green, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-        Text(label, color = AppColors.GreyText, fontSize = 10.sp)
-    }
-}
-
-@Composable
-private fun ProfileInfoCard(title: String, rows: List<ProfileRow>) {
+private fun ProfileInfoCard(
+    title: String,
+    rows: List<ProfileRow>
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 7.dp),
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, AppColors.Border)
+        border = BorderStroke(1.dp, Color(0xFFF3F4F6)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(15.dp)
         ) {
-            Text(title, color = AppColors.DarkText, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+            Text(
+                text = title,
+                color = AppColors.Green,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 16.sp
+            )
+
             rows.forEach { row ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(39.dp)
+                            .size(40.dp)
                             .background(AppColors.LightGreen, RoundedCornerShape(9.dp)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(row.icon, contentDescription = null, tint = AppColors.Green, modifier = Modifier.size(20.dp))
+                        Icon(
+                            imageVector = row.icon,
+                            contentDescription = null,
+                            tint = AppColors.Green,
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
+
                     Spacer(Modifier.width(12.dp))
+
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(row.label, color = AppColors.GreyText, fontSize = 11.sp)
+                        Text(
+                            text = row.label,
+                            color = AppColors.GreyText,
+                            fontSize = 11.sp
+                        )
                         Text(
                             text = row.value.ifBlank { "—" },
                             color = AppColors.DarkText,
@@ -404,13 +494,14 @@ private fun ProfileInfoCard(title: String, rows: List<ProfileRow>) {
 @Composable
 private fun AttendanceCard(attendance: AttendanceResponse) {
     val present = attendance.status.equals("Present", true)
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 5.dp),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, AppColors.Border)
+        border = BorderStroke(1.dp, Color(0xFFF3F4F6))
     ) {
         Row(
             modifier = Modifier.padding(14.dp),
@@ -426,14 +517,19 @@ private fun AttendanceCard(attendance: AttendanceResponse) {
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    Icons.Filled.CheckCircle,
+                    imageVector = Icons.Filled.CheckCircle,
                     contentDescription = null,
                     tint = if (present) AppColors.Green else AppColors.Error,
                     modifier = Modifier.size(20.dp)
                 )
             }
+
             Spacer(Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -442,7 +538,7 @@ private fun AttendanceCard(attendance: AttendanceResponse) {
                         modifier = Modifier.weight(1f),
                         text = attendance.eventTitle,
                         color = AppColors.DarkText,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -453,8 +549,16 @@ private fun AttendanceCard(attendance: AttendanceResponse) {
                         fontSize = 11.sp
                     )
                 }
-                Text("${attendance.eventDate} • ${attendance.eventTime}", color = AppColors.GreyText, fontSize = 12.sp)
-                Text(attendance.eventLocation, color = AppColors.GreyText, fontSize = 12.sp)
+                Text(
+                    text = "${attendance.eventDate} • ${attendance.eventTime}",
+                    color = AppColors.GreyText,
+                    fontSize = 12.sp
+                )
+                Text(
+                    text = attendance.eventLocation,
+                    color = AppColors.GreyText,
+                    fontSize = 12.sp
+                )
             }
         }
     }
