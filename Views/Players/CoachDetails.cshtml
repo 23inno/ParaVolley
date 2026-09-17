@@ -2,6 +2,7 @@
 @{
     ViewData["Title"] = "Player";
     var initials = string.Concat(Model.Name.Split(' ').Select(n => n.Length > 0 ? n[0].ToString() : "")).ToUpper();
+    var profileDetails = ViewBag.ProfileDetails as SportsManagementMVC.Models.PlayerProfileDetails;
 }
 
 <div class="pv-card" style="max-width:650px">
@@ -19,10 +20,34 @@
     <dl class="row">
         <dt class="col-4">Team</dt>
         <dd class="col-8">@Model.Team</dd>
+
         <dt class="col-4">Position</dt>
         <dd class="col-8">@Model.Position</dd>
+
+        <dt class="col-4">Joined</dt>
+        <dd class="col-8">@(profileDetails?.JoinedDate.ToString("dd MMM yyyy") ?? "Not recorded")</dd>
+
+        <dt class="col-4">Emergency Contact</dt>
+        <dd class="col-8">
+            @if (profileDetails != null &&
+                 (!string.IsNullOrWhiteSpace(profileDetails.EmergencyContactName) ||
+                  !string.IsNullOrWhiteSpace(profileDetails.EmergencyContactPhone)))
+            {
+                <span>@profileDetails.EmergencyContactName</span>
+                @if (!string.IsNullOrWhiteSpace(profileDetails.EmergencyContactPhone))
+                {
+                    <span> — @profileDetails.EmergencyContactPhone</span>
+                }
+            }
+            else
+            {
+                <span>Not recorded</span>
+            }
+        </dd>
+
         <dt class="col-4">Matches</dt>
         <dd class="col-8">@Model.Matches</dd>
+
         <dt class="col-4">Status</dt>
         <dd class="col-8">@Model.Status</dd>
     </dl>
