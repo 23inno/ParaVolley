@@ -3,8 +3,8 @@ package com.paravolley.mobile.screens
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -78,14 +78,14 @@ fun LoginScreen(
         cursorColor = AppColors.Green,
         focusedBorderColor = AppColors.Green,
         unfocusedBorderColor = AppColors.Border,
-        focusedLabelColor = AppColors.Green,
-        unfocusedLabelColor = AppColors.GreyText,
         focusedLeadingIconColor = AppColors.Green,
         unfocusedLeadingIconColor = Color(0xFF9CA3AF),
         focusedTrailingIconColor = AppColors.Green,
         unfocusedTrailingIconColor = Color(0xFF9CA3AF),
         focusedContainerColor = Color.White,
-        unfocusedContainerColor = Color.White
+        unfocusedContainerColor = Color.White,
+        focusedPlaceholderColor = Color(0xFF9CA3AF),
+        unfocusedPlaceholderColor = Color(0xFF9CA3AF)
     )
 
     Column(
@@ -100,7 +100,7 @@ fun LoginScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(AppColors.Green)
-                .padding(top = 40.dp, bottom = 30.dp),
+                .padding(top = 38.dp, bottom = 30.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Image(
@@ -108,43 +108,27 @@ fun LoginScreen(
                 contentDescription = "ParaVolley Mpumalanga logo",
                 modifier = Modifier
                     .size(96.dp)
-                    .clip(RoundedCornerShape(14.dp))
+                    .clip(RoundedCornerShape(12.dp))
             )
+
             Spacer(Modifier.height(14.dp))
+
             Text(
                 text = "ParaVolley Mpumalanga",
                 color = Color.White,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = 24.sp
-            )
-            Text(
-                modifier = Modifier.padding(top = 4.dp),
-                text = "Player Portal",
-                color = Color.White.copy(alpha = 0.78f),
-                fontSize = 14.sp
+                fontSize = 24.sp,
+                textAlign = TextAlign.Center
             )
         }
 
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 30.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp)
+                .padding(horizontal = 24.dp, vertical = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                Text(
-                    text = "Welcome back",
-                    color = AppColors.DarkText,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "Sign in to access your events, attendance and player profile.",
-                    color = AppColors.GreyText,
-                    fontSize = 14.sp
-                )
-            }
-
+            LoginFieldLabel("Email or Username")
             OutlinedTextField(
                 modifier = Modifier.fillMaxWidth(),
                 value = email,
@@ -153,7 +137,6 @@ fun LoginScreen(
                     errorMessage = null
                 },
                 enabled = !isLoading,
-                label = { Text("Email or Username") },
                 placeholder = { Text("Enter your email") },
                 leadingIcon = {
                     Icon(Icons.Filled.Email, contentDescription = null)
@@ -163,42 +146,61 @@ fun LoginScreen(
                 colors = fieldColors
             )
 
-            OutlinedTextField(
-                modifier = Modifier.fillMaxWidth(),
-                value = password,
-                onValueChange = {
-                    password = it
-                    errorMessage = null
-                },
-                enabled = !isLoading,
-                label = { Text("Password") },
-                placeholder = { Text("Enter your password") },
-                leadingIcon = {
-                    Icon(Icons.Filled.Lock, contentDescription = null)
-                },
-                trailingIcon = {
-                    IconButton(
-                        enabled = !isLoading,
-                        onClick = { passwordVisible = !passwordVisible }
-                    ) {
-                        Icon(
-                            imageVector = if (passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                            contentDescription = if (passwordVisible) "Hide password" else "Show password"
-                        )
-                    }
-                },
-                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                singleLine = true,
-                shape = RoundedCornerShape(10.dp),
-                colors = fieldColors
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                LoginFieldLabel("Password")
+                OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = password,
+                    onValueChange = {
+                        password = it
+                        errorMessage = null
+                    },
+                    enabled = !isLoading,
+                    placeholder = { Text("Enter your password") },
+                    leadingIcon = {
+                        Icon(Icons.Filled.Lock, contentDescription = null)
+                    },
+                    trailingIcon = {
+                        IconButton(
+                            enabled = !isLoading,
+                            onClick = { passwordVisible = !passwordVisible }
+                        ) {
+                            Icon(
+                                imageVector = if (passwordVisible) {
+                                    Icons.Filled.VisibilityOff
+                                } else {
+                                    Icons.Filled.Visibility
+                                },
+                                contentDescription = if (passwordVisible) {
+                                    "Hide password"
+                                } else {
+                                    "Show password"
+                                }
+                            )
+                        }
+                    },
+                    visualTransformation = if (passwordVisible) {
+                        VisualTransformation.None
+                    } else {
+                        PasswordVisualTransformation()
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(10.dp),
+                    colors = fieldColors
+                )
 
-            TextButton(
-                modifier = Modifier.align(Alignment.End),
-                enabled = !isLoading,
-                onClick = { }
-            ) {
-                Text("Forgot Password?", color = AppColors.Green)
+                TextButton(
+                    modifier = Modifier.align(Alignment.End),
+                    enabled = !isLoading,
+                    onClick = { }
+                ) {
+                    Text(
+                        text = "Forgot Password?",
+                        color = AppColors.Green,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
 
             errorMessage?.let { message ->
@@ -259,30 +261,48 @@ fun LoginScreen(
                         strokeWidth = 2.dp
                     )
                 } else {
-                    Text("Login", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(
+                        text = "Login",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
                 }
             }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(34.dp))
 
-            Text(
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                text = "Don't have an account?",
-                color = AppColors.GreyText,
-                textAlign = TextAlign.Center,
-                fontSize = 14.sp
-            )
-            TextButton(
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !isLoading,
-                onClick = onRegister
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Register as a Player",
-                    color = AppColors.Green,
-                    fontWeight = FontWeight.SemiBold
+                    text = "Don't have an account?",
+                    color = AppColors.GreyText,
+                    fontSize = 14.sp
                 )
+                TextButton(
+                    enabled = !isLoading,
+                    onClick = onRegister
+                ) {
+                    Text(
+                        text = "Register",
+                        color = AppColors.Green,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp
+                    )
+                }
             }
         }
     }
+}
+
+@Composable
+private fun LoginFieldLabel(text: String) {
+    Text(
+        text = text,
+        color = Color(0xFF374151),
+        fontSize = 13.sp,
+        fontWeight = FontWeight.Medium
+    )
 }
