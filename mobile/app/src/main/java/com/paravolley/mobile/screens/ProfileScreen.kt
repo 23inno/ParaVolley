@@ -1,9 +1,11 @@
 package com.paravolley.mobile.screens
 
-import android.content.Intent
+import android.content.Context
+import android.graphics.BitmapFactory
+import android.graphics.ImageDecoder
 import android.net.Uri
+import android.os.Build
 import android.util.Patterns
-import android.widget.ImageView
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -32,6 +34,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Groups
@@ -74,7 +77,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import com.paravolley.mobile.components.AppBottomBar
 import com.paravolley.mobile.navigation.Routes
 import com.paravolley.mobile.network.AttendanceRepository
@@ -87,7 +89,10 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlin.math.roundToInt
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private val ProfileGreen = Color(0xFF1A5F3F)
 private val ProfileYellow = Color(0xFFFBBF24)
@@ -111,11 +116,11 @@ fun ProfileScreen(
     var attendance by remember { mutableStateOf<List<AttendanceResponse>>(emptyList()) }
     var attendanceError by remember { mutableStateOf<String?>(null) }
     var profilePhoto by remember { mutableStateOf<ImageBitmap?>(null) }
-    var selectedPhotoUri by remember { mutableStateOf<Uri?>(null) }
 
     var isLoading by remember { mutableStateOf(true) }
     var isSaving by remember { mutableStateOf(false) }
     var isPhotoUploading by remember { mutableStateOf(false) }
+    var isPhotoRemoving by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var actionMessage by remember { mutableStateOf<String?>(null) }
 
@@ -143,50 +148,46 @@ fun ProfileScreen(
     }
 
     val photoPicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
+        contract = ActivityResultContracts.GetContent()
     ) { uri ->
         if (uri != null) {
-            runCatching {
-                context.contentResolver.takePersistableUriPermission(
-                    uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION
-                )
-            }
-
-            // Show the selected image immediately using the URI itself. This avoids
-            // depending on BitmapFactory/ImageDecoder support for the gallery format.
-            selectedPhotoUri = uri
-            actionMessage = null
-
             scope.launch {
                 isPhotoUploading = true
+                actionMessage = null
 
-                playerRepository.uploadProfilePhoto(uri)
+                val preview = withContext(Dispatchers.IO) {
+                    decodeProfilePhoto(context, uri)
+                }
+
+                if (preview != null) {
+                    profilePhoto = preview
+                    player = player?.copy(hasProfilePhoto = true)
+                } else {
+                    actionMessage = "The selected image could not be displayed."
+                }
+
+                val uploadResult = withContext(Dispatchers.IO) {
+                    playerRepository.uploadProfilePhoto(uri)
+                }
+
+                uploadResult
                     .onSuccess { updated ->
                         player = updated
-
-                        playerRepository.getProfilePhoto()
-                            .onSuccess { bytes ->
-                                val savedPhoto = bytes?.toImageBitmapOrNull()
-                                if (savedPhoto != null) {
-                                    profilePhoto = savedPhoto
-                                    selectedPhotoUri = null
-                                }
-                            }
-
-                        actionMessage = null
                         Toast.makeText(
                             context,
-                            "Profile photo updated.",
+                            "Profile picture updated.",
                             Toast.LENGTH_SHORT
                         ).show()
                     }
                     .onFailure { failure ->
-                        // Keep selectedPhotoUri so the chosen image remains visible even
-                        // when the test build is pointing at a backend without photo upload.
-                        actionMessage =
-                            "The photo is shown on this screen, but it could not be saved yet. " +
-                                (failure.message ?: "Please try again.")
+                        if (preview != null) {
+                            actionMessage =
+                                "The picture is showing on your phone, but it could not be saved to the server yet. " +
+                                    (failure.message ?: "Please try again.")
+                        } else if (actionMessage == null) {
+                            actionMessage =
+                                failure.message ?: "Could not upload the profile picture."
+                        }
                     }
 
                 isPhotoUploading = false
@@ -202,8 +203,11 @@ fun ProfileScreen(
         playerRepository.getProfile()
             .onSuccess { loaded ->
                 player = loaded
+
                 if (loaded.hasProfilePhoto) {
-                    playerRepository.getProfilePhoto()
+                    withContext(Dispatchers.IO) {
+                        playerRepository.getProfilePhoto()
+                    }
                         .onSuccess { bytes ->
                             profilePhoto = bytes?.toImageBitmapOrNull()
                         }
@@ -271,8 +275,8 @@ fun ProfileScreen(
                 attendanceError = attendanceError,
                 innerPadding = innerPadding,
                 profilePhoto = profilePhoto,
-                selectedPhotoUri = selectedPhotoUri,
                 isPhotoUploading = isPhotoUploading,
+                isPhotoRemoving = isPhotoRemoving,
                 isEditing = isEditing,
                 isSaving = isSaving,
                 draftAge = draftAge,
@@ -289,8 +293,49 @@ fun ProfileScreen(
                 onEmergencyNameChange = { draftEmergencyName = it.take(120) },
                 onEmergencyPhoneChange = { draftEmergencyPhone = it.take(30) },
                 onPickPhoto = {
-                    if (!isPhotoUploading) {
-                        photoPicker.launch(arrayOf("image/*"))
+                    if (!isPhotoUploading && !isPhotoRemoving) {
+                        photoPicker.launch("image/*")
+                    }
+                },
+                onRemovePhoto = {
+                    if (!isPhotoUploading && !isPhotoRemoving) {
+                        val previousPhoto = profilePhoto
+                        val previousPlayer = player
+
+                        profilePhoto = null
+                        player = player?.copy(hasProfilePhoto = false)
+                        actionMessage = null
+
+                        scope.launch {
+                            isPhotoRemoving = true
+
+                            val result = withContext(Dispatchers.IO) {
+                                playerRepository.removeProfilePhoto()
+                            }
+
+                            result
+                                .onSuccess { updated ->
+                                    player = updated
+                                    Toast.makeText(
+                                        context,
+                                        "Profile picture removed.",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                                .onFailure { failure ->
+                                    if (previousPhoto != null) {
+                                        profilePhoto = previousPhoto
+                                    }
+                                    if (previousPlayer != null) {
+                                        player = previousPlayer
+                                    }
+                                    actionMessage =
+                                        failure.message
+                                            ?: "Could not remove the profile picture."
+                                }
+
+                            isPhotoRemoving = false
+                        }
                     }
                 },
                 onSave = {
@@ -304,9 +349,14 @@ fun ProfileScreen(
                     val validationMessage = when {
                         age == null || age !in 5..100 ->
                             "Enter an age between 5 and 100."
-                        email.isBlank() || !Patterns.EMAIL_ADDRESS.matcher(email).matches() ->
+
+                        email.isBlank() ||
+                            !Patterns.EMAIL_ADDRESS.matcher(email).matches() ->
                             "Enter a valid email address."
-                        phone.isBlank() -> "Enter a phone number."
+
+                        phone.isBlank() ->
+                            "Enter a phone number."
+
                         else -> null
                     }
 
@@ -315,19 +365,26 @@ fun ProfileScreen(
                         return@ProfileContent
                     }
 
-                    val emailChanged = !email.equals(current.email, ignoreCase = true)
+                    val emailChanged = !email.equals(
+                        current.email,
+                        ignoreCase = true
+                    )
 
                     scope.launch {
                         isSaving = true
                         actionMessage = null
 
-                        playerRepository.updateProfile(
-                            age = age!!,
-                            email = email,
-                            phone = phone,
-                            emergencyContactName = emergencyName,
-                            emergencyContactPhone = emergencyPhone
-                        )
+                        val result = withContext(Dispatchers.IO) {
+                            playerRepository.updateProfile(
+                                age = age!!,
+                                email = email,
+                                phone = phone,
+                                emergencyContactName = emergencyName,
+                                emergencyContactPhone = emergencyPhone
+                            )
+                        }
+
+                        result
                             .onSuccess { updated ->
                                 player = updated
                                 isEditing = false
@@ -349,8 +406,8 @@ fun ProfileScreen(
                                 }
                             }
                             .onFailure { failure ->
-                                actionMessage = failure.message
-                                    ?: "Could not save the profile."
+                                actionMessage =
+                                    failure.message ?: "Could not save the profile."
                             }
 
                         isSaving = false
@@ -372,8 +429,8 @@ private fun ProfileContent(
     attendanceError: String?,
     innerPadding: PaddingValues,
     profilePhoto: ImageBitmap?,
-    selectedPhotoUri: Uri?,
     isPhotoUploading: Boolean,
+    isPhotoRemoving: Boolean,
     isEditing: Boolean,
     isSaving: Boolean,
     draftAge: String,
@@ -390,6 +447,7 @@ private fun ProfileContent(
     onEmergencyNameChange: (String) -> Unit,
     onEmergencyPhoneChange: (String) -> Unit,
     onPickPhoto: () -> Unit,
+    onRemovePhoto: () -> Unit,
     onSave: () -> Unit,
     onLogout: () -> Unit
 ) {
@@ -404,7 +462,10 @@ private fun ProfileContent(
 
     val total = attendance.size
     val present = attendance.count { it.status.equals("Present", true) }
-    val rate = if (total == 0) 0.0 else present.toDouble() / total.toDouble() * 100.0
+    val attendanceRate =
+        if (total == 0) 0.0
+        else present.toDouble() / total.toDouble() * 100.0
+
     val joinedDate = formatProfileDate(player.joinedDate.orEmpty())
         .ifBlank { "Not recorded" }
 
@@ -419,12 +480,13 @@ private fun ProfileContent(
                 player = player,
                 initials = initials,
                 profilePhoto = profilePhoto,
-                selectedPhotoUri = selectedPhotoUri,
                 isPhotoUploading = isPhotoUploading,
+                isPhotoRemoving = isPhotoRemoving,
                 isEditing = isEditing,
                 onEdit = onEdit,
                 onCancelEdit = onCancelEdit,
-                onPickPhoto = onPickPhoto
+                onPickPhoto = onPickPhoto,
+                onRemovePhoto = onRemovePhoto
             )
         }
 
@@ -432,7 +494,7 @@ private fun ProfileContent(
             ProfileStatsRow(
                 joinedDate = joinedDate,
                 matches = player.matches,
-                attendanceRate = rate
+                attendanceRate = attendanceRate
             )
         }
 
@@ -444,7 +506,10 @@ private fun ProfileContent(
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     color = AppColors.Error.copy(alpha = 0.08f),
                     shape = RoundedCornerShape(10.dp),
-                    border = BorderStroke(1.dp, AppColors.Error.copy(alpha = 0.20f))
+                    border = BorderStroke(
+                        1.dp,
+                        AppColors.Error.copy(alpha = 0.20f)
+                    )
                 ) {
                     Text(
                         modifier = Modifier.padding(12.dp),
@@ -469,10 +534,26 @@ private fun ProfileContent(
                         keyboardType = KeyboardType.Number,
                         onValueChange = onAgeChange
                     ),
-                    ProfileRow(Icons.Filled.SportsVolleyball, "Position", player.position),
-                    ProfileRow(Icons.Filled.Groups, "Team", player.team),
-                    ProfileRow(Icons.Filled.Info, "Classification", player.disability),
-                    ProfileRow(Icons.Filled.CheckCircle, "Status", player.status)
+                    ProfileRow(
+                        Icons.Filled.SportsVolleyball,
+                        "Position",
+                        player.position
+                    ),
+                    ProfileRow(
+                        Icons.Filled.Groups,
+                        "Team",
+                        player.team
+                    ),
+                    ProfileRow(
+                        Icons.Filled.Info,
+                        "Classification",
+                        player.disability
+                    ),
+                    ProfileRow(
+                        Icons.Filled.CheckCircle,
+                        "Status",
+                        player.status
+                    )
                 ),
                 isEditing = isEditing
             )
@@ -535,7 +616,10 @@ private fun ProfileContent(
         if (isEditing) {
             item {
                 Column(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    modifier = Modifier.padding(
+                        horizontal = 16.dp,
+                        vertical = 8.dp
+                    ),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text(
@@ -568,7 +652,9 @@ private fun ProfileContent(
                                 modifier = Modifier.size(19.dp)
                             )
                         }
+
                         Spacer(Modifier.width(8.dp))
+
                         Text(
                             if (isSaving) "Saving..." else "Save Changes",
                             fontWeight = FontWeight.SemiBold
@@ -594,15 +680,21 @@ private fun ProfileContent(
             }
         }
 
-        item { SectionTitle("Attendance History") }
+        item {
+            SectionTitle("Attendance History")
+        }
 
         when {
             attendanceError != null && attendance.isEmpty() -> item {
                 EmptyAttendanceCard(attendanceError)
             }
+
             attendance.isEmpty() -> item {
-                EmptyAttendanceCard("No attendance records are available yet.")
+                EmptyAttendanceCard(
+                    "No attendance records are available yet."
+                )
             }
+
             else -> items(
                 items = attendance,
                 key = { "attendance-${it.id}" }
@@ -621,7 +713,10 @@ private fun ProfileContent(
                     containerColor = Color.White,
                     contentColor = AppColors.Error
                 ),
-                border = BorderStroke(1.dp, AppColors.Error.copy(alpha = 0.28f)),
+                border = BorderStroke(
+                    1.dp,
+                    AppColors.Error.copy(alpha = 0.28f)
+                ),
                 shape = RoundedCornerShape(12.dp),
                 contentPadding = PaddingValues(vertical = 13.dp)
             ) {
@@ -631,7 +726,10 @@ private fun ProfileContent(
                     modifier = Modifier.size(19.dp)
                 )
                 Spacer(Modifier.width(8.dp))
-                Text("Logout", fontWeight = FontWeight.SemiBold)
+                Text(
+                    "Logout",
+                    fontWeight = FontWeight.SemiBold
+                )
             }
         }
     }
@@ -642,12 +740,13 @@ private fun ProfileHeader(
     player: PlayerProfileResponse,
     initials: String,
     profilePhoto: ImageBitmap?,
-    selectedPhotoUri: Uri?,
     isPhotoUploading: Boolean,
+    isPhotoRemoving: Boolean,
     isEditing: Boolean,
     onEdit: () -> Unit,
     onCancelEdit: () -> Unit,
-    onPickPhoto: () -> Unit
+    onPickPhoto: () -> Unit,
+    onRemovePhoto: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -670,8 +769,12 @@ private fun ProfileHeader(
                 onClick = if (isEditing) onCancelEdit else onEdit
             ) {
                 Icon(
-                    imageVector = if (isEditing) Icons.Filled.Close else Icons.Filled.Edit,
-                    contentDescription = if (isEditing) "Cancel editing" else "Edit profile",
+                    imageVector =
+                        if (isEditing) Icons.Filled.Close
+                        else Icons.Filled.Edit,
+                    contentDescription =
+                        if (isEditing) "Cancel editing"
+                        else "Edit profile",
                     tint = Color.White,
                     modifier = Modifier.size(21.dp)
                 )
@@ -682,64 +785,52 @@ private fun ProfileHeader(
 
         Box(
             modifier = Modifier
-                .size(98.dp)
-                .clickable(enabled = !isPhotoUploading, onClick = onPickPhoto),
+                .size(104.dp)
+                .clickable(
+                    enabled = !isPhotoUploading && !isPhotoRemoving,
+                    onClick = onPickPhoto
+                ),
             contentAlignment = Alignment.Center
         ) {
             Box(
                 modifier = Modifier
-                    .size(94.dp)
-                    .background(Color.White.copy(alpha = 0.14f), CircleShape),
+                    .size(98.dp)
+                    .background(
+                        Color.White.copy(alpha = 0.16f),
+                        CircleShape
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Box(
                     modifier = Modifier
-                        .size(82.dp)
+                        .size(88.dp)
                         .clip(CircleShape)
                         .background(Color.White),
                     contentAlignment = Alignment.Center
                 ) {
-                    when {
-                        selectedPhotoUri != null -> {
-                            AndroidView(
-                                modifier = Modifier.fillMaxSize(),
-                                factory = { imageContext ->
-                                    ImageView(imageContext).apply {
-                                        scaleType = ImageView.ScaleType.CENTER_CROP
-                                        setImageURI(selectedPhotoUri)
-                                    }
-                                },
-                                update = { imageView ->
-                                    imageView.setImageURI(null)
-                                    imageView.setImageURI(selectedPhotoUri)
-                                }
-                            )
-                        }
-
-                        profilePhoto != null -> {
-                            Image(
-                                bitmap = profilePhoto,
-                                contentDescription = "Profile photo",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        }
-
-                        else -> {
-                            Text(
-                                text = initials,
-                                color = ProfileGreen,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 28.sp
-                            )
-                        }
+                    if (profilePhoto != null) {
+                        Image(
+                            bitmap = profilePhoto,
+                            contentDescription = "Profile picture",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Text(
+                            text = initials,
+                            color = ProfileGreen,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 28.sp
+                        )
                     }
 
-                    if (isPhotoUploading) {
+                    if (isPhotoUploading || isPhotoRemoving) {
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(Color.Black.copy(alpha = 0.28f)),
+                                .background(
+                                    Color.Black.copy(alpha = 0.28f)
+                                ),
                             contentAlignment = Alignment.Center
                         ) {
                             CircularProgressIndicator(
@@ -755,15 +846,15 @@ private fun ProfileHeader(
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .size(30.dp)
+                    .size(32.dp)
                     .background(ProfileYellow, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     Icons.Filled.CameraAlt,
-                    contentDescription = "Upload profile photo",
+                    contentDescription = "Choose profile picture",
                     tint = ProfileText,
-                    modifier = Modifier.size(17.dp)
+                    modifier = Modifier.size(18.dp)
                 )
             }
         }
@@ -771,11 +862,44 @@ private fun ProfileHeader(
         Text(
             modifier = Modifier.padding(top = 5.dp),
             text = "Tap the photo to change it",
-            color = Color.White.copy(alpha = 0.70f),
+            color = Color.White.copy(alpha = 0.78f),
             fontSize = 10.sp
         )
 
-        Spacer(Modifier.size(7.dp))
+        if (profilePhoto != null || player.hasProfilePhoto) {
+            OutlinedButton(
+                modifier = Modifier.padding(top = 8.dp),
+                onClick = onRemovePhoto,
+                enabled = !isPhotoUploading && !isPhotoRemoving,
+                border = BorderStroke(
+                    1.dp,
+                    Color.White.copy(alpha = 0.45f)
+                ),
+                shape = RoundedCornerShape(999.dp),
+                contentPadding = PaddingValues(
+                    horizontal = 14.dp,
+                    vertical = 6.dp
+                ),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = Color.White
+                )
+            ) {
+                Icon(
+                    Icons.Filled.DeleteOutline,
+                    contentDescription = null,
+                    modifier = Modifier.size(15.dp)
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text =
+                        if (isPhotoRemoving) "Removing..."
+                        else "Remove profile picture",
+                    fontSize = 11.sp
+                )
+            }
+        }
+
+        Spacer(Modifier.size(8.dp))
 
         Text(
             text = player.name,
@@ -790,7 +914,7 @@ private fun ProfileHeader(
             text = listOf(player.position, player.team)
                 .filter { it.isNotBlank() }
                 .joinToString(" • "),
-            color = Color.White.copy(alpha = 0.80f),
+            color = Color.White.copy(alpha = 0.82f),
             fontSize = 13.sp
         )
     }
@@ -813,12 +937,24 @@ private fun ProfileStatsRow(
                 .padding(vertical = 15.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            ProfileStat("Joined", joinedDate, Modifier.weight(1f))
-            ProfileStat("Matches", matches.toString(), Modifier.weight(1f))
             ProfileStat(
-                "Attendance Rate",
-                String.format(Locale.getDefault(), "%.0f%%", attendanceRate),
-                Modifier.weight(1f)
+                label = "Joined",
+                value = joinedDate,
+                modifier = Modifier.weight(1f)
+            )
+            ProfileStat(
+                label = "Matches",
+                value = matches.toString(),
+                modifier = Modifier.weight(1f)
+            )
+            ProfileStat(
+                label = "Attendance Rate",
+                value = String.format(
+                    Locale.getDefault(),
+                    "%.0f%%",
+                    attendanceRate
+                ),
+                modifier = Modifier.weight(1f)
             )
         }
     }
@@ -838,7 +974,9 @@ private fun ProfileStat(
             text = value,
             color = ProfileGreen,
             fontWeight = FontWeight.SemiBold,
-            fontSize = if (label == "Joined") 13.sp else 19.sp,
+            fontSize =
+                if (label == "Joined") 13.sp
+                else 19.sp,
             textAlign = TextAlign.Center,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis
@@ -874,9 +1012,13 @@ private fun ProfileInfoCard(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
         border = BorderStroke(1.dp, ProfileBorder),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 1.dp
+        )
     ) {
         Column(
             modifier = Modifier.padding(17.dp),
@@ -888,8 +1030,12 @@ private fun ProfileInfoCard(
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 16.sp
             )
+
             rows.forEach { row ->
-                ProfileInfoRow(row = row, isEditing = isEditing)
+                ProfileInfoRow(
+                    row = row,
+                    isEditing = isEditing
+                )
             }
         }
     }
@@ -900,11 +1046,16 @@ private fun ProfileInfoRow(
     row: ProfileRow,
     isEditing: Boolean
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Box(
             modifier = Modifier
                 .size(40.dp)
-                .background(Color(0xFFF0F7F3), RoundedCornerShape(10.dp)),
+                .background(
+                    Color(0xFFF0F7F3),
+                    RoundedCornerShape(10.dp)
+                ),
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -917,7 +1068,9 @@ private fun ProfileInfoRow(
 
         Spacer(Modifier.width(12.dp))
 
-        Column(modifier = Modifier.weight(1f)) {
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
             Text(
                 text = row.label,
                 color = ProfileMuted,
@@ -932,7 +1085,9 @@ private fun ProfileInfoRow(
                     value = row.editValue,
                     onValueChange = row.onValueChange,
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = row.keyboardType),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = row.keyboardType
+                    ),
                     shape = RoundedCornerShape(9.dp),
                     textStyle = androidx.compose.ui.text.TextStyle(
                         fontSize = 14.sp,
@@ -954,7 +1109,9 @@ private fun ProfileInfoRow(
 }
 
 @Composable
-private fun SectionTitle(title: String) {
+private fun SectionTitle(
+    title: String
+) {
     Text(
         modifier = Modifier.padding(
             start = 16.dp,
@@ -970,13 +1127,17 @@ private fun SectionTitle(title: String) {
 }
 
 @Composable
-private fun EmptyAttendanceCard(message: String) {
+private fun EmptyAttendanceCard(
+    message: String
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 5.dp),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
         border = BorderStroke(1.dp, ProfileBorder)
     ) {
         Text(
@@ -989,17 +1150,26 @@ private fun EmptyAttendanceCard(message: String) {
 }
 
 @Composable
-private fun AttendanceCard(attendance: AttendanceResponse) {
-    val present = attendance.status.equals("Present", true)
+private fun AttendanceCard(
+    attendance: AttendanceResponse
+) {
+    val present = attendance.status.equals(
+        "Present",
+        ignoreCase = true
+    )
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 5.dp),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
         border = BorderStroke(1.dp, ProfileBorder),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 1.dp
+        )
     ) {
         Row(
             modifier = Modifier.padding(14.dp),
@@ -1009,7 +1179,11 @@ private fun AttendanceCard(attendance: AttendanceResponse) {
                 modifier = Modifier
                     .size(40.dp)
                     .background(
-                        if (present) Color(0xFFF0F7F3) else AppColors.Error.copy(alpha = 0.08f),
+                        if (present) {
+                            Color(0xFFF0F7F3)
+                        } else {
+                            AppColors.Error.copy(alpha = 0.08f)
+                        },
                         CircleShape
                     ),
                 contentAlignment = Alignment.Center
@@ -1017,7 +1191,9 @@ private fun AttendanceCard(attendance: AttendanceResponse) {
                 Icon(
                     Icons.Filled.CheckCircle,
                     contentDescription = null,
-                    tint = if (present) ProfileGreen else AppColors.Error,
+                    tint =
+                        if (present) ProfileGreen
+                        else AppColors.Error,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -1042,7 +1218,9 @@ private fun AttendanceCard(attendance: AttendanceResponse) {
                     )
                     Text(
                         text = attendance.status,
-                        color = if (present) ProfileGreen else AppColors.Error,
+                        color =
+                            if (present) ProfileGreen
+                            else AppColors.Error,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 11.sp
                     )
@@ -1052,7 +1230,9 @@ private fun AttendanceCard(attendance: AttendanceResponse) {
                     text = listOf(
                         formatProfileDate(attendance.eventDate),
                         formatProfileTime(attendance.eventTime)
-                    ).filter { it.isNotBlank() }.joinToString(" • "),
+                    )
+                        .filter { it.isNotBlank() }
+                        .joinToString(" • "),
                     color = ProfileMuted,
                     fontSize = 12.sp
                 )
@@ -1069,32 +1249,108 @@ private fun AttendanceCard(attendance: AttendanceResponse) {
     }
 }
 
-private fun ByteArray.toImageBitmapOrNull(): ImageBitmap? {
-    if (isEmpty()) return null
+private fun decodeProfilePhoto(
+    context: Context,
+    uri: Uri
+): ImageBitmap? {
     return try {
-        android.graphics.BitmapFactory.decodeByteArray(this, 0, size)
-            ?.asImageBitmap()
+        val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            val source = ImageDecoder.createSource(
+                context.contentResolver,
+                uri
+            )
+
+            ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
+                decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+
+                val sourceWidth = info.size.width
+                val sourceHeight = info.size.height
+                val largestSide = maxOf(sourceWidth, sourceHeight)
+
+                if (largestSide > 1024) {
+                    val scale = 1024f / largestSide.toFloat()
+                    decoder.setTargetSize(
+                        (sourceWidth * scale)
+                            .roundToInt()
+                            .coerceAtLeast(1),
+                        (sourceHeight * scale)
+                            .roundToInt()
+                            .coerceAtLeast(1)
+                    )
+                }
+            }
+        } else {
+            context.contentResolver.openInputStream(uri)
+                ?.use { stream ->
+                    BitmapFactory.decodeStream(stream)
+                }
+        }
+
+        bitmap?.asImageBitmap()
+    } catch (_: Exception) {
+        try {
+            context.contentResolver
+                .openFileDescriptor(uri, "r")
+                ?.use { descriptor ->
+                    BitmapFactory.decodeFileDescriptor(
+                        descriptor.fileDescriptor
+                    )
+                }
+                ?.asImageBitmap()
+        } catch (_: Exception) {
+            null
+        }
+    }
+}
+
+private fun ByteArray.toImageBitmapOrNull(): ImageBitmap? {
+    if (isEmpty()) {
+        return null
+    }
+
+    return try {
+        BitmapFactory.decodeByteArray(
+            this,
+            0,
+            size
+        )?.asImageBitmap()
     } catch (_: Exception) {
         null
     }
 }
 
-private fun formatProfileDate(raw: String): String {
+private fun formatProfileDate(
+    raw: String
+): String {
     val value = raw.trim()
-    if (value.isBlank()) return ""
+    if (value.isBlank()) {
+        return ""
+    }
 
     return try {
-        val isoDate = if (value.length >= 10) value.substring(0, 10) else value
+        val isoDate =
+            if (value.length >= 10) value.substring(0, 10)
+            else value
+
         LocalDate.parse(isoDate)
-            .format(DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.getDefault()))
+            .format(
+                DateTimeFormatter.ofPattern(
+                    "dd MMM yyyy",
+                    Locale.getDefault()
+                )
+            )
     } catch (_: Exception) {
         value
     }
 }
 
-private fun formatProfileTime(raw: String): String {
+private fun formatProfileTime(
+    raw: String
+): String {
     val value = raw.trim()
-    if (value.isBlank()) return ""
+    if (value.isBlank()) {
+        return ""
+    }
 
     val candidate = value
         .substringBefore(" - ")
@@ -1103,11 +1359,23 @@ private fun formatProfileTime(raw: String): String {
 
     return try {
         val time = when {
-            candidate.length >= 8 && candidate[2] == ':' -> LocalTime.parse(candidate.take(8))
-            candidate.length >= 5 && candidate[2] == ':' -> LocalTime.parse(candidate.take(5))
+            candidate.length >= 8 &&
+                candidate[2] == ':' ->
+                LocalTime.parse(candidate.take(8))
+
+            candidate.length >= 5 &&
+                candidate[2] == ':' ->
+                LocalTime.parse(candidate.take(5))
+
             else -> return value
         }
-        time.format(DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault()))
+
+        time.format(
+            DateTimeFormatter.ofPattern(
+                "HH:mm",
+                Locale.getDefault()
+            )
+        )
     } catch (_: Exception) {
         value
     }
