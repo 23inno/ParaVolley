@@ -14,16 +14,16 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -61,6 +61,7 @@ fun EventsScreen(
     var registrations by remember { mutableStateOf<List<EventRegistrationResponse>>(emptyList()) }
     var selectedTab by rememberSaveable { mutableStateOf(0) }
     var selectedType by rememberSaveable { mutableStateOf<String?>(null) }
+    var showFilters by rememberSaveable { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(true) }
     var busyEventId by remember { mutableStateOf<Int?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -69,6 +70,7 @@ fun EventsScreen(
     suspend fun loadData() {
         isLoading = true
         errorMessage = null
+
         val eventsResult = repository.getEvents()
         val registrationsResult = repository.getMyRegistrations()
 
@@ -83,6 +85,7 @@ fun EventsScreen(
                     errorMessage = it.message ?: "Could not load registrations."
                 }
             }
+
         isLoading = false
     }
 
@@ -103,69 +106,44 @@ fun EventsScreen(
         selectedType == null || event.type.equals(selectedType, ignoreCase = true)
     }
 
-    val availableTypes = statusFiltered.map { it.type }.filter { it.isNotBlank() }.distinct()
+    val availableTypes = statusFiltered
+        .map { it.type }
+        .filter { it.isNotBlank() }
+        .distinct()
 
     Scaffold(
-        containerColor = AppColors.LightBackground,
+        containerColor = Color.White,
         bottomBar = {
-            AppBottomBar(selectedRoute = Routes.EVENTS, onNavigate = onNavigate)
+            AppBottomBar(
+                selectedRoute = Routes.EVENTS,
+                onNavigate = onNavigate
+            )
         }
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .background(Color.White)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(AppColors.Green)
-                    .padding(horizontal = 20.dp, vertical = 22.dp)
-            ) {
-                Text(
-                    text = "Events",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 25.sp
-                )
-                Text(
-                    modifier = Modifier.padding(top = 3.dp),
-                    text = "Find events, training sessions and registrations",
-                    color = Color.White.copy(alpha = 0.78f),
-                    fontSize = 13.sp
-                )
-            }
+            EventsTopBar(
+                filterActive = showFilters || selectedType != null,
+                onBack = { onNavigate(Routes.DASHBOARD) },
+                onToggleFilters = { showFilters = !showFilters }
+            )
 
-            TabRow(
-                selectedTabIndex = selectedTab,
-                containerColor = Color.White,
-                contentColor = AppColors.Green,
-                divider = { }
-            ) {
-                listOf("Upcoming", "Registered", "Past").forEachIndexed { index, title ->
-                    Tab(
-                        selected = selectedTab == index,
-                        onClick = {
-                            selectedTab = index
-                            selectedType = null
-                        },
-                        text = {
-                            Text(
-                                text = title,
-                                fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Medium,
-                                color = if (selectedTab == index) AppColors.Green else AppColors.GreyText
-                            )
-                        }
-                    )
+            EventTabs(
+                selectedTab = selectedTab,
+                onSelected = { index ->
+                    selectedTab = index
+                    selectedType = null
                 }
-            }
+            )
 
-            if (availableTypes.isNotEmpty()) {
+            if (showFilters && availableTypes.isNotEmpty()) {
                 LazyRow(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color.White),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 9.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     item {
@@ -179,14 +157,19 @@ fun EventsScreen(
                             colors = eventFilterColors()
                         )
                     }
+
                     items(availableTypes) { type ->
                         FilterChip(
                             selected = selectedType == type,
-                            onClick = { selectedType = if (selectedType == type) null else type },
+                            onClick = {
+                                selectedType = if (selectedType == type) null else type
+                            },
                             label = { Text(type) },
                             leadingIcon = if (selectedType == type) {
                                 { Icon(Icons.Filled.Check, contentDescription = null) }
-                            } else null,
+                            } else {
+                                null
+                            },
                             colors = eventFilterColors()
                         )
                     }
@@ -197,12 +180,12 @@ fun EventsScreen(
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                        .padding(horizontal = 16.dp, vertical = 7.dp),
                     color = AppColors.LightGreen,
                     shape = RoundedCornerShape(10.dp)
                 ) {
                     Text(
-                        modifier = Modifier.padding(11.dp),
+                        modifier = Modifier.padding(12.dp),
                         text = message,
                         color = AppColors.Green,
                         fontWeight = FontWeight.SemiBold,
@@ -215,12 +198,12 @@ fun EventsScreen(
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                        .padding(horizontal = 16.dp, vertical = 7.dp),
                     color = AppColors.Error.copy(alpha = 0.08f),
                     shape = RoundedCornerShape(10.dp)
                 ) {
                     Text(
-                        modifier = Modifier.padding(11.dp),
+                        modifier = Modifier.padding(12.dp),
                         text = message,
                         color = AppColors.Error,
                         fontSize = 13.sp
@@ -255,18 +238,26 @@ fun EventsScreen(
 
                 else -> LazyColumn(
                     modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    contentPadding = PaddingValues(
+                        start = 16.dp,
+                        end = 16.dp,
+                        top = 10.dp,
+                        bottom = 20.dp
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     items(displayedEvents, key = { it.id }) { event ->
                         val registration = registrations.firstOrNull { it.eventId == event.id }
-                        val isRegistered = registration?.registrationStatus.equals("Registered", ignoreCase = true)
+                        val isRegistered = registration
+                            ?.registrationStatus
+                            .equals("Registered", ignoreCase = true)
                         val isUpcoming = event.status.equals("Upcoming", ignoreCase = true)
                         val isBusy = busyEventId == event.id
+
                         val buttonText = when {
                             isBusy -> "Please wait..."
                             isUpcoming && isRegistered -> "Cancel Registration"
-                            isUpcoming -> "Register"
+                            isUpcoming -> "Register Now"
                             event.status.equals("Cancelled", ignoreCase = true) -> "Cancelled"
                             else -> event.status
                         }
@@ -280,6 +271,7 @@ fun EventsScreen(
                                 successMessage = null
                                 errorMessage = null
                                 busyEventId = event.id
+
                                 coroutineScope.launch {
                                     val result = if (isRegistered) {
                                         repository.cancelRegistration(event.id)
@@ -289,7 +281,9 @@ fun EventsScreen(
 
                                     result
                                         .onSuccess { response ->
-                                            successMessage = if (response.registrationStatus.equals("Registered", true)) {
+                                            successMessage = if (
+                                                response.registrationStatus.equals("Registered", true)
+                                            ) {
                                                 "Registration successful."
                                             } else {
                                                 "Registration cancelled."
@@ -299,12 +293,98 @@ fun EventsScreen(
                                         .onFailure {
                                             errorMessage = it.message ?: "The event action failed."
                                         }
+
                                     busyEventId = null
                                 }
                             }
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EventsTopBar(
+    filterActive: Boolean,
+    onBack: () -> Unit,
+    onToggleFilters: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.White)
+            .padding(horizontal = 6.dp, vertical = 8.dp)
+    ) {
+        IconButton(
+            modifier = Modifier.align(Alignment.CenterStart),
+            onClick = onBack
+        ) {
+            Icon(
+                imageVector = Icons.Filled.ArrowBack,
+                contentDescription = "Back",
+                tint = AppColors.DarkText
+            )
+        }
+
+        Text(
+            modifier = Modifier.align(Alignment.Center),
+            text = "Events & Training",
+            color = AppColors.Green,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 19.sp
+        )
+
+        Surface(
+            modifier = Modifier.align(Alignment.CenterEnd),
+            onClick = onToggleFilters,
+            color = if (filterActive) AppColors.LightGreen else Color.Transparent,
+            shape = RoundedCornerShape(10.dp)
+        ) {
+            Box(
+                modifier = Modifier.padding(10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.FilterList,
+                    contentDescription = "Filter events",
+                    tint = AppColors.Green
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EventTabs(
+    selectedTab: Int,
+    onSelected: (Int) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .background(Color(0xFFF3F4F6), RoundedCornerShape(12.dp))
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        listOf("Upcoming", "Registered", "Past").forEachIndexed { index, title ->
+            Surface(
+                modifier = Modifier.weight(1f),
+                onClick = { onSelected(index) },
+                color = if (selectedTab == index) Color.White else Color.Transparent,
+                shape = RoundedCornerShape(9.dp),
+                shadowElevation = if (selectedTab == index) 1.dp else 0.dp
+            ) {
+                Text(
+                    modifier = Modifier.padding(vertical = 10.dp),
+                    text = title,
+                    color = if (selectedTab == index) AppColors.Green else AppColors.GreyText,
+                    fontWeight = if (selectedTab == index) FontWeight.SemiBold else FontWeight.Normal,
+                    fontSize = 13.sp,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
             }
         }
     }
