@@ -1,6 +1,10 @@
 package com.paravolley.mobile.screens
 
+import android.content.Context
 import android.graphics.BitmapFactory
+import android.graphics.ImageDecoder
+import android.net.Uri
+import android.os.Build
 import android.util.Patterns
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -84,6 +88,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 
 private val ProfileGreen = Color(0xFF1A5F3F)
@@ -140,19 +145,16 @@ fun ProfileScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
         if (uri != null) {
-            val preview = runCatching {
-                context.contentResolver.openInputStream(uri)
-                    ?.use { it.readBytes() }
-                    ?.toImageBitmapOrNull()
-            }.getOrNull()
+            val preview = loadImageBitmapFromUri(context, uri)
 
             if (preview != null) {
                 profilePhoto = preview
+            } else {
+                actionMessage = "The selected photo could not be previewed."
             }
 
             scope.launch {
                 isPhotoUploading = true
-                actionMessage = null
 
                 playerRepository.uploadProfilePhoto(uri)
                     .onSuccess { updated ->
@@ -164,6 +166,7 @@ fun ProfileScreen(
                                 }
                             }
 
+                        actionMessage = null
                         Toast.makeText(
                             context,
                             "Profile photo updated.",
@@ -171,9 +174,12 @@ fun ProfileScreen(
                         ).show()
                     }
                     .onFailure { failure ->
-                        actionMessage =
-                            "The photo preview is shown, but it could not be saved. " +
+                        actionMessage = if (preview != null) {
+                            "The photo is shown on this screen, but it could not be saved yet. " +
                                 (failure.message ?: "Please try again.")
+                        } else {
+                            failure.message ?: "Could not upload the profile photo."
+                        }
                     }
 
                 isPhotoUploading = false
@@ -1149,6 +1155,43 @@ private fun AttendanceCard(attendance: AttendanceResponse) {
                 )
             }
         }
+    }
+}
+
+private fun loadImageBitmapFromUri(
+    context: Context,
+    uri: Uri
+): ImageBitmap? {
+    return try {
+        val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            val source = ImageDecoder.createSource(
+                context.contentResolver,
+                uri
+            )
+
+            ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
+                decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+
+                val width = info.size.width
+                val height = info.size.height
+                val largestSide = maxOf(width, height)
+
+                if (largestSide > 1024) {
+                    val scale = 1024f / largestSide.toFloat()
+                    decoder.setTargetSize(
+                        (width * scale).roundToInt().coerceAtLeast(1),
+                        (height * scale).roundToInt().coerceAtLeast(1)
+                    )
+                }
+            }
+        } else {
+            context.contentResolver.openInputStream(uri)
+                ?.use(BitmapFactory::decodeStream)
+        }
+
+        bitmap?.asImageBitmap()
+    } catch (_: Exception) {
+        null
     }
 }
 
