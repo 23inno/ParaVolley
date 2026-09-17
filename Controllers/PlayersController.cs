@@ -145,6 +145,12 @@ namespace SportsManagementMVC.Controllers
 
             if (player == null) return NotFound();
 
+            ViewBag.ProfileDetails = await _context.PlayerProfileDetails
+                .AsNoTracking()
+                .FirstOrDefaultAsync(
+                    details => details.PlayerId == player.Id,
+                    cancellationToken);
+
             if (User.IsInRole(nameof(AppUserRole.Coach)))
             {
                 return View("CoachDetails", new CoachPlayerViewModel
@@ -395,6 +401,14 @@ namespace SportsManagementMVC.Controllers
             {
                 _context.Add(player);
                 await _context.SaveChangesAsync();
+
+                _context.PlayerProfileDetails.Add(new PlayerProfileDetails
+                {
+                    PlayerId = player.Id,
+                    JoinedDate = DateTime.UtcNow.Date
+                });
+                await _context.SaveChangesAsync();
+
                 TempData["Success"] = $"Player \"{player.Name}\" was created.";
 
                 if (IsAjaxRequest())
