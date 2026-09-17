@@ -169,6 +169,13 @@ namespace SportsManagementMVC.Controllers.Api
 
                 await _context.SaveChangesAsync(cancellationToken);
 
+                _context.PlayerProfileDetails.Add(
+                    new PlayerProfileDetails
+                    {
+                        PlayerId = player.Id,
+                        JoinedDate = DateTime.UtcNow.Date
+                    });
+
                 var appUser = new AppUser
                 {
                     Email = normalizedEmail,
