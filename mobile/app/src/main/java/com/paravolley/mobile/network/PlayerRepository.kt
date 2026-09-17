@@ -1,8 +1,14 @@
 package com.paravolley.mobile.network
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.ImageDecoder
 import android.net.Uri
+import android.os.Build
 import com.google.gson.Gson
+import java.io.ByteArrayOutputStream
+import kotlin.math.roundToInt
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -137,64 +143,18 @@ class PlayerRepository(
         val authorization = authorizationHeader()
             ?: return missingSession()
 
-        val contentResolver = appContext.contentResolver
-
-        val declaredSize = try {
-            contentResolver.openFileDescriptor(uri, "r")
-                ?.use { descriptor -> descriptor.statSize }
-                ?: -1L
-        } catch (_: Exception) {
-            -1L
-        }
-
-        if (declaredSize > MAX_PROFILE_PHOTO_BYTES) {
-            return Result.failure(
-                Exception("Profile photos must be smaller than 2 MB.")
-            )
-        }
-
-        val bytes = try {
-            contentResolver.openInputStream(uri)
-                ?.use { it.readBytes() }
-                ?: return Result.failure(
-                    Exception("The selected image could not be opened.")
-                )
-        } catch (exception: Exception) {
-            return Result.failure(
-                Exception("The selected image could not be opened.", exception)
-            )
-        }
-
-        if (bytes.isEmpty()) {
-            return Result.failure(
-                Exception("The selected image is empty.")
-            )
-        }
-
-        if (bytes.size > MAX_PROFILE_PHOTO_BYTES) {
-            return Result.failure(
-                Exception("Profile photos must be smaller than 2 MB.")
-            )
-        }
-
-        val declaredMimeType = contentResolver.getType(uri)
-            ?.lowercase()
-            ?.substringBefore(';')
-
-        val imageType = detectImageType(
-            declaredMimeType = declaredMimeType,
-            bytes = bytes
-        ) ?: return Result.failure(
-            Exception("Choose a JPG, PNG, or WEBP image.")
-        )
+        val normalizedPhoto = normalizeProfilePhoto(uri)
+            .getOrElse { failure ->
+                return Result.failure(failure)
+            }
 
         return try {
-            val requestBody = bytes.toRequestBody(
-                imageType.mimeType.toMediaType()
+            val requestBody = normalizedPhoto.toRequestBody(
+                "image/jpeg".toMediaType()
             )
             val photoPart = MultipartBody.Part.createFormData(
                 "photo",
-                imageType.fileName,
+                "profile.jpg",
                 requestBody
             )
 
@@ -225,58 +185,95 @@ class PlayerRepository(
         }
     }
 
-    private fun detectImageType(
-        declaredMimeType: String?,
-        bytes: ByteArray
-    ): ProfileImageType? {
-        when (declaredMimeType) {
-            "image/jpeg", "image/jpg" -> return ProfileImageType(
-                mimeType = "image/jpeg",
-                fileName = "profile.jpg"
-            )
+    private fun normalizeProfilePhoto(uri: Uri): Result<ByteArray> {
+        val contentResolver = appContext.contentResolver
 
-            "image/png" -> return ProfileImageType(
-                mimeType = "image/png",
-                fileName = "profile.png"
-            )
+        val declaredSize = try {
+            contentResolver.openFileDescriptor(uri, "r")
+                ?.use { descriptor -> descriptor.statSize }
+                ?: -1L
+        } catch (_: Exception) {
+            -1L
+        }
 
-            "image/webp" -> return ProfileImageType(
-                mimeType = "image/webp",
-                fileName = "profile.webp"
+        if (declaredSize > MAX_SOURCE_PHOTO_BYTES) {
+            return Result.failure(
+                Exception("Choose an image smaller than 12 MB.")
             )
         }
 
-        if (
-            bytes.size >= 3 &&
-            bytes[0] == 0xFF.toByte() &&
-            bytes[1] == 0xD8.toByte() &&
-            bytes[2] == 0xFF.toByte()
-        ) {
-            return ProfileImageType("image/jpeg", "profile.jpg")
-        }
+        val bitmap = try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                val source = ImageDecoder.createSource(contentResolver, uri)
+                ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
+                    decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
 
-        val pngSignature = byteArrayOf(
-            0x89.toByte(), 0x50, 0x4E, 0x47,
-            0x0D, 0x0A, 0x1A, 0x0A
+                    val sourceWidth = info.size.width
+                    val sourceHeight = info.size.height
+                    val largestSide = maxOf(sourceWidth, sourceHeight)
+
+                    if (largestSide > PROFILE_PHOTO_MAX_DIMENSION) {
+                        val scale = PROFILE_PHOTO_MAX_DIMENSION.toFloat() /
+                            largestSide.toFloat()
+                        decoder.setTargetSize(
+                            (sourceWidth * scale).roundToInt().coerceAtLeast(1),
+                            (sourceHeight * scale).roundToInt().coerceAtLeast(1)
+                        )
+                    }
+                }
+            } else {
+                contentResolver.openInputStream(uri)
+                    ?.use(BitmapFactory::decodeStream)
+            }
+        } catch (exception: Exception) {
+            return Result.failure(
+                Exception("The selected image could not be opened.", exception)
+            )
+        } ?: return Result.failure(
+            Exception("The selected image could not be opened.")
         )
 
-        if (
-            bytes.size >= pngSignature.size &&
-            bytes.copyOfRange(0, pngSignature.size)
-                .contentEquals(pngSignature)
+        val scaledBitmap = if (
+            bitmap.width > PROFILE_PHOTO_MAX_DIMENSION ||
+            bitmap.height > PROFILE_PHOTO_MAX_DIMENSION
         ) {
-            return ProfileImageType("image/png", "profile.png")
+            val largestSide = maxOf(bitmap.width, bitmap.height)
+            val scale = PROFILE_PHOTO_MAX_DIMENSION.toFloat() /
+                largestSide.toFloat()
+            Bitmap.createScaledBitmap(
+                bitmap,
+                (bitmap.width * scale).roundToInt().coerceAtLeast(1),
+                (bitmap.height * scale).roundToInt().coerceAtLeast(1),
+                true
+            )
+        } else {
+            bitmap
         }
 
-        if (
-            bytes.size >= 12 &&
-            String(bytes, 0, 4, Charsets.US_ASCII) == "RIFF" &&
-            String(bytes, 8, 4, Charsets.US_ASCII) == "WEBP"
-        ) {
-            return ProfileImageType("image/webp", "profile.webp")
+        var quality = 90
+        var bytes: ByteArray
+
+        do {
+            val stream = ByteArrayOutputStream()
+            scaledBitmap.compress(
+                Bitmap.CompressFormat.JPEG,
+                quality,
+                stream
+            )
+            bytes = stream.toByteArray()
+            quality -= 10
+        } while (
+            bytes.size > MAX_PROFILE_PHOTO_BYTES &&
+            quality >= 50
+        )
+
+        if (bytes.isEmpty() || bytes.size > MAX_PROFILE_PHOTO_BYTES) {
+            return Result.failure(
+                Exception("The selected image could not be reduced below 2 MB.")
+            )
         }
 
-        return null
+        return Result.success(bytes)
     }
 
     private fun authorizationHeader(): String? {
@@ -326,12 +323,9 @@ class PlayerRepository(
         val message: String?
     )
 
-    private data class ProfileImageType(
-        val mimeType: String,
-        val fileName: String
-    )
-
     companion object {
         private const val MAX_PROFILE_PHOTO_BYTES = 2 * 1024 * 1024
+        private const val MAX_SOURCE_PHOTO_BYTES = 12 * 1024 * 1024
+        private const val PROFILE_PHOTO_MAX_DIMENSION = 1024
     }
 }
