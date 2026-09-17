@@ -4,6 +4,7 @@ import okhttp3.MultipartBody
 import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.Multipart
@@ -38,5 +39,11 @@ interface PlayerApi {
         @Header("Authorization")
         authorization: String,
         @Part photo: MultipartBody.Part
+    ): Response<PlayerProfileResponse>
+
+    @DELETE("api/player/me/photo")
+    suspend fun removeProfilePhoto(
+        @Header("Authorization")
+        authorization: String
     ): Response<PlayerProfileResponse>
 }
