@@ -219,7 +219,7 @@ private fun DashboardContent(
                     ) {
                         items(
                             items = dashboard.upcomingEvents.take(5),
-                            key = { it.id }
+                            key = { "event-${it.id}" }
                         ) { event ->
                             DashboardEventCard(
                                 event = event,
@@ -250,7 +250,7 @@ private fun DashboardContent(
             } else {
                 items(
                     items = dashboard.recentAnnouncements.take(3),
-                    key = { it.id }
+                    key = { "announcement-${it.id}" }
                 ) { announcement ->
                     NotificationPreviewCard(announcement)
                 }
@@ -281,7 +281,7 @@ private fun DashboardContent(
             } else {
                 items(
                     items = dashboard.recentMatches.take(3),
-                    key = { it.id }
+                    key = { "match-${it.id}" }
                 ) { match ->
                     MatchCard(match)
                 }
