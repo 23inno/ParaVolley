@@ -16,6 +16,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -235,9 +236,7 @@ fun ScannerScreen(onBack: () -> Unit) {
             )
 
             if (!showManualEntry) {
-                TextButton(
-                    onClick = { showManualEntry = true }
-                ) {
+                TextButton(onClick = { showManualEntry = true }) {
                     Text(
                         text = "Enter token manually",
                         color = Color.White.copy(alpha = 0.8f),
@@ -406,25 +405,19 @@ private fun ScannerFrame() {
 }
 
 @Composable
-private fun Box.ScannerCorner(alignment: Alignment) {
+private fun BoxScope.ScannerCorner(alignment: Alignment) {
+    val right = alignment == Alignment.TopEnd || alignment == Alignment.BottomEnd
+    val bottom = alignment == Alignment.BottomStart || alignment == Alignment.BottomEnd
+
     Box(
         modifier = Modifier
             .align(alignment)
             .padding(7.dp)
             .size(42.dp)
     ) {
-        val horizontalAlignment = when (alignment) {
-            Alignment.TopEnd, Alignment.BottomEnd -> Alignment.CenterEnd
-            else -> Alignment.CenterStart
-        }
-        val verticalAlignment = when (alignment) {
-            Alignment.BottomStart, Alignment.BottomEnd -> Alignment.BottomCenter
-            else -> Alignment.TopCenter
-        }
-
         Box(
             modifier = Modifier
-                .align(verticalAlignment)
+                .align(if (bottom) Alignment.BottomCenter else Alignment.TopCenter)
                 .fillMaxWidth()
                 .height(6.dp)
                 .background(AppColors.Yellow, RoundedCornerShape(3.dp))
@@ -432,9 +425,9 @@ private fun Box.ScannerCorner(alignment: Alignment) {
 
         Box(
             modifier = Modifier
-                .align(horizontalAlignment)
+                .align(if (right) Alignment.CenterEnd else Alignment.CenterStart)
                 .width(6.dp)
-                .fillMaxSize()
+                .height(42.dp)
                 .background(AppColors.Yellow, RoundedCornerShape(3.dp))
         )
     }
