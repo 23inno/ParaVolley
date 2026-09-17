@@ -13,6 +13,7 @@ namespace SportsManagementMVC.Data
 
         public DbSet<Player> Players => Set<Player>();
         public DbSet<PlayerProfilePhoto> PlayerProfilePhotos => Set<PlayerProfilePhoto>();
+        public DbSet<PlayerProfileDetails> PlayerProfileDetails => Set<PlayerProfileDetails>();
         public DbSet<Coach> Coaches => Set<Coach>();
         public DbSet<Event> Events => Set<Event>();
         public DbSet<Match> Matches => Set<Match>();
@@ -69,6 +70,19 @@ namespace SportsManagementMVC.Data
             modelBuilder.Entity<PlayerProfilePhoto>()
                 .Property(photo => photo.UpdatedAtUtc)
                 .HasColumnType("timestamp with time zone");
+
+            modelBuilder.Entity<PlayerProfileDetails>()
+                .HasKey(details => details.PlayerId);
+
+            modelBuilder.Entity<PlayerProfileDetails>()
+                .HasOne(details => details.Player)
+                .WithOne()
+                .HasForeignKey<PlayerProfileDetails>(details => details.PlayerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PlayerProfileDetails>()
+                .Property(details => details.JoinedDate)
+                .HasColumnType("date");
 
             modelBuilder.Entity<EventRegistration>()
                 .HasIndex(registration => new
