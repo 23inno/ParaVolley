@@ -18,6 +18,8 @@ namespace SportsManagementMVC.Data
         public DbSet<Event> Events => Set<Event>();
         public DbSet<Match> Matches => Set<Match>();
         public DbSet<Announcement> Announcements => Set<Announcement>();
+        public DbSet<AnnouncementReadReceipt> AnnouncementReadReceipts =>
+            Set<AnnouncementReadReceipt>();
         public DbSet<Attendance> Attendances => Set<Attendance>();
         public DbSet<EventRegistration> EventRegistrations =>
             Set<EventRegistration>();
@@ -83,6 +85,29 @@ namespace SportsManagementMVC.Data
             modelBuilder.Entity<PlayerProfileDetails>()
                 .Property(details => details.JoinedDate)
                 .HasColumnType("date");
+
+            modelBuilder.Entity<AnnouncementReadReceipt>()
+                .HasKey(receipt => new
+                {
+                    receipt.AppUserId,
+                    receipt.AnnouncementId
+                });
+
+            modelBuilder.Entity<AnnouncementReadReceipt>()
+                .HasOne(receipt => receipt.AppUser)
+                .WithMany()
+                .HasForeignKey(receipt => receipt.AppUserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<AnnouncementReadReceipt>()
+                .HasOne(receipt => receipt.Announcement)
+                .WithMany()
+                .HasForeignKey(receipt => receipt.AnnouncementId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<AnnouncementReadReceipt>()
+                .Property(receipt => receipt.ReadAtUtc)
+                .HasColumnType("timestamp with time zone");
 
             modelBuilder.Entity<EventRegistration>()
                 .HasIndex(registration => new
