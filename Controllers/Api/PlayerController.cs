@@ -76,6 +76,7 @@ namespace SportsManagementMVC.Controllers.Api
                 .Trim()
                 .ToLowerInvariant();
             var phone = request.Phone.Trim();
+            var emergencyContact = request.EmergencyContact.Trim();
 
             var player = await _db.Players
                 .FirstOrDefaultAsync(
@@ -130,6 +131,7 @@ namespace SportsManagementMVC.Controllers.Api
                 player.Age = request.Age;
                 player.Email = normalizedEmail;
                 player.Phone = phone;
+                player.EmergencyContact = emergencyContact;
 
                 // The player's authentication account uses the same email.
                 // Updating both records makes the edited email the next login email.
@@ -282,6 +284,25 @@ namespace SportsManagementMVC.Controllers.Api
                     item => item.PlayerId == player.Id,
                     cancellationToken);
 
+            var joinedAt = player.JoinedAtUtc;
+
+            if (!joinedAt.HasValue)
+            {
+                var earliestRegistration = await _db.EventRegistrations
+                    .AsNoTracking()
+                    .Where(item => item.PlayerId == player.Id)
+                    .Select(item => (DateTime?)item.RegisteredAtUtc)
+                    .MinAsync(cancellationToken);
+
+                var earliestAttendance = await _db.Attendances
+                    .AsNoTracking()
+                    .Where(item => item.PlayerId == player.Id)
+                    .Select(item => (DateTime?)item.Date)
+                    .MinAsync(cancellationToken);
+
+                joinedAt = earliestRegistration ?? earliestAttendance;
+            }
+
             return new PlayerProfileResponse
             {
                 Id = player.Id,
@@ -293,6 +314,8 @@ namespace SportsManagementMVC.Controllers.Api
                 Matches = player.Matches,
                 Email = player.Email,
                 Phone = player.Phone,
+                EmergencyContact = player.EmergencyContact,
+                JoinedDate = joinedAt?.ToString("yyyy-MM-dd"),
                 Disability = player.Disability,
                 HasProfilePhoto = hasProfilePhoto
             };
