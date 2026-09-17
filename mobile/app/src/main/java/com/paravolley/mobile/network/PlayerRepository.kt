@@ -185,6 +185,36 @@ class PlayerRepository(
         }
     }
 
+    suspend fun removeProfilePhoto(): Result<PlayerProfileResponse> {
+        val authorization = authorizationHeader()
+            ?: return missingSession()
+
+        return try {
+            val response = RetrofitClient.playerApi
+                .removeProfilePhoto(authorization)
+
+            if (response.isSuccessful) {
+                response.body()?.let(Result.Companion::success)
+                    ?: Result.failure(
+                        Exception("The profile photo removal response was empty.")
+                    )
+            } else {
+                Result.failure(
+                    Exception(
+                        getErrorMessage(
+                            response.code(),
+                            response.errorBody()?.string()
+                        )
+                    )
+                )
+            }
+        } catch (exception: Exception) {
+            Result.failure(
+                Exception("Could not remove the profile photo.", exception)
+            )
+        }
+    }
+
     private fun normalizeProfilePhoto(uri: Uri): Result<ByteArray> {
         val contentResolver = appContext.contentResolver
 
@@ -310,7 +340,7 @@ class PlayerRepository(
             400 -> "The profile information was invalid."
             401 -> "Your login session is no longer valid."
             403 -> "You do not have permission to update this profile."
-            404 -> "The player profile could not be found."
+            404 -> "The player profile or profile photo could not be found."
             409 -> "That email address is already in use."
             413 -> "Profile photos must be smaller than 2 MB."
             429 -> "Too many requests. Please try again shortly."
