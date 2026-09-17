@@ -1,11 +1,9 @@
 package com.paravolley.mobile.screens
 
-import android.content.Context
-import android.graphics.BitmapFactory
-import android.graphics.ImageDecoder
+import android.content.Intent
 import android.net.Uri
-import android.os.Build
 import android.util.Patterns
+import android.widget.ImageView
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -76,6 +74,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import com.paravolley.mobile.components.AppBottomBar
 import com.paravolley.mobile.navigation.Routes
 import com.paravolley.mobile.network.AttendanceRepository
@@ -88,7 +87,6 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 
 private val ProfileGreen = Color(0xFF1A5F3F)
@@ -111,7 +109,10 @@ fun ProfileScreen(
 
     var player by remember { mutableStateOf<PlayerProfileResponse?>(null) }
     var attendance by remember { mutableStateOf<List<AttendanceResponse>>(emptyList()) }
+    var attendanceError by remember { mutableStateOf<String?>(null) }
     var profilePhoto by remember { mutableStateOf<ImageBitmap?>(null) }
+    var selectedPhotoUri by remember { mutableStateOf<Uri?>(null) }
+
     var isLoading by remember { mutableStateOf(true) }
     var isSaving by remember { mutableStateOf(false) }
     var isPhotoUploading by remember { mutableStateOf(false) }
@@ -142,16 +143,20 @@ fun ProfileScreen(
     }
 
     val photoPicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
+        contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
         if (uri != null) {
-            val preview = loadImageBitmapFromUri(context, uri)
-
-            if (preview != null) {
-                profilePhoto = preview
-            } else {
-                actionMessage = "The selected photo could not be previewed."
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
             }
+
+            // Show the selected image immediately using the URI itself. This avoids
+            // depending on BitmapFactory/ImageDecoder support for the gallery format.
+            selectedPhotoUri = uri
+            actionMessage = null
 
             scope.launch {
                 isPhotoUploading = true
@@ -159,10 +164,13 @@ fun ProfileScreen(
                 playerRepository.uploadProfilePhoto(uri)
                     .onSuccess { updated ->
                         player = updated
+
                         playerRepository.getProfilePhoto()
                             .onSuccess { bytes ->
-                                bytes?.toImageBitmapOrNull()?.let { savedPhoto ->
+                                val savedPhoto = bytes?.toImageBitmapOrNull()
+                                if (savedPhoto != null) {
                                     profilePhoto = savedPhoto
+                                    selectedPhotoUri = null
                                 }
                             }
 
@@ -174,12 +182,11 @@ fun ProfileScreen(
                         ).show()
                     }
                     .onFailure { failure ->
-                        actionMessage = if (preview != null) {
+                        // Keep selectedPhotoUri so the chosen image remains visible even
+                        // when the test build is pointing at a backend without photo upload.
+                        actionMessage =
                             "The photo is shown on this screen, but it could not be saved yet. " +
                                 (failure.message ?: "Please try again.")
-                        } else {
-                            failure.message ?: "Could not upload the profile photo."
-                        }
                     }
 
                 isPhotoUploading = false
@@ -190,14 +197,11 @@ fun ProfileScreen(
     LaunchedEffect(Unit) {
         isLoading = true
         errorMessage = null
+        attendanceError = null
 
-        val playerResult = playerRepository.getProfile()
-        val attendanceResult = attendanceRepository.getMyAttendance()
-
-        playerResult
+        playerRepository.getProfile()
             .onSuccess { loaded ->
                 player = loaded
-
                 if (loaded.hasProfilePhoto) {
                     playerRepository.getProfilePhoto()
                         .onSuccess { bytes ->
@@ -209,12 +213,10 @@ fun ProfileScreen(
                 errorMessage = it.message ?: "Could not load profile."
             }
 
-        attendanceResult
+        attendanceRepository.getMyAttendance()
             .onSuccess { attendance = it }
             .onFailure {
-                if (errorMessage == null) {
-                    errorMessage = it.message ?: "Could not load attendance."
-                }
+                attendanceError = it.message ?: "Could not load attendance."
             }
 
         isLoading = false
@@ -252,9 +254,7 @@ fun ProfileScreen(
                     color = AppColors.Error,
                     textAlign = TextAlign.Center
                 )
-
                 Spacer(Modifier.size(14.dp))
-
                 OutlinedButton(
                     onClick = {
                         sessionManager.clearSession()
@@ -268,9 +268,10 @@ fun ProfileScreen(
             else -> ProfileContent(
                 player = player!!,
                 attendance = attendance,
-                attendanceError = if (attendance.isEmpty()) errorMessage else null,
+                attendanceError = attendanceError,
                 innerPadding = innerPadding,
                 profilePhoto = profilePhoto,
+                selectedPhotoUri = selectedPhotoUri,
                 isPhotoUploading = isPhotoUploading,
                 isEditing = isEditing,
                 isSaving = isSaving,
@@ -289,7 +290,7 @@ fun ProfileScreen(
                 onEmergencyPhoneChange = { draftEmergencyPhone = it.take(30) },
                 onPickPhoto = {
                     if (!isPhotoUploading) {
-                        photoPicker.launch("image/*")
+                        photoPicker.launch(arrayOf("image/*"))
                     }
                 },
                 onSave = {
@@ -303,20 +304,9 @@ fun ProfileScreen(
                     val validationMessage = when {
                         age == null || age !in 5..100 ->
                             "Enter an age between 5 and 100."
-
-                        email.isBlank() ||
-                            !Patterns.EMAIL_ADDRESS.matcher(email).matches() ->
+                        email.isBlank() || !Patterns.EMAIL_ADDRESS.matcher(email).matches() ->
                             "Enter a valid email address."
-
-                        phone.isBlank() ->
-                            "Enter a phone number."
-
-                        emergencyName.isBlank() ->
-                            "Enter the emergency contact's name."
-
-                        emergencyPhone.isBlank() ->
-                            "Enter the emergency contact's phone number."
-
+                        phone.isBlank() -> "Enter a phone number."
                         else -> null
                     }
 
@@ -325,10 +315,7 @@ fun ProfileScreen(
                         return@ProfileContent
                     }
 
-                    val emailChanged = !email.equals(
-                        current.email,
-                        ignoreCase = true
-                    )
+                    val emailChanged = !email.equals(current.email, ignoreCase = true)
 
                     scope.launch {
                         isSaving = true
@@ -385,6 +372,7 @@ private fun ProfileContent(
     attendanceError: String?,
     innerPadding: PaddingValues,
     profilePhoto: ImageBitmap?,
+    selectedPhotoUri: Uri?,
     isPhotoUploading: Boolean,
     isEditing: Boolean,
     isSaving: Boolean,
@@ -416,12 +404,7 @@ private fun ProfileContent(
 
     val total = attendance.size
     val present = attendance.count { it.status.equals("Present", true) }
-    val rate = if (total == 0) {
-        0.0
-    } else {
-        present.toDouble() / total.toDouble() * 100.0
-    }
-
+    val rate = if (total == 0) 0.0 else present.toDouble() / total.toDouble() * 100.0
     val joinedDate = formatProfileDate(player.joinedDate.orEmpty())
         .ifBlank { "Not recorded" }
 
@@ -436,6 +419,7 @@ private fun ProfileContent(
                 player = player,
                 initials = initials,
                 profilePhoto = profilePhoto,
+                selectedPhotoUri = selectedPhotoUri,
                 isPhotoUploading = isPhotoUploading,
                 isEditing = isEditing,
                 onEdit = onEdit,
@@ -460,10 +444,7 @@ private fun ProfileContent(
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     color = AppColors.Error.copy(alpha = 0.08f),
                     shape = RoundedCornerShape(10.dp),
-                    border = BorderStroke(
-                        1.dp,
-                        AppColors.Error.copy(alpha = 0.20f)
-                    )
+                    border = BorderStroke(1.dp, AppColors.Error.copy(alpha = 0.20f))
                 ) {
                     Text(
                         modifier = Modifier.padding(12.dp),
@@ -488,26 +469,10 @@ private fun ProfileContent(
                         keyboardType = KeyboardType.Number,
                         onValueChange = onAgeChange
                     ),
-                    ProfileRow(
-                        Icons.Filled.SportsVolleyball,
-                        "Position",
-                        player.position
-                    ),
-                    ProfileRow(
-                        Icons.Filled.Groups,
-                        "Team",
-                        player.team
-                    ),
-                    ProfileRow(
-                        Icons.Filled.Info,
-                        "Classification",
-                        player.disability
-                    ),
-                    ProfileRow(
-                        Icons.Filled.CheckCircle,
-                        "Status",
-                        player.status
-                    )
+                    ProfileRow(Icons.Filled.SportsVolleyball, "Position", player.position),
+                    ProfileRow(Icons.Filled.Groups, "Team", player.team),
+                    ProfileRow(Icons.Filled.Info, "Classification", player.disability),
+                    ProfileRow(Icons.Filled.CheckCircle, "Status", player.status)
                 ),
                 isEditing = isEditing
             )
@@ -570,10 +535,7 @@ private fun ProfileContent(
         if (isEditing) {
             item {
                 Column(
-                    modifier = Modifier.padding(
-                        horizontal = 16.dp,
-                        vertical = 8.dp
-                    ),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text(
@@ -606,9 +568,7 @@ private fun ProfileContent(
                                 modifier = Modifier.size(19.dp)
                             )
                         }
-
                         Spacer(Modifier.width(8.dp))
-
                         Text(
                             if (isSaving) "Saving..." else "Save Changes",
                             fontWeight = FontWeight.SemiBold
@@ -634,21 +594,15 @@ private fun ProfileContent(
             }
         }
 
-        item {
-            SectionTitle("Attendance History")
-        }
+        item { SectionTitle("Attendance History") }
 
         when {
             attendanceError != null && attendance.isEmpty() -> item {
                 EmptyAttendanceCard(attendanceError)
             }
-
             attendance.isEmpty() -> item {
-                EmptyAttendanceCard(
-                    "No attendance records are available yet."
-                )
+                EmptyAttendanceCard("No attendance records are available yet.")
             }
-
             else -> items(
                 items = attendance,
                 key = { "attendance-${it.id}" }
@@ -667,10 +621,7 @@ private fun ProfileContent(
                     containerColor = Color.White,
                     contentColor = AppColors.Error
                 ),
-                border = BorderStroke(
-                    1.dp,
-                    AppColors.Error.copy(alpha = 0.28f)
-                ),
+                border = BorderStroke(1.dp, AppColors.Error.copy(alpha = 0.28f)),
                 shape = RoundedCornerShape(12.dp),
                 contentPadding = PaddingValues(vertical = 13.dp)
             ) {
@@ -691,6 +642,7 @@ private fun ProfileHeader(
     player: PlayerProfileResponse,
     initials: String,
     profilePhoto: ImageBitmap?,
+    selectedPhotoUri: Uri?,
     isPhotoUploading: Boolean,
     isEditing: Boolean,
     onEdit: () -> Unit,
@@ -718,16 +670,8 @@ private fun ProfileHeader(
                 onClick = if (isEditing) onCancelEdit else onEdit
             ) {
                 Icon(
-                    imageVector = if (isEditing) {
-                        Icons.Filled.Close
-                    } else {
-                        Icons.Filled.Edit
-                    },
-                    contentDescription = if (isEditing) {
-                        "Cancel editing"
-                    } else {
-                        "Edit profile"
-                    },
+                    imageVector = if (isEditing) Icons.Filled.Close else Icons.Filled.Edit,
+                    contentDescription = if (isEditing) "Cancel editing" else "Edit profile",
                     tint = Color.White,
                     modifier = Modifier.size(21.dp)
                 )
@@ -739,19 +683,13 @@ private fun ProfileHeader(
         Box(
             modifier = Modifier
                 .size(98.dp)
-                .clickable(
-                    enabled = !isPhotoUploading,
-                    onClick = onPickPhoto
-                ),
+                .clickable(enabled = !isPhotoUploading, onClick = onPickPhoto),
             contentAlignment = Alignment.Center
         ) {
             Box(
                 modifier = Modifier
                     .size(94.dp)
-                    .background(
-                        Color.White.copy(alpha = 0.14f),
-                        CircleShape
-                    ),
+                    .background(Color.White.copy(alpha = 0.14f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Box(
@@ -761,29 +699,47 @@ private fun ProfileHeader(
                         .background(Color.White),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (profilePhoto != null) {
-                        Image(
-                            bitmap = profilePhoto,
-                            contentDescription = "Profile photo",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Text(
-                            text = initials,
-                            color = ProfileGreen,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 28.sp
-                        )
+                    when {
+                        selectedPhotoUri != null -> {
+                            AndroidView(
+                                modifier = Modifier.fillMaxSize(),
+                                factory = { imageContext ->
+                                    ImageView(imageContext).apply {
+                                        scaleType = ImageView.ScaleType.CENTER_CROP
+                                        setImageURI(selectedPhotoUri)
+                                    }
+                                },
+                                update = { imageView ->
+                                    imageView.setImageURI(null)
+                                    imageView.setImageURI(selectedPhotoUri)
+                                }
+                            )
+                        }
+
+                        profilePhoto != null -> {
+                            Image(
+                                bitmap = profilePhoto,
+                                contentDescription = "Profile photo",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+
+                        else -> {
+                            Text(
+                                text = initials,
+                                color = ProfileGreen,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 28.sp
+                            )
+                        }
                     }
 
                     if (isPhotoUploading) {
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(
-                                    Color.Black.copy(alpha = 0.28f)
-                                ),
+                                .background(Color.Black.copy(alpha = 0.28f)),
                             contentAlignment = Alignment.Center
                         ) {
                             CircularProgressIndicator(
@@ -857,24 +813,12 @@ private fun ProfileStatsRow(
                 .padding(vertical = 15.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
+            ProfileStat("Joined", joinedDate, Modifier.weight(1f))
+            ProfileStat("Matches", matches.toString(), Modifier.weight(1f))
             ProfileStat(
-                label = "Joined",
-                value = joinedDate,
-                modifier = Modifier.weight(1f)
-            )
-            ProfileStat(
-                label = "Matches",
-                value = matches.toString(),
-                modifier = Modifier.weight(1f)
-            )
-            ProfileStat(
-                label = "Attendance Rate",
-                value = String.format(
-                    Locale.getDefault(),
-                    "%.0f%%",
-                    attendanceRate
-                ),
-                modifier = Modifier.weight(1f)
+                "Attendance Rate",
+                String.format(Locale.getDefault(), "%.0f%%", attendanceRate),
+                Modifier.weight(1f)
             )
         }
     }
@@ -930,13 +874,9 @@ private fun ProfileInfoCard(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
         border = BorderStroke(1.dp, ProfileBorder),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 1.dp
-        )
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(
             modifier = Modifier.padding(17.dp),
@@ -948,12 +888,8 @@ private fun ProfileInfoCard(
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 16.sp
             )
-
             rows.forEach { row ->
-                ProfileInfoRow(
-                    row = row,
-                    isEditing = isEditing
-                )
+                ProfileInfoRow(row = row, isEditing = isEditing)
             }
         }
     }
@@ -968,10 +904,7 @@ private fun ProfileInfoRow(
         Box(
             modifier = Modifier
                 .size(40.dp)
-                .background(
-                    Color(0xFFF0F7F3),
-                    RoundedCornerShape(10.dp)
-                ),
+                .background(Color(0xFFF0F7F3), RoundedCornerShape(10.dp)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -999,9 +932,7 @@ private fun ProfileInfoRow(
                     value = row.editValue,
                     onValueChange = row.onValueChange,
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = row.keyboardType
-                    ),
+                    keyboardOptions = KeyboardOptions(keyboardType = row.keyboardType),
                     shape = RoundedCornerShape(9.dp),
                     textStyle = androidx.compose.ui.text.TextStyle(
                         fontSize = 14.sp,
@@ -1045,9 +976,7 @@ private fun EmptyAttendanceCard(message: String) {
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 5.dp),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
         border = BorderStroke(1.dp, ProfileBorder)
     ) {
         Text(
@@ -1068,13 +997,9 @@ private fun AttendanceCard(attendance: AttendanceResponse) {
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 5.dp),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
         border = BorderStroke(1.dp, ProfileBorder),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 1.dp
-        )
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
             modifier = Modifier.padding(14.dp),
@@ -1084,11 +1009,7 @@ private fun AttendanceCard(attendance: AttendanceResponse) {
                 modifier = Modifier
                     .size(40.dp)
                     .background(
-                        if (present) {
-                            Color(0xFFF0F7F3)
-                        } else {
-                            AppColors.Error.copy(alpha = 0.08f)
-                        },
+                        if (present) Color(0xFFF0F7F3) else AppColors.Error.copy(alpha = 0.08f),
                         CircleShape
                     ),
                 contentAlignment = Alignment.Center
@@ -1096,11 +1017,7 @@ private fun AttendanceCard(attendance: AttendanceResponse) {
                 Icon(
                     Icons.Filled.CheckCircle,
                     contentDescription = null,
-                    tint = if (present) {
-                        ProfileGreen
-                    } else {
-                        AppColors.Error
-                    },
+                    tint = if (present) ProfileGreen else AppColors.Error,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -1125,11 +1042,7 @@ private fun AttendanceCard(attendance: AttendanceResponse) {
                     )
                     Text(
                         text = attendance.status,
-                        color = if (present) {
-                            ProfileGreen
-                        } else {
-                            AppColors.Error
-                        },
+                        color = if (present) ProfileGreen else AppColors.Error,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 11.sp
                     )
@@ -1139,9 +1052,7 @@ private fun AttendanceCard(attendance: AttendanceResponse) {
                     text = listOf(
                         formatProfileDate(attendance.eventDate),
                         formatProfileTime(attendance.eventTime)
-                    )
-                        .filter { it.isNotBlank() }
-                        .joinToString(" • "),
+                    ).filter { it.isNotBlank() }.joinToString(" • "),
                     color = ProfileMuted,
                     fontSize = 12.sp
                 )
@@ -1158,48 +1069,10 @@ private fun AttendanceCard(attendance: AttendanceResponse) {
     }
 }
 
-private fun loadImageBitmapFromUri(
-    context: Context,
-    uri: Uri
-): ImageBitmap? {
-    return try {
-        val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            val source = ImageDecoder.createSource(
-                context.contentResolver,
-                uri
-            )
-
-            ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
-                decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
-
-                val width = info.size.width
-                val height = info.size.height
-                val largestSide = maxOf(width, height)
-
-                if (largestSide > 1024) {
-                    val scale = 1024f / largestSide.toFloat()
-                    decoder.setTargetSize(
-                        (width * scale).roundToInt().coerceAtLeast(1),
-                        (height * scale).roundToInt().coerceAtLeast(1)
-                    )
-                }
-            }
-        } else {
-            context.contentResolver.openInputStream(uri)
-                ?.use(BitmapFactory::decodeStream)
-        }
-
-        bitmap?.asImageBitmap()
-    } catch (_: Exception) {
-        null
-    }
-}
-
 private fun ByteArray.toImageBitmapOrNull(): ImageBitmap? {
     if (isEmpty()) return null
-
     return try {
-        BitmapFactory.decodeByteArray(this, 0, size)
+        android.graphics.BitmapFactory.decodeByteArray(this, 0, size)
             ?.asImageBitmap()
     } catch (_: Exception) {
         null
@@ -1211,19 +1084,9 @@ private fun formatProfileDate(raw: String): String {
     if (value.isBlank()) return ""
 
     return try {
-        val isoDate = if (value.length >= 10) {
-            value.substring(0, 10)
-        } else {
-            value
-        }
-
+        val isoDate = if (value.length >= 10) value.substring(0, 10) else value
         LocalDate.parse(isoDate)
-            .format(
-                DateTimeFormatter.ofPattern(
-                    "dd MMM yyyy",
-                    Locale.getDefault()
-                )
-            )
+            .format(DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.getDefault()))
     } catch (_: Exception) {
         value
     }
@@ -1240,21 +1103,11 @@ private fun formatProfileTime(raw: String): String {
 
     return try {
         val time = when {
-            candidate.length >= 8 && candidate[2] == ':' ->
-                LocalTime.parse(candidate.take(8))
-
-            candidate.length >= 5 && candidate[2] == ':' ->
-                LocalTime.parse(candidate.take(5))
-
+            candidate.length >= 8 && candidate[2] == ':' -> LocalTime.parse(candidate.take(8))
+            candidate.length >= 5 && candidate[2] == ':' -> LocalTime.parse(candidate.take(5))
             else -> return value
         }
-
-        time.format(
-            DateTimeFormatter.ofPattern(
-                "HH:mm",
-                Locale.getDefault()
-            )
-        )
+        time.format(DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault()))
     } catch (_: Exception) {
         value
     }
