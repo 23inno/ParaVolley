@@ -6,8 +6,13 @@ import com.google.gson.Gson
 class AnnouncementsRepository(
     context: Context
 ) {
-    private val sessionManager = SessionManager(context.applicationContext)
+    private val appContext = context.applicationContext
+    private val sessionManager = SessionManager(appContext)
     private val gson = Gson()
+    private val readPreferences = appContext.getSharedPreferences(
+        "announcement_read_state",
+        Context.MODE_PRIVATE
+    )
 
     suspend fun getAnnouncements(): Result<List<AnnouncementResponse>> {
         val authorization = authorizationHeader()
@@ -18,7 +23,15 @@ class AnnouncementsRepository(
                 .getAnnouncements(authorization)
 
             if (response.isSuccessful) {
-                Result.success(response.body() ?: emptyList())
+                val locallyReadIds = locallyReadAnnouncementIds()
+                val announcements = (response.body() ?: emptyList()).map { announcement ->
+                    if (announcement.isRead || announcement.id in locallyReadIds) {
+                        announcement.copy(isRead = true)
+                    } else {
+                        announcement
+                    }
+                }
+                Result.success(announcements)
             } else {
                 Result.failure(
                     Exception(
@@ -50,10 +63,18 @@ class AnnouncementsRepository(
                 )
 
             if (response.isSuccessful) {
-                response.body()?.let(Result.Companion::success)
-                    ?: Result.failure(
-                        Exception("The announcement response was empty.")
+                response.body()?.let { announcement ->
+                    val isLocallyRead = announcement.id in locallyReadAnnouncementIds()
+                    Result.success(
+                        if (announcement.isRead || isLocallyRead) {
+                            announcement.copy(isRead = true)
+                        } else {
+                            announcement
+                        }
                     )
+                } ?: Result.failure(
+                    Exception("The announcement response was empty.")
+                )
             } else {
                 Result.failure(
                     Exception(
@@ -74,8 +95,10 @@ class AnnouncementsRepository(
     suspend fun markAnnouncementRead(
         announcementId: Int
     ): Result<Unit> {
+        rememberAnnouncementRead(announcementId)
+
         val authorization = authorizationHeader()
-            ?: return missingSession()
+            ?: return Result.success(Unit)
 
         return try {
             val response = RetrofitClient.announcementsApi
@@ -84,7 +107,7 @@ class AnnouncementsRepository(
                     announcementId = announcementId
                 )
 
-            if (response.isSuccessful) {
+            if (response.isSuccessful || response.code() == 404) {
                 Result.success(Unit)
             } else {
                 Result.failure(
@@ -96,22 +119,26 @@ class AnnouncementsRepository(
                     )
                 )
             }
-        } catch (exception: Exception) {
-            Result.failure(
-                Exception("Could not mark the notification as read.", exception)
-            )
+        } catch (_: Exception) {
+            // The local read state is already saved, so the notification remains read
+            // even if the server is temporarily unavailable.
+            Result.success(Unit)
         }
     }
 
-    suspend fun markAllAnnouncementsRead(): Result<Unit> {
+    suspend fun markAllAnnouncementsRead(
+        announcementIds: Collection<Int>
+    ): Result<Unit> {
+        rememberAnnouncementsRead(announcementIds)
+
         val authorization = authorizationHeader()
-            ?: return missingSession()
+            ?: return Result.success(Unit)
 
         return try {
             val response = RetrofitClient.announcementsApi
                 .markAllAnnouncementsRead(authorization)
 
-            if (response.isSuccessful) {
+            if (response.isSuccessful || response.code() == 404) {
                 Result.success(Unit)
             } else {
                 Result.failure(
@@ -123,11 +150,34 @@ class AnnouncementsRepository(
                     )
                 )
             }
-        } catch (exception: Exception) {
-            Result.failure(
-                Exception("Could not mark all notifications as read.", exception)
-            )
+        } catch (_: Exception) {
+            Result.success(Unit)
         }
+    }
+
+    private fun locallyReadAnnouncementIds(): Set<Int> {
+        return readPreferences
+            .getStringSet(READ_IDS_KEY, emptySet())
+            .orEmpty()
+            .mapNotNull(String::toIntOrNull)
+            .toSet()
+    }
+
+    private fun rememberAnnouncementRead(announcementId: Int) {
+        rememberAnnouncementsRead(listOf(announcementId))
+    }
+
+    private fun rememberAnnouncementsRead(announcementIds: Collection<Int>) {
+        val ids = readPreferences
+            .getStringSet(READ_IDS_KEY, emptySet())
+            .orEmpty()
+            .toMutableSet()
+
+        announcementIds.forEach { ids.add(it.toString()) }
+
+        readPreferences.edit()
+            .putStringSet(READ_IDS_KEY, ids)
+            .apply()
     }
 
     private fun authorizationHeader(): String? {
@@ -170,4 +220,8 @@ class AnnouncementsRepository(
     private data class ApiError(
         val message: String?
     )
+
+    companion object {
+        private const val READ_IDS_KEY = "read_announcement_ids"
+    }
 }
