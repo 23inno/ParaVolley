@@ -1,5 +1,7 @@
 package com.paravolley.mobile.network
 
+import com.google.gson.annotations.SerializedName
+
 data class PlayerProfileResponse(
     val id: Int,
     val name: String,
@@ -10,12 +12,20 @@ data class PlayerProfileResponse(
     val matches: Int,
     val email: String,
     val phone: String,
-    val emergencyContactName: String? = null,
-    val emergencyContactPhone: String? = null,
+    @SerializedName("emergencyContactName")
+    private val emergencyContactNameValue: String? = null,
+    @SerializedName("emergencyContactPhone")
+    private val emergencyContactPhoneValue: String? = null,
     val joinedDate: String? = null,
     val disability: String,
     val hasProfilePhoto: Boolean = false
-)
+) {
+    val emergencyContactName: String
+        get() = emergencyContactNameValue.orEmpty()
+
+    val emergencyContactPhone: String
+        get() = emergencyContactPhoneValue.orEmpty()
+}
 
 data class UpdatePlayerProfileRequest(
     val age: Int,
