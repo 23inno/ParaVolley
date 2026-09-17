@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace SportsManagementMVC.Models.Api
 {
     public class PlayerProfileResponse
@@ -20,6 +22,32 @@ namespace SportsManagementMVC.Models.Api
 
         public string Phone { get; set; } = string.Empty;
 
+        public string EmergencyContactName { get; set; } = string.Empty;
+
+        public string EmergencyContactPhone { get; set; } = string.Empty;
+
+        public string? JoinedDate { get; set; }
+
         public string Disability { get; set; } = string.Empty;
+
+        public bool HasProfilePhoto { get; set; }
+    }
+
+    public class UpdatePlayerProfileRequest
+    {
+        [Range(5, 100)]
+        public int Age { get; set; }
+
+        [Required, EmailAddress, StringLength(200)]
+        public string Email { get; set; } = string.Empty;
+
+        [Required, Phone, StringLength(50)]
+        public string Phone { get; set; } = string.Empty;
+
+        [Required, StringLength(120)]
+        public string EmergencyContactName { get; set; } = string.Empty;
+
+        [Required, Phone, StringLength(30)]
+        public string EmergencyContactPhone { get; set; } = string.Empty;
     }
 }
