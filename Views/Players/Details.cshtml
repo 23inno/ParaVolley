@@ -1,6 +1,7 @@
 @model Player
 @{
     ViewData["Title"] = "Player Profile";
+    var initials = string.Concat(Model.Name.Split(' ').Select(n => n.Length > 0 ? n[0].ToString() : "")).ToUpper();
 }
 
 <div class="topbar">
@@ -20,8 +21,12 @@
 
 <div class="pv-card" style="max-width:760px;">
     <div class="d-flex align-items-center gap-3 mb-4 pb-3 border-bottom">
-        <div class="pv-avatar" style="width:64px;height:64px;font-size:1.25rem;">
-            @(string.Concat(Model.Name.Split(' ').Select(n => n.Length > 0 ? n[0].ToString() : "")).ToUpper())
+        <div class="pv-avatar position-relative overflow-hidden" style="width:64px;height:64px;font-size:1.25rem;">
+            <span>@initials</span>
+            <img src="/Players/ProfilePhoto/@Model.Id"
+                 alt="@Model.Name profile photo"
+                 style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"
+                 onerror="this.style.display='none';" />
         </div>
         <div>
             <h4 class="fw-bold mb-0">@Model.Name</h4>
