@@ -16,9 +16,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.paravolley.mobile.network.SessionEvents
 import com.paravolley.mobile.network.SessionManager
 import com.paravolley.mobile.notifications.NotificationRouter
@@ -147,10 +149,12 @@ fun ParaVolleyApp(
             ) {
                 DashboardScreen(
                     onNavigate = navigateFromBottomBar,
-                    onOpenNotifications = {
-                        navController.navigate(
-                            Routes.NOTIFICATIONS
-                        ) {
+                    onOpenNotifications = { announcementId ->
+                        val route = announcementId
+                            ?.let { "${Routes.NOTIFICATIONS}?announcementId=$it" }
+                            ?: Routes.NOTIFICATIONS
+
+                        navController.navigate(route) {
                             launchSingleTop = true
                         }
                     }
@@ -178,11 +182,24 @@ fun ParaVolleyApp(
             }
         }
 
-        composable(Routes.NOTIFICATIONS) { backStackEntry ->
+        composable(
+            route = "${Routes.NOTIFICATIONS}?announcementId={announcementId}",
+            arguments = listOf(
+                navArgument("announcementId") {
+                    type = NavType.IntType
+                    defaultValue = -1
+                }
+            )
+        ) { backStackEntry ->
+            val initialAnnouncementId = backStackEntry.arguments
+                ?.getInt("announcementId")
+                ?.takeIf { it >= 0 }
+
             RefreshableDestination(
                 lifecycle = backStackEntry.lifecycle
             ) {
                 NotificationsScreen(
+                    initialAnnouncementId = initialAnnouncementId,
                     onBack = {
                         navController.popBackStack()
                     }
@@ -257,26 +274,20 @@ private fun RefreshableDestination(
         }
     }
 
-    LaunchedEffect(
-        refreshGeneration,
-        isRefreshing
-    ) {
+    LaunchedEffect(refreshGeneration) {
         if (isRefreshing) {
-            // The destination immediately starts its normal repository load.
-            // Keep the pull indicator visible briefly; the screen's own
-            // loading/error state remains authoritative after this.
-            delay(700)
+            delay(350)
             isRefreshing = false
         }
     }
 
     PullToRefreshBox(
-        modifier = Modifier.fillMaxSize(),
         isRefreshing = isRefreshing,
         onRefresh = {
             isRefreshing = true
             refreshGeneration++
-        }
+        },
+        modifier = Modifier.fillMaxSize()
     ) {
         key(refreshGeneration) {
             content()

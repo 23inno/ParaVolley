@@ -1,12 +1,19 @@
 package com.paravolley.mobile.network
 
 import android.content.Context
+import android.util.Log
 import com.paravolley.mobile.BuildConfig
+import java.io.IOException
+import java.util.concurrent.TimeUnit
 import okhttp3.OkHttpClient
+import okhttp3.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitClient {
+
+    private const val NETWORK_LOG_TAG = "PVNetwork"
+    private const val MAX_GET_ATTEMPTS = 3
 
     private lateinit var sessionManager: SessionManager
 
@@ -31,6 +38,11 @@ object RetrofitClient {
         }
 
         val httpClient = OkHttpClient.Builder()
+            .retryOnConnectionFailure(true)
+            .connectTimeout(20, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .callTimeout(45, TimeUnit.SECONDS)
             .addInterceptor { chain ->
                 val originalRequest = chain.request()
                 val requestBuilder =
@@ -68,6 +80,57 @@ object RetrofitClient {
 
                 response
             }
+            .addInterceptor { chain ->
+                val request = chain.request()
+
+                if (!request.method.equals("GET", ignoreCase = true)) {
+                    return@addInterceptor chain.proceed(request)
+                }
+
+                var lastException: IOException? = null
+
+                for (attempt in 1..MAX_GET_ATTEMPTS) {
+                    try {
+                        val response = chain.proceed(request)
+
+                        if (
+                            !shouldRetryResponse(response) ||
+                            attempt == MAX_GET_ATTEMPTS
+                        ) {
+                            return@addInterceptor response
+                        }
+
+                        if (BuildConfig.DEBUG) {
+                            Log.w(
+                                NETWORK_LOG_TAG,
+                                "GET ${request.url.encodedPath} returned ${response.code}; retrying ($attempt/$MAX_GET_ATTEMPTS)."
+                            )
+                        }
+
+                        response.close()
+                        waitBeforeRetry(attempt)
+                    } catch (exception: IOException) {
+                        lastException = exception
+
+                        if (BuildConfig.DEBUG) {
+                            Log.w(
+                                NETWORK_LOG_TAG,
+                                "GET ${request.url.encodedPath} failed; retrying ($attempt/$MAX_GET_ATTEMPTS).",
+                                exception
+                            )
+                        }
+
+                        if (attempt == MAX_GET_ATTEMPTS) {
+                            throw exception
+                        }
+
+                        waitBeforeRetry(attempt)
+                    }
+                }
+
+                throw lastException
+                    ?: IOException("The network request could not be completed.")
+            }
             .build()
 
         Retrofit.Builder()
@@ -77,6 +140,27 @@ object RetrofitClient {
                 GsonConverterFactory.create()
             )
             .build()
+    }
+
+    private fun shouldRetryResponse(response: Response): Boolean {
+        return response.code in setOf(
+            408,
+            502,
+            503,
+            504
+        )
+    }
+
+    private fun waitBeforeRetry(attempt: Int) {
+        try {
+            Thread.sleep(500L * attempt)
+        } catch (exception: InterruptedException) {
+            Thread.currentThread().interrupt()
+            throw IOException(
+                "The network retry was interrupted.",
+                exception
+            )
+        }
     }
 
     val authApi: AuthApi by lazy {
