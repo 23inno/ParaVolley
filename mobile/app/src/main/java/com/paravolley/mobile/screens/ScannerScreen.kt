@@ -30,6 +30,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.QrCodeScanner
@@ -42,6 +43,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -87,26 +89,34 @@ fun ScannerScreen(onBack: () -> Unit) {
     var torchEnabled by remember { mutableStateOf(false) }
     var cameraPermissionGranted by remember {
         mutableStateOf(
-            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.CAMERA
+            ) == PackageManager.PERMISSION_GRANTED
         )
     }
+    var showManualEntry by remember { mutableStateOf(!cameraPermissionGranted) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         cameraPermissionGranted = granted
         if (!granted) {
+            showManualEntry = true
             errorMessage = "Camera permission was denied. You can still enter the QR token manually."
         }
     }
 
     LaunchedEffect(Unit) {
-        if (!cameraPermissionGranted) permissionLauncher.launch(Manifest.permission.CAMERA)
+        if (!cameraPermissionGranted) {
+            permissionLauncher.launch(Manifest.permission.CAMERA)
+        }
     }
 
     fun submitCheckIn(token: String) {
         val cleanToken = token.trim()
         if (cleanToken.isBlank() || isCheckingIn) return
+
         isCheckingIn = true
         errorMessage = null
         checkInResult = null
@@ -120,6 +130,7 @@ fun ScannerScreen(onBack: () -> Unit) {
                 .onFailure {
                     errorMessage = it.message ?: "Check-in failed."
                 }
+
             isCheckingIn = false
         }
     }
@@ -144,14 +155,14 @@ fun ScannerScreen(onBack: () -> Unit) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0xFF161B19))
+                    .background(Color(0xFF151917))
             )
         }
 
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.35f))
+                .background(Color.Black.copy(alpha = 0.42f))
         )
 
         Row(
@@ -161,70 +172,79 @@ fun ScannerScreen(onBack: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Surface(color = Color.Black.copy(alpha = 0.35f), shape = CircleShape) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
-                }
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = Icons.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = Color.White
+                )
             }
+
             Text(
                 text = "Scan to Check In",
                 color = Color.White,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 18.sp
             )
-            Surface(color = Color.Black.copy(alpha = 0.35f), shape = CircleShape) {
-                IconButton(
-                    enabled = cameraPermissionGranted,
-                    onClick = { torchEnabled = !torchEnabled }
-                ) {
-                    Icon(
-                        imageVector = if (torchEnabled) Icons.Filled.FlashOn else Icons.Filled.FlashOff,
-                        contentDescription = "Toggle flash",
-                        tint = if (torchEnabled) AppColors.Yellow else Color.White
-                    )
-                }
+
+            IconButton(
+                enabled = cameraPermissionGranted,
+                onClick = { torchEnabled = !torchEnabled }
+            ) {
+                Icon(
+                    imageVector = if (torchEnabled) Icons.Filled.FlashOn else Icons.Filled.FlashOff,
+                    contentDescription = "Toggle flash",
+                    tint = if (torchEnabled) AppColors.Yellow else Color.White
+                )
             }
         }
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 24.dp, vertical = 72.dp),
+                .padding(horizontal = 24.dp, vertical = 74.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Box(
-                modifier = Modifier
-                    .size(280.dp)
-                    .clip(RoundedCornerShape(22.dp))
-                    .border(4.dp, AppColors.Yellow, RoundedCornerShape(22.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.QrCodeScanner,
-                    contentDescription = null,
-                    tint = AppColors.Yellow.copy(alpha = 0.35f),
-                    modifier = Modifier.size(42.dp)
-                )
-            }
-            Spacer(Modifier.height(22.dp))
+            ScannerFrame()
+
+            Spacer(Modifier.height(24.dp))
+
             Text(
                 text = if (cameraPermissionGranted) {
                     "Align the QR code within the frame to check in"
                 } else {
-                    "Camera access is unavailable. Enter the attendance token below."
+                    "Camera access is required to scan attendance QR codes"
                 },
                 color = Color.White,
                 textAlign = TextAlign.Center,
                 fontSize = 15.sp
             )
+
             Spacer(Modifier.height(8.dp))
+
             Text(
-                text = if (isCheckingIn) "Checking attendance…" else "Make sure the QR code is clear and well lit",
-                color = if (isCheckingIn) AppColors.Yellow else Color.White.copy(alpha = 0.65f),
+                text = if (isCheckingIn) {
+                    "Checking attendance…"
+                } else {
+                    "Make sure the QR code is clear and well lit"
+                },
+                color = if (isCheckingIn) AppColors.Yellow else Color.White.copy(alpha = 0.62f),
                 textAlign = TextAlign.Center,
                 fontSize = 12.sp
             )
+
+            if (!showManualEntry) {
+                TextButton(
+                    onClick = { showManualEntry = true }
+                ) {
+                    Text(
+                        text = "Enter token manually",
+                        color = Color.White.copy(alpha = 0.8f),
+                        fontSize = 12.sp
+                    )
+                }
+            }
         }
 
         Column(
@@ -238,17 +258,38 @@ fun ScannerScreen(onBack: () -> Unit) {
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     color = Color.White,
-                    shape = RoundedCornerShape(14.dp)
+                    shape = RoundedCornerShape(14.dp),
+                    shadowElevation = 5.dp
                 ) {
                     Column(
                         modifier = Modifier.padding(15.dp),
                         verticalArrangement = Arrangement.spacedBy(3.dp)
                     ) {
-                        Text("Check-in successful", color = AppColors.Green, fontWeight = FontWeight.Bold, fontSize = 17.sp)
-                        Text(result.playerName, color = AppColors.DarkText, fontWeight = FontWeight.SemiBold)
-                        Text(result.eventTitle, color = AppColors.DarkText)
-                        Text("${result.eventDate} • ${result.eventTime}", color = AppColors.GreyText, fontSize = 12.sp)
-                        Text(result.eventLocation, color = AppColors.GreyText, fontSize = 12.sp)
+                        Text(
+                            text = "Check-in successful",
+                            color = AppColors.Green,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 17.sp
+                        )
+                        Text(
+                            text = result.playerName,
+                            color = AppColors.DarkText,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = result.eventTitle,
+                            color = AppColors.DarkText
+                        )
+                        Text(
+                            text = "${result.eventDate} • ${result.eventTime}",
+                            color = AppColors.GreyText,
+                            fontSize = 12.sp
+                        )
+                        Text(
+                            text = result.eventLocation,
+                            color = AppColors.GreyText,
+                            fontSize = 12.sp
+                        )
                     }
                 }
             }
@@ -256,64 +297,146 @@ fun ScannerScreen(onBack: () -> Unit) {
             errorMessage?.let { message ->
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    color = Color(0xFF3B1717).copy(alpha = 0.92f),
+                    color = Color(0xFF3B1717).copy(alpha = 0.94f),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text(
+                    Row(
                         modifier = Modifier.padding(12.dp),
-                        text = message,
-                        color = Color(0xFFFFB4AB),
-                        textAlign = TextAlign.Center,
-                        fontSize = 12.sp
-                    )
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.CameraAlt,
+                            contentDescription = null,
+                            tint = AppColors.Yellow,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            modifier = Modifier.weight(1f),
+                            text = message,
+                            color = Color(0xFFFFDAD6),
+                            fontSize = 12.sp
+                        )
+                    }
                 }
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedTextField(
-                    modifier = Modifier.weight(1f),
-                    value = qrToken,
-                    onValueChange = {
-                        qrToken = it
-                        errorMessage = null
-                        checkInResult = null
-                    },
-                    label = { Text("Manual token") },
-                    singleLine = true,
-                    shape = RoundedCornerShape(10.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        cursorColor = AppColors.Yellow,
-                        focusedLabelColor = AppColors.Yellow,
-                        unfocusedLabelColor = Color.White.copy(alpha = 0.7f),
-                        focusedBorderColor = AppColors.Yellow,
-                        unfocusedBorderColor = Color.White.copy(alpha = 0.45f),
-                        focusedContainerColor = Color.Black.copy(alpha = 0.45f),
-                        unfocusedContainerColor = Color.Black.copy(alpha = 0.45f)
-                    )
-                )
-                Spacer(Modifier.width(8.dp))
-                Button(
-                    enabled = !isCheckingIn && qrToken.isNotBlank(),
-                    onClick = { submitCheckIn(qrToken) },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = AppColors.Yellow,
-                        contentColor = AppColors.DarkText
-                    ),
-                    shape = RoundedCornerShape(10.dp)
+            if (showManualEntry) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = Color.Black.copy(alpha = 0.58f),
+                    shape = RoundedCornerShape(14.dp)
                 ) {
-                    if (isCheckingIn) {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = AppColors.DarkText, strokeWidth = 2.dp)
-                    } else {
-                        Text("Check In", fontWeight = FontWeight.Bold)
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedTextField(
+                            modifier = Modifier.fillMaxWidth(),
+                            value = qrToken,
+                            onValueChange = {
+                                qrToken = it
+                                errorMessage = null
+                                checkInResult = null
+                            },
+                            label = { Text("Manual attendance token") },
+                            singleLine = true,
+                            shape = RoundedCornerShape(10.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+                                cursorColor = AppColors.Yellow,
+                                focusedLabelColor = AppColors.Yellow,
+                                unfocusedLabelColor = Color.White.copy(alpha = 0.7f),
+                                focusedBorderColor = AppColors.Yellow,
+                                unfocusedBorderColor = Color.White.copy(alpha = 0.4f),
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent
+                            )
+                        )
+
+                        Button(
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !isCheckingIn && qrToken.isNotBlank(),
+                            onClick = { submitCheckIn(qrToken) },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = AppColors.Yellow,
+                                contentColor = AppColors.DarkText
+                            ),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            if (isCheckingIn) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    color = AppColors.DarkText,
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Text("Check In", fontWeight = FontWeight.Bold)
+                            }
+                        }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ScannerFrame() {
+    Box(
+        modifier = Modifier
+            .size(280.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .border(3.dp, AppColors.Yellow.copy(alpha = 0.72f), RoundedCornerShape(20.dp)),
+        contentAlignment = Alignment.Center
+    ) {
+        ScannerCorner(Alignment.TopStart)
+        ScannerCorner(Alignment.TopEnd)
+        ScannerCorner(Alignment.BottomStart)
+        ScannerCorner(Alignment.BottomEnd)
+
+        Icon(
+            imageVector = Icons.Filled.QrCodeScanner,
+            contentDescription = null,
+            tint = AppColors.Yellow.copy(alpha = 0.32f),
+            modifier = Modifier.size(38.dp)
+        )
+    }
+}
+
+@Composable
+private fun Box.ScannerCorner(alignment: Alignment) {
+    Box(
+        modifier = Modifier
+            .align(alignment)
+            .padding(7.dp)
+            .size(42.dp)
+    ) {
+        val horizontalAlignment = when (alignment) {
+            Alignment.TopEnd, Alignment.BottomEnd -> Alignment.CenterEnd
+            else -> Alignment.CenterStart
+        }
+        val verticalAlignment = when (alignment) {
+            Alignment.BottomStart, Alignment.BottomEnd -> Alignment.BottomCenter
+            else -> Alignment.TopCenter
+        }
+
+        Box(
+            modifier = Modifier
+                .align(verticalAlignment)
+                .fillMaxWidth()
+                .height(6.dp)
+                .background(AppColors.Yellow, RoundedCornerShape(3.dp))
+        )
+
+        Box(
+            modifier = Modifier
+                .align(horizontalAlignment)
+                .width(6.dp)
+                .fillMaxSize()
+                .background(AppColors.Yellow, RoundedCornerShape(3.dp))
+        )
     }
 }
 
@@ -405,7 +528,11 @@ private fun analyzeQrImage(
         return
     }
 
-    val inputImage = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
+    val inputImage = InputImage.fromMediaImage(
+        mediaImage,
+        imageProxy.imageInfo.rotationDegrees
+    )
+
     scanner.process(inputImage)
         .addOnSuccessListener { barcodes ->
             barcodes.firstNotNullOfOrNull { it.rawValue }
