@@ -10,6 +10,9 @@ data class PlayerProfileResponse(
     val matches: Int,
     val email: String,
     val phone: String,
+    val emergencyContactName: String = "",
+    val emergencyContactPhone: String = "",
+    val joinedDate: String? = null,
     val disability: String,
     val hasProfilePhoto: Boolean = false
 )
@@ -17,5 +20,7 @@ data class PlayerProfileResponse(
 data class UpdatePlayerProfileRequest(
     val age: Int,
     val email: String,
-    val phone: String
+    val phone: String,
+    val emergencyContactName: String,
+    val emergencyContactPhone: String
 )
