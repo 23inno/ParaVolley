@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -22,10 +23,16 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -46,13 +53,14 @@ fun EventCard(
     onButtonClick: () -> Unit
 ) {
     val registered = registrationStatus.equals("Registered", ignoreCase = true)
+    var showDetails by rememberSaveable(event.id) { mutableStateOf(false) }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, AppColors.Border),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        border = BorderStroke(1.dp, Color(0xFFF3F4F6)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -64,39 +72,74 @@ fun EventCard(
                 verticalAlignment = Alignment.Top
             ) {
                 Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(7.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        EventChip(
+                            text = event.type,
+                            backgroundColor = AppColors.LightGreen,
+                            contentColor = AppColors.Green
+                        )
+                        if (registered) {
+                            EventChip(
+                                text = "Registered",
+                                backgroundColor = AppColors.WarningBackground,
+                                contentColor = AppColors.WarningText
+                            )
+                        } else {
+                            EventChip(
+                                text = event.status,
+                                backgroundColor = Color(0xFFF3F4F6),
+                                contentColor = AppColors.GreyText
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(10.dp))
+
                     Text(
                         text = event.title,
                         color = AppColors.DarkText,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.SemiBold,
                         fontSize = 17.sp,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Spacer(Modifier.size(7.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        EventChip(event.type, AppColors.LightGreen, AppColors.Green)
-                        if (registered) {
-                            EventChip("Registered", AppColors.WarningBackground, AppColors.WarningText)
-                        } else {
-                            EventChip(event.status, Color(0xFFF3F4F6), AppColors.GreyText)
-                        }
-                    }
                 }
             }
 
             EventInfoRow(Icons.Filled.CalendarMonth, event.date)
             EventInfoRow(Icons.Filled.Schedule, event.time)
             EventInfoRow(Icons.Filled.LocationOn, event.location)
-            EventInfoRow(Icons.Filled.Groups, "${event.participants} participants")
 
-            if (event.description.isNotBlank()) {
+            if (showDetails) {
+                HorizontalDivider(color = Color(0xFFF3F4F6))
+
+                if (event.description.isNotBlank()) {
+                    Text(
+                        text = event.description,
+                        color = AppColors.GreyText,
+                        fontSize = 13.sp,
+                        lineHeight = 19.sp
+                    )
+                }
+
+                EventInfoRow(
+                    icon = Icons.Filled.Groups,
+                    text = "${event.participants} participants"
+                )
+            }
+
+            TextButton(
+                modifier = Modifier.align(Alignment.Start),
+                onClick = { showDetails = !showDetails }
+            ) {
                 Text(
-                    text = event.description,
-                    color = AppColors.GreyText,
-                    fontSize = 13.sp,
-                    lineHeight = 19.sp,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis
+                    text = if (showDetails) "Hide Details" else "View Details",
+                    color = AppColors.Green,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 13.sp
                 )
             }
 
@@ -104,16 +147,24 @@ fun EventCard(
                 modifier = Modifier.fillMaxWidth(),
                 enabled = buttonEnabled,
                 onClick = onButtonClick,
-                shape = RoundedCornerShape(9.dp),
+                shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (registered) Color.White else AppColors.Yellow,
                     contentColor = if (registered) AppColors.Green else AppColors.DarkText,
                     disabledContainerColor = Color(0xFFF3F4F6),
                     disabledContentColor = AppColors.GreyText
                 ),
-                border = if (registered && buttonEnabled) BorderStroke(1.dp, AppColors.Green) else null
+                border = if (registered && buttonEnabled) {
+                    BorderStroke(1.5.dp, AppColors.Green)
+                } else {
+                    null
+                }
             ) {
-                Text(buttonText, fontWeight = FontWeight.Bold)
+                Text(
+                    text = buttonText,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp
+                )
             }
         }
     }
@@ -125,16 +176,23 @@ private fun EventInfoRow(icon: ImageVector, text: String) {
         Box(
             modifier = Modifier
                 .size(30.dp)
-                .background(Color(0xFFF3F4F6), CircleShape),
+                .background(AppColors.LightGreen, CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            Icon(icon, contentDescription = null, tint = AppColors.GreyText, modifier = Modifier.size(16.dp))
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = AppColors.Green,
+                modifier = Modifier.size(16.dp)
+            )
         }
+
         Spacer(Modifier.width(9.dp))
+
         Text(
             modifier = Modifier.weight(1f),
             text = text,
-            color = AppColors.DarkText,
+            color = AppColors.GreyText,
             fontSize = 13.sp,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis
