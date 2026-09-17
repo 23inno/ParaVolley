@@ -61,6 +61,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -73,6 +74,10 @@ import com.paravolley.mobile.network.DashboardMatch
 import com.paravolley.mobile.network.DashboardRepository
 import com.paravolley.mobile.network.PlayerDashboardResponse
 import com.paravolley.mobile.ui.theme.AppColors
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 private val DashboardGreen = Color(0xFF1A5F3F)
 private val DashboardYellow = Color(0xFFFBBF24)
@@ -252,7 +257,10 @@ private fun DashboardContent(
                     items = dashboard.recentAnnouncements.take(3),
                     key = { "announcement-${it.id}" }
                 ) { announcement ->
-                    NotificationPreviewCard(announcement)
+                    NotificationPreviewCard(
+                        announcement = announcement,
+                        onClick = onOpenNotifications
+                    )
                 }
             }
 
@@ -570,9 +578,11 @@ private fun QuickActionCard(
 
 @Composable
 private fun NotificationPreviewCard(
-    announcement: DashboardAnnouncement
+    announcement: DashboardAnnouncement,
+    onClick: () -> Unit
 ) {
     Card(
+        onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 24.dp, vertical = 6.dp),
@@ -619,7 +629,7 @@ private fun NotificationPreviewCard(
                     Spacer(Modifier.width(8.dp))
 
                     Text(
-                        text = announcement.date,
+                        text = formatDashboardDate(announcement.date),
                         color = DashboardMuted,
                         fontSize = 11.sp
                     )
@@ -635,6 +645,15 @@ private fun NotificationPreviewCard(
                     overflow = TextOverflow.Ellipsis
                 )
             }
+
+            Spacer(Modifier.width(8.dp))
+
+            Icon(
+                imageVector = Icons.Filled.ChevronRight,
+                contentDescription = "Open notification",
+                tint = DashboardMuted,
+                modifier = Modifier.size(18.dp)
+            )
         }
     }
 }
@@ -732,45 +751,219 @@ private fun SummaryTile(
 
 @Composable
 private fun MatchCard(match: DashboardMatch) {
+    val formattedDate = formatDashboardDate(match.date)
+    val formattedTime = formatDashboardTime(match.time)
+    val score =
+        if (match.scoreA == null && match.scoreB == null) {
+            "VS"
+        } else {
+            "${match.scoreA ?: "-"} : ${match.scoreB ?: "-"}"
+        }
+
+    val completed = match.status.equals("Completed", ignoreCase = true)
+    val statusBackground =
+        if (completed) DashboardGreen.copy(alpha = 0.10f)
+        else DashboardYellow.copy(alpha = 0.18f)
+    val statusContent =
+        if (completed) DashboardGreen
+        else Color(0xFF8A5A00)
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 6.dp),
-        shape = RoundedCornerShape(12.dp),
+            .padding(horizontal = 24.dp, vertical = 7.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, DashboardBorder),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        border = BorderStroke(1.dp, Color(0xFFE5E7EB)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            modifier = Modifier.padding(18.dp)
         ) {
-            Text(
-                text = match.tournament,
-                color = DashboardGreen,
-                fontWeight = FontWeight.Medium,
-                fontSize = 12.sp
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    modifier = Modifier.weight(1f),
+                    text = match.tournament.ifBlank { "Match" },
+                    color = DashboardGreen,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 12.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(Modifier.width(10.dp))
+
+                Surface(
+                    color = statusBackground,
+                    contentColor = statusContent,
+                    shape = RoundedCornerShape(999.dp)
+                ) {
+                    Text(
+                        text = match.status.ifBlank { "Match" },
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    modifier = Modifier.weight(1f),
+                    text = match.teamA,
+                    color = DashboardText,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(Modifier.width(10.dp))
+
+                Surface(
+                    color = DashboardSectionBackground,
+                    shape = RoundedCornerShape(11.dp),
+                    border = BorderStroke(1.dp, DashboardBorder)
+                ) {
+                    Text(
+                        text = score,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        color = DashboardText,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
+                }
+
+                Spacer(Modifier.width(10.dp))
+
+                Text(
+                    modifier = Modifier.weight(1f),
+                    text = match.teamB,
+                    color = DashboardText,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
+                    textAlign = TextAlign.End,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(DashboardBorder)
             )
-            Text(
-                text = "${match.teamA}  ${match.scoreA ?: "-"}  •  ${match.scoreB ?: "-"}  ${match.teamB}",
-                color = DashboardText,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 16.sp
-            )
-            Text(
-                text = "${match.date} • ${match.time}",
-                color = DashboardMuted,
-                fontSize = 12.sp
-            )
-            Text(
-                text = match.venue,
-                color = DashboardMuted,
-                fontSize = 12.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+
+            Spacer(Modifier.height(14.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                MatchMetaItem(
+                    modifier = Modifier.weight(1f),
+                    icon = Icons.Filled.Event,
+                    value = formattedDate
+                )
+                MatchMetaItem(
+                    modifier = Modifier.weight(1f),
+                    icon = Icons.Filled.Schedule,
+                    value = formattedTime
+                )
+            }
+
+            Spacer(Modifier.height(10.dp))
+
+            MatchMetaItem(
+                modifier = Modifier.fillMaxWidth(),
+                icon = Icons.Filled.LocationOn,
+                value = match.venue.ifBlank { "Venue TBC" }
             )
         }
     }
+}
+
+@Composable
+private fun MatchMetaItem(
+    modifier: Modifier = Modifier,
+    icon: ImageVector,
+    value: String
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(30.dp)
+                .background(DashboardGreen.copy(alpha = 0.09f), RoundedCornerShape(8.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = DashboardGreen,
+                modifier = Modifier.size(15.dp)
+            )
+        }
+
+        Spacer(Modifier.width(8.dp))
+
+        Text(
+            text = value,
+            color = DashboardMuted,
+            fontSize = 12.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+private fun formatDashboardDate(rawDate: String): String {
+    val trimmed = rawDate.trim()
+    if (trimmed.isBlank()) return "Date TBC"
+
+    val dateOnly = trimmed
+        .substringBefore("T")
+        .substringBefore(" ")
+
+    return runCatching {
+        LocalDate
+            .parse(dateOnly, DateTimeFormatter.ISO_LOCAL_DATE)
+            .format(
+                DateTimeFormatter.ofPattern(
+                    "dd MMM yyyy",
+                    Locale.getDefault()
+                )
+            )
+    }.getOrDefault(trimmed)
+}
+
+private fun formatDashboardTime(rawTime: String): String {
+    val trimmed = rawTime.trim()
+    if (trimmed.isBlank()) return "Time TBC"
+
+    return runCatching {
+        LocalTime
+            .parse(trimmed, DateTimeFormatter.ISO_LOCAL_TIME)
+            .format(
+                DateTimeFormatter.ofPattern(
+                    "HH:mm",
+                    Locale.getDefault()
+                )
+            )
+    }.getOrDefault(trimmed)
 }
 
 @Composable
