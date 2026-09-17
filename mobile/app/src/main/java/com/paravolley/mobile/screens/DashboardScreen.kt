@@ -21,7 +21,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
@@ -89,7 +88,7 @@ private val DashboardBorder = Color(0xFFF1F3F5)
 @Composable
 fun DashboardScreen(
     onNavigate: (String) -> Unit,
-    onOpenNotifications: () -> Unit
+    onOpenNotifications: (Int?) -> Unit
 ) {
     val context = LocalContext.current
     val repository = remember { DashboardRepository(context.applicationContext) }
@@ -185,7 +184,7 @@ private fun DashboardContent(
     dashboard: PlayerDashboardResponse,
     innerPadding: PaddingValues,
     onNavigate: (String) -> Unit,
-    onOpenNotifications: () -> Unit
+    onOpenNotifications: (Int?) -> Unit
 ) {
     var selectedEvent by remember { mutableStateOf<DashboardEvent?>(null) }
 
@@ -202,8 +201,20 @@ private fun DashboardContent(
             item {
                 DashboardHeader(
                     playerName = dashboard.player.name,
-                    onOpenNotifications = onOpenNotifications
+                    onOpenNotifications = { onOpenNotifications(null) }
                 )
+            }
+
+            item {
+                SectionHeader(
+                    title = "Your Summary",
+                    action = "Profile",
+                    onAction = { onNavigate(Routes.PROFILE) }
+                )
+            }
+
+            item {
+                SummaryGrid(dashboard)
             }
 
             item {
@@ -238,7 +249,7 @@ private fun DashboardContent(
             item {
                 QuickActionsSection(
                     onScan = { onNavigate(Routes.SCANNER) },
-                    onEvents = { onNavigate(Routes.EVENTS) }
+                    onResults = { onNavigate(Routes.RESULTS) }
                 )
             }
 
@@ -246,7 +257,7 @@ private fun DashboardContent(
                 SectionHeader(
                     title = "Notifications",
                     action = "View All",
-                    onAction = onOpenNotifications
+                    onAction = { onOpenNotifications(null) }
                 )
             }
 
@@ -259,21 +270,9 @@ private fun DashboardContent(
                 ) { announcement ->
                     NotificationPreviewCard(
                         announcement = announcement,
-                        onClick = onOpenNotifications
+                        onClick = { onOpenNotifications(announcement.id) }
                     )
                 }
-            }
-
-            item {
-                SectionHeader(
-                    title = "Your Summary",
-                    action = "Profile",
-                    onAction = { onNavigate(Routes.PROFILE) }
-                )
-            }
-
-            item {
-                SummaryGrid(dashboard)
             }
 
             item {
@@ -417,6 +416,103 @@ private fun SectionHeader(
 }
 
 @Composable
+private fun SummaryGrid(dashboard: PlayerDashboardResponse) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            SummaryTile(
+                modifier = Modifier.weight(1f),
+                icon = Icons.Filled.Event,
+                value = dashboard.summary.upcomingEvents.toString(),
+                label = "Upcoming"
+            )
+            SummaryTile(
+                modifier = Modifier.weight(1f),
+                icon = Icons.Filled.CheckCircle,
+                value = dashboard.summary.registeredEvents.toString(),
+                label = "Registered"
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            SummaryTile(
+                modifier = Modifier.weight(1f),
+                icon = Icons.Filled.Person,
+                value = "${dashboard.summary.presentAttendance}/${dashboard.summary.totalAttendance}",
+                label = "Attendance"
+            )
+            SummaryTile(
+                modifier = Modifier.weight(1f),
+                icon = Icons.Filled.EmojiEvents,
+                value = String.format("%.0f%%", dashboard.summary.attendanceRate),
+                label = "Attendance Rate"
+            )
+        }
+    }
+}
+
+@Composable
+private fun SummaryTile(
+    modifier: Modifier,
+    icon: ImageVector,
+    value: String,
+    label: String
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = BorderStroke(1.dp, DashboardBorder),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(DashboardGreen.copy(alpha = 0.09f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = DashboardGreen,
+                    modifier = Modifier.size(19.dp)
+                )
+            }
+
+            Spacer(Modifier.width(10.dp))
+
+            Column {
+                Text(
+                    text = value,
+                    color = DashboardText,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp
+                )
+                Text(
+                    text = label,
+                    color = DashboardMuted,
+                    fontSize = 11.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun DashboardEventCard(
     event: DashboardEvent,
     onViewDetails: () -> Unit
@@ -428,9 +524,7 @@ private fun DashboardEventCard(
         border = BorderStroke(1.dp, DashboardBorder),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
+        Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -451,9 +545,9 @@ private fun DashboardEventCard(
             }
 
             Spacer(Modifier.height(12.dp))
-            EventInfoRow(Icons.Filled.Event, event.date)
+            EventInfoRow(Icons.Filled.Event, formatDashboardDate(event.date))
             Spacer(Modifier.height(6.dp))
-            EventInfoRow(Icons.Filled.Schedule, event.time)
+            EventInfoRow(Icons.Filled.Schedule, formatDashboardTime(event.time))
             Spacer(Modifier.height(6.dp))
             EventInfoRow(Icons.Filled.LocationOn, event.location)
             Spacer(Modifier.height(16.dp))
@@ -482,7 +576,7 @@ private fun DashboardEventCard(
 @Composable
 private fun QuickActionsSection(
     onScan: () -> Unit,
-    onEvents: () -> Unit
+    onResults: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -516,12 +610,12 @@ private fun QuickActionsSection(
 
             QuickActionCard(
                 modifier = Modifier.weight(1f),
-                title = "View Events",
-                icon = Icons.Filled.CalendarMonth,
+                title = "View Results",
+                icon = Icons.Filled.EmojiEvents,
                 iconBackground = DashboardGreen,
                 iconTint = Color.White,
                 borderColor = DashboardGreen,
-                onClick = onEvents
+                onClick = onResults
             )
         }
     }
@@ -659,114 +753,22 @@ private fun NotificationPreviewCard(
 }
 
 @Composable
-private fun SummaryGrid(dashboard: PlayerDashboardResponse) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            SummaryTile(
-                modifier = Modifier.weight(1f),
-                icon = Icons.Filled.Event,
-                value = dashboard.summary.upcomingEvents.toString(),
-                label = "Upcoming"
-            )
-            SummaryTile(
-                modifier = Modifier.weight(1f),
-                icon = Icons.Filled.CheckCircle,
-                value = dashboard.summary.registeredEvents.toString(),
-                label = "Registered"
-            )
-        }
-
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            SummaryTile(
-                modifier = Modifier.weight(1f),
-                icon = Icons.Filled.Person,
-                value = "${dashboard.summary.presentAttendance}/${dashboard.summary.totalAttendance}",
-                label = "Attendance"
-            )
-            SummaryTile(
-                modifier = Modifier.weight(1f),
-                icon = Icons.Filled.EmojiEvents,
-                value = String.format("%.0f%%", dashboard.summary.attendanceRate),
-                label = "Attendance Rate"
-            )
-        }
-    }
-}
-
-@Composable
-private fun SummaryTile(
-    modifier: Modifier,
-    icon: ImageVector,
-    value: String,
-    label: String
-) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, DashboardBorder),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .background(DashboardGreen.copy(alpha = 0.09f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = DashboardGreen,
-                    modifier = Modifier.size(19.dp)
-                )
-            }
-
-            Spacer(Modifier.width(10.dp))
-
-            Column {
-                Text(
-                    text = value,
-                    color = DashboardText,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 16.sp
-                )
-                Text(
-                    text = label,
-                    color = DashboardMuted,
-                    fontSize = 11.sp
-                )
-            }
-        }
-    }
-}
-
-@Composable
 private fun MatchCard(match: DashboardMatch) {
     val formattedDate = formatDashboardDate(match.date)
     val formattedTime = formatDashboardTime(match.time)
-    val score =
-        if (match.scoreA == null && match.scoreB == null) {
-            "VS"
-        } else {
-            "${match.scoreA ?: "-"} : ${match.scoreB ?: "-"}"
-        }
+    val score = if (match.scoreA == null && match.scoreB == null) {
+        "VS"
+    } else {
+        "${match.scoreA ?: "-"} : ${match.scoreB ?: "-"}"
+    }
 
     val completed = match.status.equals("Completed", ignoreCase = true)
-    val statusBackground =
-        if (completed) DashboardGreen.copy(alpha = 0.10f)
-        else DashboardYellow.copy(alpha = 0.18f)
-    val statusContent =
-        if (completed) DashboardGreen
-        else Color(0xFF8A5A00)
+    val statusBackground = if (completed) {
+        DashboardGreen.copy(alpha = 0.10f)
+    } else {
+        DashboardYellow.copy(alpha = 0.18f)
+    }
+    val statusContent = if (completed) DashboardGreen else Color(0xFF8A5A00)
 
     Card(
         modifier = Modifier
@@ -777,9 +779,7 @@ private fun MatchCard(match: DashboardMatch) {
         border = BorderStroke(1.dp, Color(0xFFE5E7EB)),
         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(18.dp)
-        ) {
+        Column(modifier = Modifier.padding(18.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -947,7 +947,7 @@ private fun formatDashboardDate(rawDate: String): String {
                     Locale.getDefault()
                 )
             )
-    }.getOrDefault(trimmed)
+    }.getOrDefault(dateOnly.ifBlank { trimmed })
 }
 
 private fun formatDashboardTime(rawTime: String): String {
@@ -1110,12 +1110,12 @@ private fun EventDetailsSheet(
                 SheetDetailRow(
                     icon = Icons.Filled.Event,
                     label = "Date",
-                    value = event.date
+                    value = formatDashboardDate(event.date)
                 )
                 SheetDetailRow(
                     icon = Icons.Filled.Schedule,
                     label = "Time",
-                    value = event.time
+                    value = formatDashboardTime(event.time)
                 )
                 SheetDetailRow(
                     icon = Icons.Filled.LocationOn,
