@@ -22,6 +22,10 @@ namespace SportsManagementMVC.Models.Api
 
         public string Phone { get; set; } = string.Empty;
 
+        public string EmergencyContact { get; set; } = string.Empty;
+
+        public string? JoinedDate { get; set; }
+
         public string Disability { get; set; } = string.Empty;
 
         public bool HasProfilePhoto { get; set; }
@@ -37,5 +41,8 @@ namespace SportsManagementMVC.Models.Api
 
         [Required, Phone, StringLength(50)]
         public string Phone { get; set; } = string.Empty;
+
+        [Required, StringLength(200)]
+        public string EmergencyContact { get; set; } = string.Empty;
     }
 }
