@@ -4,6 +4,13 @@ on:
   push:
     branches:
       - thapelo-android-api-integration
+      - android-figma-redesign
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/android-build.yml'
+  pull_request:
+    branches:
+      - thapelo-android-api-integration
     paths:
       - 'mobile/**'
       - '.github/workflows/android-build.yml'
