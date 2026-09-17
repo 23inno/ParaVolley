@@ -37,13 +37,6 @@ namespace SportsManagementMVC.Models
         [Required, Phone]
         public string Phone { get; set; } = string.Empty;
 
-        [Display(Name = "Emergency Contact")]
-        [StringLength(200)]
-        public string EmergencyContact { get; set; } = string.Empty;
-
-        [Display(Name = "Joined")]
-        public DateTime? JoinedAtUtc { get; set; }
-
         [Display(Name = "Disability Classification")]
         public string Disability { get; set; } = string.Empty;
 
