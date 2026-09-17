@@ -76,7 +76,8 @@ namespace SportsManagementMVC.Controllers.Api
                 .Trim()
                 .ToLowerInvariant();
             var phone = request.Phone.Trim();
-            var emergencyContact = request.EmergencyContact.Trim();
+            var emergencyContactName = request.EmergencyContactName.Trim();
+            var emergencyContactPhone = request.EmergencyContactPhone.Trim();
 
             var player = await _db.Players
                 .FirstOrDefaultAsync(
@@ -123,6 +124,23 @@ namespace SportsManagementMVC.Controllers.Api
                 });
             }
 
+            var profileDetails = await _db.PlayerProfileDetails
+                .FirstOrDefaultAsync(
+                    details => details.PlayerId == playerId,
+                    cancellationToken);
+
+            if (profileDetails == null)
+            {
+                profileDetails = new PlayerProfileDetails
+                {
+                    PlayerId = playerId,
+                    JoinedDate = await ResolveJoinedDateAsync(
+                        playerId,
+                        cancellationToken)
+                };
+                _db.PlayerProfileDetails.Add(profileDetails);
+            }
+
             await using var transaction =
                 await _db.Database.BeginTransactionAsync(cancellationToken);
 
@@ -131,7 +149,9 @@ namespace SportsManagementMVC.Controllers.Api
                 player.Age = request.Age;
                 player.Email = normalizedEmail;
                 player.Phone = phone;
-                player.EmergencyContact = emergencyContact;
+
+                profileDetails.EmergencyContactName = emergencyContactName;
+                profileDetails.EmergencyContactPhone = emergencyContactPhone;
 
                 // The player's authentication account uses the same email.
                 // Updating both records makes the edited email the next login email.
@@ -284,24 +304,16 @@ namespace SportsManagementMVC.Controllers.Api
                     item => item.PlayerId == player.Id,
                     cancellationToken);
 
-            var joinedAt = player.JoinedAtUtc;
+            var profileDetails = await _db.PlayerProfileDetails
+                .AsNoTracking()
+                .FirstOrDefaultAsync(
+                    details => details.PlayerId == player.Id,
+                    cancellationToken);
 
-            if (!joinedAt.HasValue)
-            {
-                var earliestRegistration = await _db.EventRegistrations
-                    .AsNoTracking()
-                    .Where(item => item.PlayerId == player.Id)
-                    .Select(item => (DateTime?)item.RegisteredAtUtc)
-                    .MinAsync(cancellationToken);
-
-                var earliestAttendance = await _db.Attendances
-                    .AsNoTracking()
-                    .Where(item => item.PlayerId == player.Id)
-                    .Select(item => (DateTime?)item.Date)
-                    .MinAsync(cancellationToken);
-
-                joinedAt = earliestRegistration ?? earliestAttendance;
-            }
+            var joinedDate = profileDetails?.JoinedDate
+                ?? await ResolveJoinedDateAsync(
+                    player.Id,
+                    cancellationToken);
 
             return new PlayerProfileResponse
             {
@@ -314,11 +326,31 @@ namespace SportsManagementMVC.Controllers.Api
                 Matches = player.Matches,
                 Email = player.Email,
                 Phone = player.Phone,
-                EmergencyContact = player.EmergencyContact,
-                JoinedDate = joinedAt?.ToString("yyyy-MM-dd"),
+                EmergencyContactName = profileDetails?.EmergencyContactName ?? string.Empty,
+                EmergencyContactPhone = profileDetails?.EmergencyContactPhone ?? string.Empty,
+                JoinedDate = joinedDate.ToString("yyyy-MM-dd"),
                 Disability = player.Disability,
                 HasProfilePhoto = hasProfilePhoto
             };
+        }
+
+        private async Task<DateTime> ResolveJoinedDateAsync(
+            int playerId,
+            CancellationToken cancellationToken)
+        {
+            var earliestRegistration = await _db.EventRegistrations
+                .AsNoTracking()
+                .Where(item => item.PlayerId == playerId)
+                .Select(item => (DateTime?)item.RegisteredAtUtc)
+                .MinAsync(cancellationToken);
+
+            var earliestAttendance = await _db.Attendances
+                .AsNoTracking()
+                .Where(item => item.PlayerId == playerId)
+                .Select(item => (DateTime?)item.Date)
+                .MinAsync(cancellationToken);
+
+            return (earliestRegistration ?? earliestAttendance ?? DateTime.UtcNow).Date;
         }
     }
 }
