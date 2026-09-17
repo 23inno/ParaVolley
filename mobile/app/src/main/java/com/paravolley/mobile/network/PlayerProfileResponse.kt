@@ -10,8 +10,8 @@ data class PlayerProfileResponse(
     val matches: Int,
     val email: String,
     val phone: String,
-    val emergencyContactName: String = "",
-    val emergencyContactPhone: String = "",
+    val emergencyContactName: String? = null,
+    val emergencyContactPhone: String? = null,
     val joinedDate: String? = null,
     val disability: String,
     val hasProfilePhoto: Boolean = false
