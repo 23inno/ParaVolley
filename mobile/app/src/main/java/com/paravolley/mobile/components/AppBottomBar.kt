@@ -1,19 +1,33 @@
 package com.paravolley.mobile.components
 
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -27,111 +41,113 @@ fun AppBottomBar(
 ) {
     Surface(
         color = Color.White,
-        shadowElevation = 8.dp
+        shadowElevation = 12.dp
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    horizontal = 4.dp,
-                    vertical = 6.dp
-                ),
-            horizontalArrangement =
-                Arrangement.SpaceEvenly
-        ) {
-            BottomBarItem(
-                modifier = Modifier.weight(1f),
-                label = "Home",
-                symbol = "⌂",
-                route = Routes.DASHBOARD,
-                selectedRoute = selectedRoute,
-                onNavigate = onNavigate
-            )
-
-            BottomBarItem(
-                modifier = Modifier.weight(1f),
-                label = "Events",
-                symbol = "▤",
-                route = Routes.EVENTS,
-                selectedRoute = selectedRoute,
-                onNavigate = onNavigate
-            )
-
-            BottomBarItem(
-                modifier = Modifier.weight(1f),
-                label = "Results",
-                symbol = "◆",
-                route = Routes.RESULTS,
-                selectedRoute = selectedRoute,
-                onNavigate = onNavigate
-            )
-
-            BottomBarItem(
-                modifier = Modifier.weight(1f),
-                label = "Scan",
-                symbol = "▣",
-                route = Routes.SCANNER,
-                selectedRoute = selectedRoute,
-                onNavigate = onNavigate
-            )
-
-            BottomBarItem(
-                modifier = Modifier.weight(1f),
-                label = "Profile",
-                symbol = "●",
-                route = Routes.PROFILE,
-                selectedRoute = selectedRoute,
-                onNavigate = onNavigate
-            )
+        Column {
+            HorizontalDivider(color = AppColors.Border)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(76.dp)
+                    .padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                BottomNavItem(
+                    modifier = Modifier.weight(1f),
+                    label = "Home",
+                    icon = Icons.Filled.Home,
+                    selected = selectedRoute == Routes.DASHBOARD,
+                    onClick = { onNavigate(Routes.DASHBOARD) }
+                )
+                BottomNavItem(
+                    modifier = Modifier.weight(1f),
+                    label = "Events",
+                    icon = Icons.Filled.CalendarMonth,
+                    selected = selectedRoute == Routes.EVENTS,
+                    onClick = { onNavigate(Routes.EVENTS) }
+                )
+                ScanNavItem(
+                    modifier = Modifier.weight(1f),
+                    selected = selectedRoute == Routes.SCANNER,
+                    onClick = { onNavigate(Routes.SCANNER) }
+                )
+                BottomNavItem(
+                    modifier = Modifier.weight(1f),
+                    label = "Profile",
+                    icon = Icons.Filled.Person,
+                    selected = selectedRoute == Routes.PROFILE,
+                    onClick = { onNavigate(Routes.PROFILE) }
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun BottomBarItem(
+private fun BottomNavItem(
     modifier: Modifier,
     label: String,
-    symbol: String,
-    route: String,
-    selectedRoute: String,
-    onNavigate: (String) -> Unit
+    icon: ImageVector,
+    selected: Boolean,
+    onClick: () -> Unit
 ) {
-    val selected = selectedRoute == route
+    val color = if (selected) AppColors.Green else Color(0xFF9CA3AF)
 
-    TextButton(
-        modifier = modifier.height(64.dp),
-        onClick = {
-            onNavigate(route)
-        },
-        colors = ButtonDefaults.textButtonColors(
-            containerColor =
-                if (selected) {
-                    AppColors.Yellow
-                } else {
-                    Color.Transparent
-                },
-            contentColor = AppColors.DarkGreen
-        )
+    Column(
+        modifier = modifier
+            .clickable(onClick = onClick)
+            .padding(vertical = 9.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column(
-            horizontalAlignment =
-                Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = symbol,
-                fontSize = 18.sp
-            )
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = color,
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(modifier = Modifier.height(3.dp))
+        Text(
+            text = label,
+            color = color,
+            fontSize = 11.sp,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
+        )
+    }
+}
 
-            Text(
-                text = label,
-                fontSize = 12.sp,
-                fontWeight =
-                    if (selected) {
-                        FontWeight.Bold
-                    } else {
-                        FontWeight.Normal
-                    }
+@Composable
+private fun ScanNavItem(
+    modifier: Modifier,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = modifier
+            .clickable(onClick = onClick)
+            .padding(bottom = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier
+                .offset(y = (-13).dp)
+                .size(54.dp)
+                .shadow(7.dp, CircleShape)
+                .background(AppColors.Yellow, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Filled.QrCodeScanner,
+                contentDescription = "Scan QR",
+                tint = AppColors.DarkText,
+                modifier = Modifier.size(27.dp)
             )
         }
+        Text(
+            modifier = Modifier.offset(y = (-9).dp),
+            text = "Scan",
+            color = if (selected) AppColors.Green else Color(0xFF9CA3AF),
+            fontSize = 11.sp,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
+        )
     }
 }
