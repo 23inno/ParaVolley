@@ -1,6 +1,7 @@
 @model Player
 @{
     var initials = string.Concat(Model.Name.Split(' ').Select(n => n.Length > 0 ? n[0].ToString() : "")).ToUpper();
+    var profileDetails = ViewBag.ProfileDetails as SportsManagementMVC.Models.PlayerProfileDetails;
 }
 
 <div class="modal-header">
@@ -32,6 +33,9 @@
         <dt class="col-sm-4 text-muted">Age</dt>
         <dd class="col-sm-8">@Model.Age</dd>
 
+        <dt class="col-sm-4 text-muted">Joined</dt>
+        <dd class="col-sm-8">@(profileDetails?.JoinedDate.ToString("dd MMM yyyy") ?? "Not recorded")</dd>
+
         <dt class="col-sm-4 text-muted">Matches Played</dt>
         <dd class="col-sm-8">@Model.Matches</dd>
 
@@ -40,6 +44,24 @@
 
         <dt class="col-sm-4 text-muted">Phone</dt>
         <dd class="col-sm-8">@Model.Phone</dd>
+
+        <dt class="col-sm-4 text-muted">Emergency Contact</dt>
+        <dd class="col-sm-8">
+            @if (profileDetails != null &&
+                 (!string.IsNullOrWhiteSpace(profileDetails.EmergencyContactName) ||
+                  !string.IsNullOrWhiteSpace(profileDetails.EmergencyContactPhone)))
+            {
+                <span>@profileDetails.EmergencyContactName</span>
+                @if (!string.IsNullOrWhiteSpace(profileDetails.EmergencyContactPhone))
+                {
+                    <span> — @profileDetails.EmergencyContactPhone</span>
+                }
+            }
+            else
+            {
+                <span>Not recorded</span>
+            }
+        </dd>
 
         <dt class="col-sm-4 text-muted">Disability Classification</dt>
         <dd class="col-sm-8">@Model.Disability</dd>
