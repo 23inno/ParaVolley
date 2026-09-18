@@ -20,17 +20,22 @@ data class AppUserResponse(
 )
 
 data class RegisterPlayerRequest(
-    val name: String,
-    val position: String,
-    val team: String,
-    val age: Int,
+    val fullName: String,
     val email: String,
     val phone: String,
-    val disability: String,
-    val password: String
+    val dateOfBirth: String,
+    val province: String?,
+    val town: String?,
+    val experienceLevel: String?,
+    val preferredPosition: String?,
+    val classification: String,
+    val emergencyContactName: String?,
+    val emergencyContactPhone: String?,
+    val medicalNotes: String?,
+    val consent: Boolean
 )
 
 data class RegisterPlayerResponse(
     val message: String,
-    val playerId: Int
+    val applicationId: Int
 )
