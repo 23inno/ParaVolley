@@ -78,8 +78,10 @@
                 </select>
             </div>
             <div class="col-md-4 mb-3">
-                <label asp-for="Participants" class="form-label fw-semibold"></label>
-                <input asp-for="Participants" class="form-control" type="number" />
+                <label class="form-label fw-semibold">Participants</label>
+                <div class="form-control bg-light text-muted">
+                    @Model.Participants registered
+                </div>
             </div>
         </div>
 
