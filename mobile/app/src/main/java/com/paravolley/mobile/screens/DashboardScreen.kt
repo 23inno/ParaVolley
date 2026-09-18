@@ -67,6 +67,7 @@ import androidx.compose.ui.unit.sp
 import com.paravolley.mobile.R
 import com.paravolley.mobile.components.AppBottomBar
 import com.paravolley.mobile.navigation.Routes
+import com.paravolley.mobile.network.AnnouncementsRepository
 import com.paravolley.mobile.network.DashboardAnnouncement
 import com.paravolley.mobile.network.DashboardEvent
 import com.paravolley.mobile.network.DashboardMatch
@@ -84,6 +85,7 @@ private val DashboardText = Color(0xFF111827)
 private val DashboardMuted = Color(0xFF6B7280)
 private val DashboardSectionBackground = Color(0xFFF9FAFB)
 private val DashboardBorder = Color(0xFFF1F3F5)
+private val DashboardBadgeRed = Color(0xFFDC2626)
 
 @Composable
 fun DashboardScreen(
@@ -92,10 +94,14 @@ fun DashboardScreen(
 ) {
     val context = LocalContext.current
     val repository = remember { DashboardRepository(context.applicationContext) }
+    val announcementsRepository = remember {
+        AnnouncementsRepository(context.applicationContext)
+    }
     var dashboard by remember { mutableStateOf<PlayerDashboardResponse?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var reloadKey by remember { mutableIntStateOf(0) }
+    var unreadNotificationCount by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(reloadKey) {
         isLoading = true
@@ -109,6 +115,16 @@ fun DashboardScreen(
             .onFailure {
                 errorMessage = it.message ?: "Could not load dashboard."
                 isLoading = false
+            }
+    }
+
+    LaunchedEffect(reloadKey) {
+        announcementsRepository.getAnnouncements()
+            .onSuccess { announcements ->
+                unreadNotificationCount = announcements.count { !it.isRead }
+            }
+            .onFailure {
+                unreadNotificationCount = 0
             }
     }
 
@@ -127,7 +143,8 @@ fun DashboardScreen(
                 dashboard = dashboard!!,
                 innerPadding = innerPadding,
                 onNavigate = onNavigate,
-                onOpenNotifications = onOpenNotifications
+                onOpenNotifications = onOpenNotifications,
+                unreadNotificationCount = unreadNotificationCount
             )
             else -> ErrorState(
                 innerPadding = innerPadding,
@@ -184,7 +201,8 @@ private fun DashboardContent(
     dashboard: PlayerDashboardResponse,
     innerPadding: PaddingValues,
     onNavigate: (String) -> Unit,
-    onOpenNotifications: (Int?) -> Unit
+    onOpenNotifications: (Int?) -> Unit,
+    unreadNotificationCount: Int
 ) {
     var selectedEvent by remember { mutableStateOf<DashboardEvent?>(null) }
 
@@ -201,6 +219,7 @@ private fun DashboardContent(
             item {
                 DashboardHeader(
                     playerName = dashboard.player.name,
+                    unreadCount = unreadNotificationCount,
                     onOpenNotifications = { onOpenNotifications(null) }
                 )
             }
@@ -311,6 +330,7 @@ private fun DashboardContent(
 @Composable
 private fun DashboardHeader(
     playerName: String,
+    unreadCount: Int,
     onOpenNotifications: () -> Unit
 ) {
     val firstName = playerName.trim().substringBefore(" ").ifBlank { playerName }
@@ -356,20 +376,52 @@ private fun DashboardHeader(
 
         Spacer(Modifier.width(12.dp))
 
-        Surface(
-            color = Color.White.copy(alpha = 0.18f),
-            shape = CircleShape
+        Box(
+            modifier = Modifier.size(46.dp),
+            contentAlignment = Alignment.Center
         ) {
-            IconButton(
+            Surface(
                 modifier = Modifier.size(40.dp),
-                onClick = onOpenNotifications
+                color = Color.White.copy(alpha = 0.18f),
+                shape = CircleShape
             ) {
-                Icon(
-                    imageVector = Icons.Filled.Notifications,
-                    contentDescription = "Notifications",
-                    tint = Color.White,
-                    modifier = Modifier.size(21.dp)
-                )
+                IconButton(
+                    modifier = Modifier.fillMaxSize(),
+                    onClick = onOpenNotifications
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Notifications,
+                        contentDescription = if (unreadCount > 0) {
+                            "Notifications, $unreadCount unread"
+                        } else {
+                            "Notifications"
+                        },
+                        tint = Color.White,
+                        modifier = Modifier.size(21.dp)
+                    )
+                }
+            }
+
+            if (unreadCount > 0) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .height(18.dp)
+                        .background(
+                            color = DashboardBadgeRed,
+                            shape = CircleShape
+                        )
+                        .padding(horizontal = 5.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (unreadCount > 99) "99+" else unreadCount.toString(),
+                        color = Color.White,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1
+                    )
+                }
             }
         }
     }
