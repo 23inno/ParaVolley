@@ -16,7 +16,7 @@ val debugApiBaseUrl = providers
     ?.let { value ->
         if (value.endsWith("/")) value else "$value/"
     }
-    ?: "http://10.0.2.2:5080/"
+    ?: "https://paravolley-production.up.railway.app/"
 
 val releaseApiBaseUrl = providers
     .gradleProperty("PARAVOLLEY_RELEASE_API_BASE_URL")

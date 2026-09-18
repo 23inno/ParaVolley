@@ -148,12 +148,6 @@ else
                     </button>
                 </div>
 
-                <div class="form-check mt-3">
-                    <input class="form-check-input" type="checkbox" id="markRemainingAbsent" disabled />
-                    <label class="form-check-label small" for="markRemainingAbsent">
-                        When ending, mark remaining registered players as absent
-                    </label>
-                </div>
             </div>
         </div>
 
@@ -194,6 +188,81 @@ else
             <i class="bi bi-info-circle text-muted fs-5"></i>
         </div>
         <div id="scanErrorsList" class="text-muted small">No recent scan errors.</div>
+    </div>
+
+    <div id="endAttendanceModal"
+         class="end-attendance-modal d-none"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="endAttendanceModalLabel">
+        <div class="end-attendance-modal-backdrop" data-close-end-modal></div>
+
+        <div class="end-attendance-dialog shadow-lg">
+            <div class="end-attendance-modal-header">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="end-attendance-icon">
+                        <i class="bi bi-stop-circle-fill"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-1" id="endAttendanceModalLabel">
+                            End attendance session?
+                        </h5>
+                        <div class="small opacity-75">
+                            This action stops all further check-ins.
+                        </div>
+                    </div>
+                </div>
+
+                <button type="button"
+                        class="btn-close btn-close-white"
+                        data-close-end-modal
+                        aria-label="Close"></button>
+            </div>
+
+            <div class="p-4">
+                <p class="mb-3">
+                    You are about to end attendance for
+                    <strong>@Model.SelectedEvent.Title</strong>.
+                </p>
+
+                <div class="end-attendance-warning mb-3">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <div>
+                        The QR code and the 6-character manual code will stop working immediately.
+                        <div class="small mt-1">
+                            <span id="endAttendanceRemainingCount">0</span>
+                            registered player(s) have not checked in yet.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-check end-attendance-option">
+                    <input class="form-check-input"
+                           type="checkbox"
+                           id="markRemainingAbsent" />
+                    <label class="form-check-label" for="markRemainingAbsent">
+                        <strong>Mark remaining registered players as absent</strong>
+                        <span class="d-block small text-muted mt-1">
+                            Leave this unchecked if you only want to close the attendance session.
+                        </span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="d-flex flex-wrap justify-content-end gap-2 px-4 pb-4">
+                <button type="button"
+                        class="btn btn-light border px-4"
+                        data-close-end-modal>
+                    Keep Session Open
+                </button>
+                <button type="button"
+                        id="confirmEndSessionBtn"
+                        class="btn btn-danger px-4">
+                    <i class="bi bi-stop-circle me-1"></i>
+                    <span id="confirmEndSessionText">End Session</span>
+                </button>
+            </div>
+        </div>
     </div>
 }
 
@@ -242,6 +311,43 @@ else
     .live-empty { display:flex;align-items:center;justify-content:center;min-height:260px;color:#8a949e;text-align:center; }
     .scan-error-item { display:flex;gap:.65rem;align-items:flex-start;padding:.55rem 0;border-bottom:1px solid #f0f1f2; }
     .scan-error-item:last-child { border-bottom:0; }
+    .end-attendance-modal {
+        position:fixed;inset:0;z-index:1080;
+        display:flex;align-items:center;justify-content:center;
+        padding:1rem;
+    }
+    .end-attendance-modal-backdrop {
+        position:absolute;inset:0;background:rgba(17,24,39,.58);
+        backdrop-filter:blur(2px);
+    }
+    .end-attendance-dialog {
+        position:relative;z-index:1;width:min(100%,520px);
+        max-height:calc(100vh - 2rem);overflow:auto;
+        background:#fff;border-radius:1rem;
+    }
+    .end-attendance-modal-header {
+        background:linear-gradient(135deg,#b42318,#d92d20);
+        color:#fff;
+        padding:1.15rem 1.25rem;
+        display:flex;align-items:center;justify-content:space-between;gap:1rem;
+    }
+    .end-attendance-icon {
+        width:46px;height:46px;border-radius:14px;
+        display:flex;align-items:center;justify-content:center;
+        background:rgba(255,255,255,.16);
+        font-size:1.35rem;flex:0 0 auto;
+    }
+    .end-attendance-warning {
+        display:flex;align-items:flex-start;gap:.75rem;
+        padding:.9rem 1rem;border-radius:.8rem;
+        background:#fff4ed;border:1px solid #ffd6ae;color:#7a2e0e;
+    }
+    .end-attendance-warning > i { margin-top:.15rem; }
+    .end-attendance-option {
+        padding:1rem 1rem 1rem 2.6rem;
+        border:1px solid #e5e7eb;border-radius:.8rem;background:#f8faf9;
+    }
+    .end-attendance-option .form-check-input { margin-left:-1.65rem; }
     @@media (max-width: 767.98px) {
         .live-countdown-panel { align-items:flex-start;flex-direction:column; }
         .live-countdown-panel .small:last-child { margin-left:0;text-align:left;max-width:none; }
@@ -261,6 +367,10 @@ else
             const generateBtn = document.getElementById('generateQrBtn');
             const generateText = document.getElementById('generateQrText');
             const endBtn = document.getElementById('endSessionBtn');
+            const endModalElement = document.getElementById('endAttendanceModal');
+            const confirmEndBtn = document.getElementById('confirmEndSessionBtn');
+            const confirmEndText = document.getElementById('confirmEndSessionText');
+            const endRemainingCount = document.getElementById('endAttendanceRemainingCount');
             const markAbsent = document.getElementById('markRemainingAbsent');
             const sessionBadge = document.getElementById('sessionBadge');
             const countdownEl = document.getElementById('sessionCountdown');
@@ -365,7 +475,6 @@ else
                     sessionBadge.innerHTML = '<span class="live-dot"></span> EXPIRED';
                     sessionHint.textContent = 'Attendance access has expired. Generate a new code to continue check-ins.';
                     endBtn.disabled = true;
-                    markAbsent.disabled = true;
                     generateText.textContent = 'Generate New QR';
                     renderQr(null);
                     return;
@@ -398,7 +507,6 @@ else
                     sessionHint.textContent = 'Generate attendance access that stays valid until the end of today.';
                     generateText.textContent = 'Generate QR';
                     endBtn.disabled = true;
-                    markAbsent.disabled = true;
                     renderQr(null);
                     return;
                 }
@@ -406,7 +514,6 @@ else
                 if (session.isLive) {
                     generateText.textContent = 'Generate New QR';
                     endBtn.disabled = false;
-                    markAbsent.disabled = false;
 
                     const storedToken = sessionStorage.getItem(tokenKey(session.id));
                     renderQr(storedToken);
@@ -422,7 +529,6 @@ else
                         : 'Attendance access expired. Generate a new code to continue check-ins.';
                     generateText.textContent = 'Generate New QR';
                     endBtn.disabled = true;
-                    markAbsent.disabled = true;
                     renderQr(null);
                 }
             }
@@ -575,26 +681,81 @@ else
                 }
             });
 
-            endBtn.addEventListener('click', async function () {
+            endBtn.addEventListener('click', function () {
                 if (!currentStatus || !currentStatus.session) return;
+
+                const remaining =
+                    currentStatus.summary && Number.isFinite(currentStatus.summary.remaining)
+                        ? currentStatus.summary.remaining
+                        : 0;
+
+                endRemainingCount.textContent = remaining;
+                markAbsent.checked = false;
+                openEndAttendanceModal();
+            });
+
+            confirmEndBtn.addEventListener('click', async function () {
+                if (!currentStatus || !currentStatus.session) {
+                    closeEndAttendanceModal();
+                    return;
+                }
+
+                const sessionId = currentStatus.session.id;
                 const shouldMarkAbsent = markAbsent.checked;
-                const confirmText = shouldMarkAbsent
-                    ? 'End this attendance session and mark every remaining registered player as absent?'
-                    : 'End this attendance session?';
 
-                if (!window.confirm(confirmText)) return;
+                confirmEndBtn.disabled = true;
+                confirmEndText.textContent = 'Ending...';
 
-                endBtn.disabled = true;
                 try {
                     const result = await post(
-                        '/Attendance/Live/Session/' + currentStatus.session.id + '/End',
-                        { markRemainingAbsent: shouldMarkAbsent ? 'true' : 'false' });
-                    sessionStorage.removeItem(tokenKey(currentStatus.session.id));
+                        '/Attendance/Live/Session/' + sessionId + '/End',
+                        {
+                            markRemainingAbsent:
+                                shouldMarkAbsent ? 'true' : 'false'
+                        });
+
+                    sessionStorage.removeItem(tokenKey(sessionId));
+                    closeEndAttendanceModal();
                     showFeedback(result.message, 'success');
                     markAbsent.checked = false;
                     await loadStatus();
                 } catch (error) {
                     showFeedback(error.message, 'danger');
+                } finally {
+                    confirmEndBtn.disabled = false;
+                    confirmEndText.textContent = 'End Session';
+                }
+            });
+
+            function openEndAttendanceModal() {
+                endModalElement.classList.remove('d-none');
+                document.body.classList.add('overflow-hidden');
+                window.setTimeout(function () {
+                    confirmEndBtn.focus();
+                }, 0);
+            }
+
+            function closeEndAttendanceModal() {
+                endModalElement.classList.add('d-none');
+                document.body.classList.remove('overflow-hidden');
+                markAbsent.checked = false;
+                confirmEndBtn.disabled = false;
+                confirmEndText.textContent = 'End Session';
+            }
+
+            endModalElement
+                .querySelectorAll('[data-close-end-modal]')
+                .forEach(function (element) {
+                    element.addEventListener('click', closeEndAttendanceModal);
+                });
+
+            document.addEventListener('keydown', function (event) {
+                if (
+                    event.key === 'Escape' &&
+                    !endModalElement.classList.contains('d-none') &&
+                    !confirmEndBtn.disabled
+                ) {
+                    closeEndAttendanceModal();
                 }
             });
 

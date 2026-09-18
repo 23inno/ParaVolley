@@ -14,6 +14,8 @@ object RetrofitClient {
 
     private const val NETWORK_LOG_TAG = "PVNetwork"
     private const val MAX_GET_ATTEMPTS = 3
+    private const val PRODUCTION_HOST =
+        "paravolley-production.up.railway.app"
 
     private lateinit var sessionManager: SessionManager
 
@@ -39,6 +41,40 @@ object RetrofitClient {
 
         val httpClient = OkHttpClient.Builder()
             .retryOnConnectionFailure(true)
+            .addInterceptor { chain ->
+                val request = chain.request()
+
+                try {
+                    chain.proceed(request)
+                } catch (exception: IOException) {
+                    if (
+                        BuildConfig.DEBUG &&
+                        isLocalDevelopmentHost(
+                            request.url.host
+                        )
+                    ) {
+                        val fallbackUrl =
+                            request.url.newBuilder()
+                                .scheme("https")
+                                .host(PRODUCTION_HOST)
+                                .port(443)
+                                .build()
+
+                        Log.w(
+                            NETWORK_LOG_TAG,
+                            "Local ParaVolley API is unavailable; retrying against production."
+                        )
+
+                        chain.proceed(
+                            request.newBuilder()
+                                .url(fallbackUrl)
+                                .build()
+                        )
+                    } else {
+                        throw exception
+                    }
+                }
+            }
             .connectTimeout(20, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
@@ -140,6 +176,12 @@ object RetrofitClient {
                 GsonConverterFactory.create()
             )
             .build()
+    }
+
+    private fun isLocalDevelopmentHost(host: String): Boolean {
+        return host.equals("127.0.0.1", ignoreCase = true) ||
+            host.equals("10.0.2.2", ignoreCase = true) ||
+            host.equals("localhost", ignoreCase = true)
     }
 
     private fun shouldRetryResponse(response: Response): Boolean {
