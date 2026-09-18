@@ -56,6 +56,46 @@ namespace SportsManagementMVC.Controllers.Api
             return Ok(matches);
         }
 
+
+        [HttpGet("upcoming")]
+        public async Task<IActionResult> GetUpcomingMatches(
+            int page = 1,
+            int pageSize = Paging.DefaultApiPageSize,
+            CancellationToken cancellationToken = default)
+        {
+            page = Paging.Page(page);
+            pageSize = Paging.PageSize(pageSize, Paging.MaximumApiPageSize);
+
+            var today = DateTime.Today;
+
+            var matches = await _db.Matches
+                .AsNoTracking()
+                .Where(match =>
+                    match.Status == MatchStatus.Scheduled &&
+                    match.Date >= today)
+                .OrderBy(match => match.Date)
+                .ThenBy(match => match.Time)
+                .ThenBy(match => match.Id)
+                .Select(match => new
+                {
+                    id = match.Id,
+                    teamA = match.TeamA,
+                    teamB = match.TeamB,
+                    date = match.Date,
+                    time = match.Time,
+                    venue = match.Venue,
+                    tournament = match.Tournament,
+                    status = match.Status.ToString(),
+                    scoreA = match.ScoreA,
+                    scoreB = match.ScoreB
+                })
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
+
+            return Ok(matches);
+        }
+
         [HttpGet("{id:int:min(1)}")]
         public async Task<IActionResult> GetMatch(int id)
         {
