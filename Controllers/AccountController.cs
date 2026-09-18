@@ -140,8 +140,8 @@ namespace SportsManagementMVC.Controllers
         [EnableRateLimiting("login")]
         public async Task<IActionResult> ForgotPassword(string email)
         {
-            ViewBag.Message =
-                "If that email is registered, a password reset link has been sent. The link expires in 30 minutes.";
+            TempData["ForgotPasswordMessage"] =
+                "If that email is registered, a password reset link has been sent. Check your inbox and spam folder. The link expires in 30 minutes.";
 
             var normalizedEmail = NormalizeEmail(email ?? string.Empty);
 
@@ -179,7 +179,19 @@ namespace SportsManagementMVC.Controllers
                 }
             }
 
-            return View("ForgotPasswordConfirmation");
+            return RedirectToAction(
+                nameof(ForgotPasswordConfirmation));
+        }
+
+        [AllowAnonymous]
+        [HttpGet]
+        public IActionResult ForgotPasswordConfirmation()
+        {
+            ViewBag.Message =
+                TempData["ForgotPasswordMessage"]
+                ?? "If that email is registered, a password reset link has been sent. Check your inbox and spam folder. The link expires in 30 minutes.";
+
+            return View();
         }
 
         [AllowAnonymous]
