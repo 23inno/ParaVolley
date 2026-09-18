@@ -35,6 +35,7 @@ fun AppBottomBar(
     onNavigate: (String) -> Unit
 ) {
     Surface(
+        modifier = Modifier.fillMaxWidth(),
         color = Color.White,
         shadowElevation = 12.dp
     ) {
