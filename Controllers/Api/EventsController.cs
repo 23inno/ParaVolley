@@ -237,15 +237,6 @@ namespace SportsManagementMVC.Controllers.Api
                 });
             }
 
-            if (request.Participants < 0)
-            {
-                return BadRequest(new
-                {
-                    message =
-                        "Participants cannot be less than zero."
-                });
-            }
-
             eventItem.Title = request.Title.Trim();
             eventItem.Date = request.Date;
             eventItem.Time = request.Time.Trim();
