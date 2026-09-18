@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -43,12 +44,14 @@ fun AppBottomBar(
         color = Color.White,
         shadowElevation = 12.dp
     ) {
-        Column {
+        Column(
+            modifier = Modifier.navigationBarsPadding()
+        ) {
             HorizontalDivider(color = AppColors.Border)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(76.dp)
+                    .height(80.dp)
                     .padding(horizontal = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -124,13 +127,13 @@ private fun ScanNavItem(
     Column(
         modifier = modifier
             .clickable(onClick = onClick)
-            .padding(bottom = 4.dp),
+            .padding(top = 6.dp, bottom = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
             modifier = Modifier
-                .offset(y = (-13).dp)
-                .size(54.dp)
+                .offset(y = (-9).dp)
+                .size(52.dp)
                 .shadow(7.dp, CircleShape)
                 .background(AppColors.Yellow, CircleShape),
             contentAlignment = Alignment.Center
@@ -139,11 +142,11 @@ private fun ScanNavItem(
                 imageVector = Icons.Filled.QrCodeScanner,
                 contentDescription = "Scan QR",
                 tint = AppColors.DarkText,
-                modifier = Modifier.size(27.dp)
+                modifier = Modifier.size(26.dp)
             )
         }
         Text(
-            modifier = Modifier.offset(y = (-9).dp),
+            modifier = Modifier.offset(y = (-5).dp),
             text = "Scan",
             color = if (selected) AppColors.Green else Color(0xFF9CA3AF),
             fontSize = 11.sp,
