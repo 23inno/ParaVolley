@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -109,6 +110,14 @@ fun EventCard(
             EventInfoRow(
                 icon = Icons.Filled.LocationOn,
                 text = event.location
+            )
+            EventInfoRow(
+                icon = Icons.Filled.Groups,
+                text = if (event.participants == 1) {
+                    "1 participant"
+                } else {
+                    "${event.participants} participants"
+                }
             )
 
             Button(
