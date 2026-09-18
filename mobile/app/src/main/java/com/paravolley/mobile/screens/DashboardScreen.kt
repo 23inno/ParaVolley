@@ -678,9 +678,9 @@ private fun QuickActionsSection(
                 modifier = Modifier.weight(1f),
                 title = "View Results",
                 icon = Icons.Filled.EmojiEvents,
-                iconBackground = DashboardGreen.copy(alpha = 0.12f),
-                iconTint = DashboardGreen,
-                borderColor = Color(0xFFE5E7EB),
+                iconBackground = DashboardGreen,
+                iconTint = Color.White,
+                borderColor = DashboardGreen,
                 onClick = onResults
             )
         }
@@ -691,9 +691,9 @@ private fun QuickActionsSection(
             modifier = Modifier.fillMaxWidth(),
             title = "Upcoming Matches",
             icon = Icons.Filled.Event,
-            iconBackground = DashboardGreen,
-            iconTint = Color.White,
-            borderColor = DashboardGreen,
+            iconBackground = DashboardGreen.copy(alpha = 0.12f),
+            iconTint = DashboardGreen,
+            borderColor = Color(0xFFE5E7EB),
             onClick = onUpcomingMatches
         )
     }
