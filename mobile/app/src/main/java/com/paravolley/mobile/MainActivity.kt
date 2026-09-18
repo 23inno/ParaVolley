@@ -2,8 +2,8 @@ package com.paravolley.mobile
 
 import android.Manifest
 import android.content.Intent
-import android.graphics.Color as AndroidColor
 import android.content.pm.PackageManager
+import android.graphics.Color as AndroidColor
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
