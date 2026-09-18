@@ -18,6 +18,16 @@ interface MatchesApi {
         pageSize: Int
     ): Response<List<MatchResponse>>
 
+    @GET("api/matches/upcoming")
+    suspend fun getUpcomingMatches(
+        @Header("Authorization")
+        authorization: String,
+        @Query("page")
+        page: Int,
+        @Query("pageSize")
+        pageSize: Int
+    ): Response<List<MatchResponse>>
+
     @GET("api/matches/{id}")
     suspend fun getMatch(
         @Header("Authorization")
