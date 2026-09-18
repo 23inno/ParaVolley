@@ -190,76 +190,77 @@ else
         <div id="scanErrorsList" class="text-muted small">No recent scan errors.</div>
     </div>
 
-    <div class="modal fade"
-         id="endAttendanceModal"
-         tabindex="-1"
-         aria-labelledby="endAttendanceModalLabel"
-         aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-                <div class="modal-header border-0 end-attendance-modal-header">
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="end-attendance-icon">
-                            <i class="bi bi-stop-circle-fill"></i>
-                        </div>
-                        <div>
-                            <h5 class="modal-title mb-1" id="endAttendanceModalLabel">
-                                End attendance session?
-                            </h5>
-                            <div class="small opacity-75">
-                                This action stops all further check-ins.
-                            </div>
-                        </div>
+    <div id="endAttendanceModal"
+         class="end-attendance-modal d-none"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="endAttendanceModalLabel">
+        <div class="end-attendance-modal-backdrop" data-close-end-modal></div>
+
+        <div class="end-attendance-dialog shadow-lg">
+            <div class="end-attendance-modal-header">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="end-attendance-icon">
+                        <i class="bi bi-stop-circle-fill"></i>
                     </div>
-                    <button type="button"
-                            class="btn-close btn-close-white"
-                            data-bs-dismiss="modal"
-                            aria-label="Close"></button>
-                </div>
-
-                <div class="modal-body p-4">
-                    <p class="mb-3">
-                        You are about to end attendance for
-                        <strong id="endAttendanceEventName">@Model.SelectedEvent.Title</strong>.
-                    </p>
-
-                    <div class="end-attendance-warning mb-3">
-                        <i class="bi bi-exclamation-triangle-fill"></i>
-                        <div>
-                            The QR code and the 6-character manual code will stop working immediately.
-                            <div class="small mt-1">
-                                <span id="endAttendanceRemainingCount">0</span>
-                                registered player(s) have not checked in yet.
-                            </div>
+                    <div>
+                        <h5 class="mb-1" id="endAttendanceModalLabel">
+                            End attendance session?
+                        </h5>
+                        <div class="small opacity-75">
+                            This action stops all further check-ins.
                         </div>
-                    </div>
-
-                    <div class="form-check end-attendance-option">
-                        <input class="form-check-input"
-                               type="checkbox"
-                               id="markRemainingAbsent" />
-                        <label class="form-check-label" for="markRemainingAbsent">
-                            <strong>Mark remaining registered players as absent</strong>
-                            <span class="d-block small text-muted mt-1">
-                                Leave this unchecked if you only want to close the attendance session.
-                            </span>
-                        </label>
                     </div>
                 </div>
 
-                <div class="modal-footer border-0 px-4 pb-4 pt-0">
-                    <button type="button"
-                            class="btn btn-light border px-4"
-                            data-bs-dismiss="modal">
-                        Keep Session Open
-                    </button>
-                    <button type="button"
-                            id="confirmEndSessionBtn"
-                            class="btn btn-danger px-4">
-                        <i class="bi bi-stop-circle me-1"></i>
-                        <span id="confirmEndSessionText">End Session</span>
-                    </button>
+                <button type="button"
+                        class="btn-close btn-close-white"
+                        data-close-end-modal
+                        aria-label="Close"></button>
+            </div>
+
+            <div class="p-4">
+                <p class="mb-3">
+                    You are about to end attendance for
+                    <strong>@Model.SelectedEvent.Title</strong>.
+                </p>
+
+                <div class="end-attendance-warning mb-3">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <div>
+                        The QR code and the 6-character manual code will stop working immediately.
+                        <div class="small mt-1">
+                            <span id="endAttendanceRemainingCount">0</span>
+                            registered player(s) have not checked in yet.
+                        </div>
+                    </div>
                 </div>
+
+                <div class="form-check end-attendance-option">
+                    <input class="form-check-input"
+                           type="checkbox"
+                           id="markRemainingAbsent" />
+                    <label class="form-check-label" for="markRemainingAbsent">
+                        <strong>Mark remaining registered players as absent</strong>
+                        <span class="d-block small text-muted mt-1">
+                            Leave this unchecked if you only want to close the attendance session.
+                        </span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="d-flex flex-wrap justify-content-end gap-2 px-4 pb-4">
+                <button type="button"
+                        class="btn btn-light border px-4"
+                        data-close-end-modal>
+                    Keep Session Open
+                </button>
+                <button type="button"
+                        id="confirmEndSessionBtn"
+                        class="btn btn-danger px-4">
+                    <i class="bi bi-stop-circle me-1"></i>
+                    <span id="confirmEndSessionText">End Session</span>
+                </button>
             </div>
         </div>
     </div>
@@ -310,10 +311,25 @@ else
     .live-empty { display:flex;align-items:center;justify-content:center;min-height:260px;color:#8a949e;text-align:center; }
     .scan-error-item { display:flex;gap:.65rem;align-items:flex-start;padding:.55rem 0;border-bottom:1px solid #f0f1f2; }
     .scan-error-item:last-child { border-bottom:0; }
+    .end-attendance-modal {
+        position:fixed;inset:0;z-index:1080;
+        display:flex;align-items:center;justify-content:center;
+        padding:1rem;
+    }
+    .end-attendance-modal-backdrop {
+        position:absolute;inset:0;background:rgba(17,24,39,.58);
+        backdrop-filter:blur(2px);
+    }
+    .end-attendance-dialog {
+        position:relative;z-index:1;width:min(100%,520px);
+        max-height:calc(100vh - 2rem);overflow:auto;
+        background:#fff;border-radius:1rem;
+    }
     .end-attendance-modal-header {
         background:linear-gradient(135deg,#b42318,#d92d20);
         color:#fff;
         padding:1.15rem 1.25rem;
+        display:flex;align-items:center;justify-content:space-between;gap:1rem;
     }
     .end-attendance-icon {
         width:46px;height:46px;border-radius:14px;
@@ -352,7 +368,6 @@ else
             const generateText = document.getElementById('generateQrText');
             const endBtn = document.getElementById('endSessionBtn');
             const endModalElement = document.getElementById('endAttendanceModal');
-            const endModal = bootstrap.Modal.getOrCreateInstance(endModalElement);
             const confirmEndBtn = document.getElementById('confirmEndSessionBtn');
             const confirmEndText = document.getElementById('confirmEndSessionText');
             const endRemainingCount = document.getElementById('endAttendanceRemainingCount');
@@ -676,12 +691,12 @@ else
 
                 endRemainingCount.textContent = remaining;
                 markAbsent.checked = false;
-                endModal.show();
+                openEndAttendanceModal();
             });
 
             confirmEndBtn.addEventListener('click', async function () {
                 if (!currentStatus || !currentStatus.session) {
-                    endModal.hide();
+                    closeEndAttendanceModal();
                     return;
                 }
 
@@ -700,7 +715,7 @@ else
                         });
 
                     sessionStorage.removeItem(tokenKey(sessionId));
-                    endModal.hide();
+                    closeEndAttendanceModal();
                     showFeedback(result.message, 'success');
                     markAbsent.checked = false;
                     await loadStatus();
@@ -712,10 +727,36 @@ else
                 }
             });
 
-            endModalElement.addEventListener('hidden.bs.modal', function () {
+            function openEndAttendanceModal() {
+                endModalElement.classList.remove('d-none');
+                document.body.classList.add('overflow-hidden');
+                window.setTimeout(function () {
+                    confirmEndBtn.focus();
+                }, 0);
+            }
+
+            function closeEndAttendanceModal() {
+                endModalElement.classList.add('d-none');
+                document.body.classList.remove('overflow-hidden');
                 markAbsent.checked = false;
                 confirmEndBtn.disabled = false;
                 confirmEndText.textContent = 'End Session';
+            }
+
+            endModalElement
+                .querySelectorAll('[data-close-end-modal]')
+                .forEach(function (element) {
+                    element.addEventListener('click', closeEndAttendanceModal);
+                });
+
+            document.addEventListener('keydown', function (event) {
+                if (
+                    event.key === 'Escape' &&
+                    !endModalElement.classList.contains('d-none') &&
+                    !confirmEndBtn.disabled
+                ) {
+                    closeEndAttendanceModal();
+                }
             });
 
             document.querySelectorAll('.live-tab').forEach(function (tab) {
