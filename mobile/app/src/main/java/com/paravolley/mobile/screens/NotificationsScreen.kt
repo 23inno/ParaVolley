@@ -124,10 +124,16 @@ fun NotificationsScreen(
 
         repository.getAnnouncements()
             .onSuccess { loadedAnnouncements ->
-                announcements = loadedAnnouncements
+                val newestFirst = loadedAnnouncements.sortedWith(
+                    compareByDescending<AnnouncementResponse> {
+                        notificationSortDate(it.date)
+                    }.thenByDescending { it.id }
+                )
+
+                announcements = newestFirst
 
                 initialAnnouncementId?.let { targetId ->
-                    loadedAnnouncements
+                    newestFirst
                         .firstOrNull { it.id == targetId }
                         ?.let { targetAnnouncement ->
                             openAnnouncement(targetAnnouncement)
@@ -725,6 +731,17 @@ private fun NotificationDetailSheet(
             }
         }
     }
+}
+
+private fun notificationSortDate(raw: String): LocalDate {
+    val value = raw.trim()
+    if (value.isBlank()) return LocalDate.MIN
+
+    val isoDate = if (value.length >= 10) value.take(10) else value
+
+    return runCatching {
+        LocalDate.parse(isoDate)
+    }.getOrDefault(LocalDate.MIN)
 }
 
 private fun formatNotificationDate(raw: String): String {
