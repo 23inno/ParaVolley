@@ -264,6 +264,112 @@ namespace SportsManagementMVC.Controllers
 
         [AllowAnonymous]
         [HttpGet]
+        public async Task<IActionResult> CreatePlayerPassword(
+            string token)
+        {
+            if (!_passwordResetTokens.TryGetUserId(
+                    token,
+                    out var userId))
+            {
+                ViewBag.SetupError =
+                    "This Player App setup link is invalid or has expired.";
+
+                return View(
+                    new ResetPasswordViewModel
+                    {
+                        Token = token ?? string.Empty
+                    });
+            }
+
+            var user = await _context.AppUsers
+                .AsNoTracking()
+                .FirstOrDefaultAsync(
+                    appUser =>
+                        appUser.Id == userId &&
+                        appUser.Role == AppUserRole.Player &&
+                        appUser.IsActive);
+
+            if (user == null ||
+                !_passwordResetTokens.IsValid(
+                    token,
+                    user))
+            {
+                ViewBag.SetupError =
+                    "This Player App setup link is invalid or has expired.";
+
+                return View(
+                    new ResetPasswordViewModel
+                    {
+                        Token = token ?? string.Empty
+                    });
+            }
+
+            ViewBag.PlayerEmail = user.Email;
+
+            return View(
+                new ResetPasswordViewModel
+                {
+                    Token = token
+                });
+        }
+
+        [AllowAnonymous]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [EnableRateLimiting("login")]
+        public async Task<IActionResult> CreatePlayerPassword(
+            ResetPasswordViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            if (!_passwordResetTokens.TryGetUserId(
+                    model.Token,
+                    out var userId))
+            {
+                ModelState.AddModelError(
+                    string.Empty,
+                    "This Player App setup link is invalid or has expired.");
+
+                return View(model);
+            }
+
+            var user = await _context.AppUsers
+                .FirstOrDefaultAsync(
+                    appUser =>
+                        appUser.Id == userId &&
+                        appUser.Role == AppUserRole.Player &&
+                        appUser.IsActive);
+
+            if (user == null ||
+                !_passwordResetTokens.IsValid(
+                    model.Token,
+                    user))
+            {
+                ModelState.AddModelError(
+                    string.Empty,
+                    "This Player App setup link is invalid or has expired.");
+
+                return View(model);
+            }
+
+            user.PasswordHash =
+                _passwordHasher.HashPassword(
+                    user,
+                    model.NewPassword);
+
+            await _context.SaveChangesAsync();
+
+            ViewBag.PlayerEmail = user.Email;
+
+            return View(
+                "PlayerPasswordCreated");
+        }
+
+        [AllowAnonymous]
+        [HttpGet]
         public IActionResult Privacy() => View();
 
         [AllowAnonymous]
