@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.SportsVolleyball
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
@@ -63,6 +64,13 @@ fun AppBottomBar(
                     icon = Icons.Filled.CalendarMonth,
                     selected = selectedRoute == Routes.EVENTS,
                     onClick = { onNavigate(Routes.EVENTS) }
+                )
+                BottomNavItem(
+                    modifier = Modifier.weight(1f),
+                    label = "Matches",
+                    icon = Icons.Filled.SportsVolleyball,
+                    selected = selectedRoute == Routes.UPCOMING_MATCHES,
+                    onClick = { onNavigate(Routes.UPCOMING_MATCHES) }
                 )
                 BottomNavItem(
                     modifier = Modifier.weight(1f),
