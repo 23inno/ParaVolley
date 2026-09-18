@@ -31,6 +31,7 @@ import com.paravolley.mobile.screens.NotificationsScreen
 import com.paravolley.mobile.screens.ProfileScreen
 import com.paravolley.mobile.screens.RegisterPlayerScreen
 import com.paravolley.mobile.screens.ResultsScreen
+import com.paravolley.mobile.screens.UpcomingMatchesScreen
 import com.paravolley.mobile.screens.ScannerScreen
 import kotlinx.coroutines.delay
 
@@ -177,6 +178,16 @@ fun ParaVolleyApp(
                 lifecycle = backStackEntry.lifecycle
             ) {
                 ResultsScreen(
+                    onNavigate = navigateFromBottomBar
+                )
+            }
+        }
+
+        composable(Routes.UPCOMING_MATCHES) { backStackEntry ->
+            RefreshableDestination(
+                lifecycle = backStackEntry.lifecycle
+            ) {
+                UpcomingMatchesScreen(
                     onNavigate = navigateFromBottomBar
                 )
             }
