@@ -67,17 +67,17 @@ fun AppBottomBar(
                 )
                 BottomNavItem(
                     modifier = Modifier.weight(1f),
-                    label = "Matches",
-                    icon = Icons.Filled.SportsVolleyball,
-                    selected = selectedRoute == Routes.UPCOMING_MATCHES,
-                    onClick = { onNavigate(Routes.UPCOMING_MATCHES) }
-                )
-                BottomNavItem(
-                    modifier = Modifier.weight(1f),
                     label = "Scan",
                     icon = Icons.Filled.QrCodeScanner,
                     selected = selectedRoute == Routes.SCANNER,
                     onClick = { onNavigate(Routes.SCANNER) }
+                )
+                BottomNavItem(
+                    modifier = Modifier.weight(1f),
+                    label = "Matches",
+                    icon = Icons.Filled.SportsVolleyball,
+                    selected = selectedRoute == Routes.UPCOMING_MATCHES,
+                    onClick = { onNavigate(Routes.UPCOMING_MATCHES) }
                 )
                 BottomNavItem(
                     modifier = Modifier.weight(1f),
