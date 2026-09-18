@@ -5,23 +5,12 @@ namespace SportsManagementMVC.Dtos
     public class RegisterPlayerRequest
     {
         [Required]
-        [StringLength(100)]
-        public string Name { get; set; } = string.Empty;
-
-        [Required]
-        [StringLength(100)]
-        public string Position { get; set; } = string.Empty;
-
-        [Required]
-        [StringLength(100)]
-        public string Team { get; set; } = string.Empty;
-
-        [Range(5, 100)]
-        public int Age { get; set; }
+        [StringLength(120)]
+        public string FullName { get; set; } = string.Empty;
 
         [Required]
         [EmailAddress]
-        [StringLength(254)]
+        [StringLength(150)]
         public string Email { get; set; } = string.Empty;
 
         [Required]
@@ -29,11 +18,35 @@ namespace SportsManagementMVC.Dtos
         [StringLength(30)]
         public string Phone { get; set; } = string.Empty;
 
-        [StringLength(200)]
-        public string Disability { get; set; } = string.Empty;
+        [Required]
+        public DateOnly? DateOfBirth { get; set; }
+
+        [StringLength(100)]
+        public string? Province { get; set; }
+
+        [StringLength(100)]
+        public string? Town { get; set; }
+
+        [StringLength(50)]
+        public string? ExperienceLevel { get; set; }
+
+        [StringLength(50)]
+        public string? PreferredPosition { get; set; }
 
         [Required]
-        [StringLength(128, MinimumLength = 8)]
-        public string Password { get; set; } = string.Empty;
+        [StringLength(500)]
+        public string Classification { get; set; } = string.Empty;
+
+        [StringLength(120)]
+        public string? EmergencyContactName { get; set; }
+
+        [Phone]
+        [StringLength(30)]
+        public string? EmergencyContactPhone { get; set; }
+
+        [StringLength(1000)]
+        public string? MedicalNotes { get; set; }
+
+        public bool Consent { get; set; }
     }
 }
