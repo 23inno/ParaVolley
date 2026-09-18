@@ -77,6 +77,7 @@ builder.Services.AddHealthChecks()
     .AddCheck<DatabaseHealthCheck>("database", tags: ["ready"]);
 
 builder.Services.AddScoped<EmailService>();
+builder.Services.AddScoped<WhatsAppService>();
 builder.Services.AddScoped<NotificationDeliveryService>();
 builder.Services.AddScoped<StaffNotificationService>();
 builder.Services.AddScoped<AttendanceNotificationService>();
