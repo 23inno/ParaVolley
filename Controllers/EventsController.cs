@@ -119,6 +119,9 @@ namespace SportsManagementMVC.Controllers
             }
 
             var events = await query.OrderBy(e => e.Date).ToListAsync();
+            await PopulateParticipantCountsAsync(
+                events,
+                CancellationToken.None);
 
             var sb = new System.Text.StringBuilder();
             sb.AppendLine("Title,Date,Time,Location,Type,Participants,Status,Description");
@@ -234,6 +237,12 @@ namespace SportsManagementMVC.Controllers
             var ev = await _context.Events.FindAsync(id);
             if (ev == null) return NotFound();
             if (User.IsInRole(nameof(AppUserRole.Coach)) && ev.Type != EventType.Practice) return Forbid();
+
+            ev.Participants = await _context.EventRegistrations
+                .AsNoTracking()
+                .CountAsync(registration =>
+                    registration.EventId == ev.Id &&
+                    registration.Status == EventRegistrationStatus.Registered);
 
             if (IsAjaxRequest())
             {
