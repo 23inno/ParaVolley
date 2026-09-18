@@ -77,6 +77,70 @@ class MatchesRepository(
         }
     }
 
+    suspend fun getUpcomingMatches():
+            Result<List<MatchResponse>> {
+
+        val token = sessionManager.getToken()
+
+        if (token.isNullOrBlank()) {
+            return Result.failure(
+                Exception(
+                    "Your login session could not be found."
+                )
+            )
+        }
+
+        return try {
+            val matches = mutableListOf<MatchResponse>()
+            var page = 1
+
+            while (true) {
+                val response =
+                    RetrofitClient
+                        .matchesApi
+                        .getUpcomingMatches(
+                            authorization = "Bearer $token",
+                            page = page,
+                            pageSize = PAGE_SIZE
+                        )
+
+                if (!response.isSuccessful) {
+                    return Result.failure(
+                        Exception(
+                            getErrorMessage(
+                                response.code(),
+                                response
+                                    .errorBody()
+                                    ?.string()
+                            )
+                        )
+                    )
+                }
+
+                val pageItems =
+                    response.body()
+                        ?: emptyList()
+
+                matches.addAll(pageItems)
+
+                if (pageItems.size < PAGE_SIZE) {
+                    break
+                }
+
+                page++
+            }
+
+            Result.success(matches)
+        } catch (exception: Exception) {
+            Result.failure(
+                Exception(
+                    "Could not load upcoming matches.",
+                    exception
+                )
+            )
+        }
+    }
+
     suspend fun getMatch(
         matchId: Int
     ): Result<MatchResponse> {
