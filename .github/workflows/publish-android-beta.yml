@@ -1,0 +1,90 @@
+name: Publish Android Beta APK
+
+on:
+  push:
+    branches:
+      - thapelo-android-api-integration
+    paths:
+      - '.github/workflows/publish-android-beta.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - name: Checkout latest ParaVolley code
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+          cache-dependency-path: mobile/**/*.gradle*
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x gradlew
+
+      - name: Build production-connected beta APK
+        run: ./gradlew :app:assembleDebug --stacktrace
+
+      - name: Prepare downloadable APK
+        run: |
+          mkdir -p release
+          cp app/build/outputs/apk/debug/app-debug.apk release/ParaVolley-Player-v1.1.0-beta.apk
+          sha256sum release/ParaVolley-Player-v1.1.0-beta.apk > release/ParaVolley-Player-v1.1.0-beta.sha256
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.1.0-beta
+          name: ParaVolley Mpumalanga Player App v1.1.0 Beta
+          prerelease: true
+          target_commitish: thapelo-android-api-integration
+          body: |
+            ## ParaVolley Mpumalanga Player App v1.1.0 Beta
+
+            This is the latest Android player application for ParaVolley Mpumalanga.
+
+            ### Included
+            - Player login and secure session handling
+            - Player application and approval onboarding
+            - Dashboard and profile
+            - Profile photo upload/remove
+            - Events and event registration
+            - Live participant totals
+            - Upcoming matches and results
+            - Announcements and notifications
+            - QR attendance check-in
+            - 6-character manual attendance code
+            - Attendance history
+            - Production Railway backend integration
+            - Updated navigation, launch animation and ParaVolley branding
+
+            ### Install
+            1. Download **ParaVolley-Player-v1.1.0-beta.apk** below.
+            2. Open the APK on an Android phone.
+            3. Allow installation from this source if Android asks.
+            4. Install ParaVolley.
+            5. Sign in with an approved ParaVolley player account.
+
+            Requires Android 7.0 or newer.
+
+            **Beta notice:** This APK is intended for ParaVolley testing and direct distribution while the final store-signed release process is being prepared.
+          files: |
+            mobile/release/ParaVolley-Player-v1.1.0-beta.apk
+            mobile/release/ParaVolley-Player-v1.1.0-beta.sha256
+          fail_on_unmatched_files: true
