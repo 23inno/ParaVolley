@@ -56,6 +56,15 @@ public sealed class NotificationDeliveryService
         },
         new()
         {
+            EventKey = "upcoming_match",
+            EventLabel = "Upcoming Matches",
+            EventDescription = "When a new upcoming match is created",
+            EmailEnabled = false,
+            SmsEnabled = false,
+            PushEnabled = true
+        },
+        new()
+        {
             EventKey = "low_attendance",
             EventLabel = "Low Attendance Alert",
             EventDescription = "When attendance falls below the configured threshold",
