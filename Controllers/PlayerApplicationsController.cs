@@ -7,7 +7,7 @@ using SportsManagementMVC.Security;
 
 namespace SportsManagementMVC.Controllers
 {
-    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
+    [Authorize(Policy = AuthorizationPolicies.AdminOrCoach)]
     public class PlayerApplicationsController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -64,6 +64,7 @@ namespace SportsManagementMVC.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public async Task<IActionResult> Approve(
     int id,
 
@@ -215,6 +216,7 @@ namespace SportsManagementMVC.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public async Task<IActionResult> Decline(
     int id,
     CancellationToken cancellationToken)

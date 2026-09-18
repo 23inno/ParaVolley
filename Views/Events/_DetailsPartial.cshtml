@@ -44,7 +44,7 @@
                 <span class="badge bg-success">@activeRegistrations.Count registered</span>
             </div>
 
-            @if (!registrations.Any())
+            @if (!activeRegistrations.Any())
             {
                 <div class="alert alert-light border mb-0">
                     <i class="bi bi-people me-2"></i>No players have registered for this event yet.
@@ -63,21 +63,14 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var registration in registrations)
+                            @foreach (var registration in activeRegistrations)
                             {
                                 <tr>
                                     <td class="fw-semibold">@registration.Player.Name</td>
                                     <td>@registration.Player.Email</td>
                                     <td>@registration.Player.Team</td>
                                     <td>
-                                        @if (registration.Status == EventRegistrationStatus.Registered)
-                                        {
-                                            <span class="badge bg-success">Registered</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-secondary">Cancelled</span>
-                                        }
+                                        <span class="badge bg-success">Registered</span>
                                     </td>
                                 </tr>
                             }

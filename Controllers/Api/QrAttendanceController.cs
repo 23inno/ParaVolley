@@ -67,9 +67,18 @@ namespace SportsManagementMVC.Controllers.Api
                 });
             }
 
-            var rawTokenBytes = RandomNumberGenerator.GetBytes(32);
-            var rawToken = Convert.ToHexString(rawTokenBytes);
-            var tokenHash = HashToken(rawToken);
+            string rawToken;
+            string tokenHash;
+
+            do
+            {
+                rawToken = GenerateAttendanceCode();
+                tokenHash = HashToken(rawToken);
+            }
+            while (await _db.QrAttendanceSessions
+                .AsNoTracking()
+                .AnyAsync(item => item.TokenHash == tokenHash));
+
             var createdAtUtc = DateTime.UtcNow;
 
             // ParaVolley operates in South Africa (SAST, UTC+2).
@@ -192,7 +201,7 @@ namespace SportsManagementMVC.Controllers.Api
                 });
             }
 
-            var rawToken = request.Token.Trim();
+            var rawToken = request.Token.Trim().ToUpperInvariant();
             var tokenHash = HashToken(rawToken);
 
             var session = await _db.QrAttendanceSessions
@@ -357,6 +366,20 @@ namespace SportsManagementMVC.Controllers.Api
             });
 
             await _db.SaveChangesAsync();
+        }
+
+        private static string GenerateAttendanceCode()
+        {
+            const string alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+            Span<char> code = stackalloc char[6];
+
+            for (var index = 0; index < code.Length; index++)
+            {
+                code[index] = alphabet[
+                    RandomNumberGenerator.GetInt32(alphabet.Length)];
+            }
+
+            return new string(code);
         }
 
         private static string HashToken(string rawToken)

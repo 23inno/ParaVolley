@@ -80,6 +80,10 @@ import com.google.mlkit.vision.common.InputImage
 import com.paravolley.mobile.network.QrAttendanceRepository
 import com.paravolley.mobile.network.QrCheckInResponse
 import com.paravolley.mobile.ui.theme.AppColors
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import java.util.concurrent.Executors
 import kotlinx.coroutines.launch
 
@@ -109,7 +113,7 @@ fun ScannerScreen(onBack: () -> Unit) {
         cameraPermissionGranted = granted
         if (!granted) {
             errorMessage =
-                "Camera permission was denied. You can still enter the attendance token manually."
+                "Camera permission was denied. You can still enter the 6-character attendance code manually."
         }
     }
 
@@ -221,6 +225,9 @@ fun ScannerScreen(onBack: () -> Unit) {
             errorMessage = errorMessage,
             onTokenChange = {
                 qrToken = it
+                    .uppercase()
+                    .filter(Char::isLetterOrDigit)
+                    .take(6)
                 errorMessage = null
                 checkInResult = null
             },
@@ -398,7 +405,7 @@ private fun ManualCheckInPanel(
                     Text(result.playerName, color = AppColors.DarkText, fontWeight = FontWeight.SemiBold)
                     Text(result.eventTitle, color = AppColors.DarkText)
                     Text(
-                        "${result.eventDate} • ${result.eventTime}",
+                        "${formatCheckInDate(result.eventDate)} • ${formatCheckInTime(result.eventTime)}",
                         color = AppColors.GreyText,
                         fontSize = 12.sp
                     )
@@ -443,7 +450,7 @@ private fun ManualCheckInPanel(
                     fontSize = 14.sp
                 )
                 Text(
-                    text = "Enter the attendance token manually to check in.",
+                    text = "Enter the 6-character attendance code manually to check in.",
                     color = Color.White.copy(alpha = 0.70f),
                     fontSize = 12.sp
                 )
@@ -456,7 +463,7 @@ private fun ManualCheckInPanel(
                         modifier = Modifier.weight(1f),
                         value = qrToken,
                         onValueChange = onTokenChange,
-                        placeholder = { Text("Attendance token") },
+                        placeholder = { Text("6-character code") },
                         singleLine = true,
                         shape = RoundedCornerShape(10.dp),
                         colors = OutlinedTextFieldDefaults.colors(
@@ -475,7 +482,7 @@ private fun ManualCheckInPanel(
                     Spacer(Modifier.width(8.dp))
 
                     Button(
-                        enabled = !isCheckingIn && qrToken.isNotBlank(),
+                        enabled = !isCheckingIn && qrToken.length == 6,
                         onClick = onSubmit,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = ScannerYellow,
@@ -499,6 +506,42 @@ private fun ManualCheckInPanel(
             }
         }
     }
+}
+
+private fun formatCheckInDate(rawDate: String): String {
+    val dateOnly = rawDate
+        .trim()
+        .substringBefore("T")
+        .substringBefore(" ")
+
+    if (dateOnly.isBlank()) return "Date unavailable"
+
+    return runCatching {
+        LocalDate
+            .parse(dateOnly, DateTimeFormatter.ISO_LOCAL_DATE)
+            .format(
+                DateTimeFormatter.ofPattern(
+                    "dd MMM yyyy",
+                    Locale.getDefault()
+                )
+            )
+    }.getOrDefault(dateOnly)
+}
+
+private fun formatCheckInTime(rawTime: String): String {
+    val trimmed = rawTime.trim()
+    if (trimmed.isBlank()) return "Time unavailable"
+
+    return runCatching {
+        LocalTime
+            .parse(trimmed, DateTimeFormatter.ISO_LOCAL_TIME)
+            .format(
+                DateTimeFormatter.ofPattern(
+                    "HH:mm",
+                    Locale.getDefault()
+                )
+            )
+    }.getOrDefault(trimmed.take(5))
 }
 
 @Composable

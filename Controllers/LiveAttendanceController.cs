@@ -249,15 +249,36 @@ public sealed class LiveAttendanceController : Controller
             existingSession.IsRevoked = true;
         }
 
-        var rawToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+        string rawToken;
+        string tokenHash;
+
+        do
+        {
+            rawToken = GenerateAttendanceCode();
+            tokenHash = HashToken(rawToken);
+        }
+        while (await _context.QrAttendanceSessions
+            .AsNoTracking()
+            .AnyAsync(
+                item => item.TokenHash == tokenHash,
+                cancellationToken));
+
         var nowUtc = DateTime.UtcNow;
+
+        // ParaVolley operates in South Africa (SAST, UTC+2).
+        // Attendance remains open until midnight at the end of today.
+        var nowSast = nowUtc.AddHours(2);
+        var nextSastMidnight = nowSast.Date.AddDays(1);
+        var expiresAtUtc = DateTime.SpecifyKind(
+            nextSastMidnight.AddHours(-2),
+            DateTimeKind.Utc);
 
         var session = new QrAttendanceSession
         {
             EventId = eventId,
-            TokenHash = HashToken(rawToken),
+            TokenHash = tokenHash,
             CreatedAtUtc = nowUtc,
-            ExpiresAtUtc = nowUtc.AddMinutes(15),
+            ExpiresAtUtc = expiresAtUtc,
             IsRevoked = false,
             CreatedByAppUserId = appUserId
         };
@@ -270,7 +291,7 @@ public sealed class LiveAttendanceController : Controller
             sessionId = session.Id,
             token = rawToken,
             expiresAtUtc = session.ExpiresAtUtc,
-            message = "A new 15-minute QR attendance session is live."
+            message = "Attendance is open until the end of today. Players can scan the QR code or enter the 6-character code."
         });
     }
 
@@ -444,6 +465,20 @@ public sealed class LiveAttendanceController : Controller
                 ? $"Attendance session ended. {markedAbsent} remaining registered player(s) were marked absent."
                 : "Attendance session ended."
         });
+    }
+
+    private static string GenerateAttendanceCode()
+    {
+        const string alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        Span<char> code = stackalloc char[6];
+
+        for (var index = 0; index < code.Length; index++)
+        {
+            code[index] = alphabet[
+                RandomNumberGenerator.GetInt32(alphabet.Length)];
+        }
+
+        return new string(code);
     }
 
     private static string HashToken(string rawToken)

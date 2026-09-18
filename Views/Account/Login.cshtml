@@ -147,6 +147,13 @@
 
 
 
+                    @if (TempData["LoginSuccess"] != null)
+                    {
+                        <div class="alert alert-success" role="alert">
+                            @TempData["LoginSuccess"]
+                        </div>
+                    }
+
                     <!-- =================================
                          REAL VALIDATION SUMMARY
                     ================================== -->

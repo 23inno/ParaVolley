@@ -16,13 +16,19 @@ namespace SportsManagementMVC.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly IPasswordHasher<AppUser> _passwordHasher;
+        private readonly EmailService _emailService;
+        private readonly PasswordResetTokenService _passwordResetTokens;
 
         public AccountController(
             ApplicationDbContext context,
-            IPasswordHasher<AppUser> passwordHasher)
+            IPasswordHasher<AppUser> passwordHasher,
+            EmailService emailService,
+            PasswordResetTokenService passwordResetTokens)
         {
             _context = context;
             _passwordHasher = passwordHasher;
+            _emailService = emailService;
+            _passwordResetTokens = passwordResetTokens;
         }
 
         [AllowAnonymous]
@@ -131,30 +137,129 @@ namespace SportsManagementMVC.Controllers
         [AllowAnonymous]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult ForgotPassword(string email)
+        [EnableRateLimiting("login")]
+        public async Task<IActionResult> ForgotPassword(string email)
         {
             ViewBag.Message =
-                "If that email is on file, contact your administrator for secure account recovery.";
+                "If that email is registered, a password reset link has been sent. The link expires in 30 minutes.";
+
+            var normalizedEmail = NormalizeEmail(email ?? string.Empty);
+
+            var user = await _context.AppUsers
+                .AsNoTracking()
+                .FirstOrDefaultAsync(appUser =>
+                    appUser.NormalizedEmail == normalizedEmail &&
+                    appUser.IsActive);
+
+            if (user != null)
+            {
+                var token = _passwordResetTokens.CreateToken(
+                    user,
+                    TimeSpan.FromMinutes(30));
+
+                var resetUrl = Url.Action(
+                    nameof(ResetPassword),
+                    "Account",
+                    new { token },
+                    Request.Scheme);
+
+                if (!string.IsNullOrWhiteSpace(resetUrl))
+                {
+                    var safeUrl =
+                        System.Net.WebUtility.HtmlEncode(resetUrl);
+
+                    await _emailService.SendAsync(
+                        user.Email,
+                        "Reset your ParaVolley password",
+                        $"""
+                        <p>We received a request to reset your ParaVolley Mpumalanga password.</p>
+                        <p><a href="{safeUrl}">Reset your password</a></p>
+                        <p>This link expires in 30 minutes. If you did not request a reset, you can ignore this email.</p>
+                        """);
+                }
+            }
+
             return View("ForgotPasswordConfirmation");
         }
 
         [AllowAnonymous]
         [HttpGet]
-        public IActionResult ResetPassword(string token)
+        public async Task<IActionResult> ResetPassword(string token)
         {
-            TempData["Error"] =
-                "Password reset links are not available. Contact your administrator.";
-            return RedirectToAction(nameof(ForgotPassword));
+            if (!_passwordResetTokens.TryGetUserId(token, out var userId))
+            {
+                TempData["Error"] =
+                    "That password reset link is invalid or has expired.";
+                return RedirectToAction(nameof(ForgotPassword));
+            }
+
+            var user = await _context.AppUsers
+                .AsNoTracking()
+                .FirstOrDefaultAsync(appUser =>
+                    appUser.Id == userId &&
+                    appUser.IsActive);
+
+            if (user == null ||
+                !_passwordResetTokens.IsValid(token, user))
+            {
+                TempData["Error"] =
+                    "That password reset link is invalid or has expired.";
+                return RedirectToAction(nameof(ForgotPassword));
+            }
+
+            return View(
+                new ResetPasswordViewModel
+                {
+                    Token = token
+                });
         }
 
         [AllowAnonymous]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult ResetPassword(ResetPasswordViewModel model)
+        [EnableRateLimiting("login")]
+        public async Task<IActionResult> ResetPassword(
+            ResetPasswordViewModel model)
         {
-            TempData["Error"] =
-                "Password reset links are not available. Contact your administrator.";
-            return RedirectToAction(nameof(ForgotPassword));
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            if (!_passwordResetTokens.TryGetUserId(
+                    model.Token,
+                    out var userId))
+            {
+                ModelState.AddModelError(
+                    string.Empty,
+                    "That password reset link is invalid or has expired.");
+                return View(model);
+            }
+
+            var user = await _context.AppUsers
+                .FirstOrDefaultAsync(appUser =>
+                    appUser.Id == userId &&
+                    appUser.IsActive);
+
+            if (user == null ||
+                !_passwordResetTokens.IsValid(model.Token, user))
+            {
+                ModelState.AddModelError(
+                    string.Empty,
+                    "That password reset link is invalid or has expired.");
+                return View(model);
+            }
+
+            user.PasswordHash = _passwordHasher.HashPassword(
+                user,
+                model.NewPassword);
+
+            await _context.SaveChangesAsync();
+
+            TempData["LoginSuccess"] =
+                "Your password has been reset. You can sign in with your new password.";
+
+            return RedirectToAction(nameof(Login));
         }
 
         [AllowAnonymous]

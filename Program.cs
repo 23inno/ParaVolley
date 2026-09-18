@@ -91,6 +91,7 @@ builder.Services.AddScoped<
     Microsoft.AspNetCore.Identity.PasswordHasher<AppUser>>();
 
 builder.Services.AddScoped<AppUserPrincipalValidator>();
+builder.Services.AddSingleton<PasswordResetTokenService>();
 
 builder.Services
     .AddAuthentication(options =>

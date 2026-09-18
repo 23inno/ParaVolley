@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Npgsql;
 using SportsManagementMVC.Data;
 using SportsManagementMVC.Dtos;
 using SportsManagementMVC.Models;
@@ -115,145 +114,173 @@ namespace SportsManagementMVC.Controllers.Api
             RegisterPlayerRequest request,
             CancellationToken cancellationToken = default)
         {
+            var settings = await _context.OrganisationSettings
+                .AsNoTracking()
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (settings?.AcceptPlayerApplications == false)
+            {
+                return Conflict(new
+                {
+                    message = "Player applications are currently closed."
+                });
+            }
+
+            if (!request.Consent)
+            {
+                return BadRequest(new
+                {
+                    message =
+                        "You must confirm that the information is correct and agree to be contacted."
+                });
+            }
+
+            if (!request.DateOfBirth.HasValue)
+            {
+                return BadRequest(new
+                {
+                    message = "Date of birth is required."
+                });
+            }
+
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var dateOfBirth = request.DateOfBirth.Value;
+
+            if (dateOfBirth > today)
+            {
+                return BadRequest(new
+                {
+                    message = "Date of birth cannot be in the future."
+                });
+            }
+
+            var age = today.Year - dateOfBirth.Year;
+            if (dateOfBirth > today.AddYears(-age))
+            {
+                age--;
+            }
+
+            if (age < 5 || age > 100)
+            {
+                return BadRequest(new
+                {
+                    message = "Player age must be between 5 and 100 years."
+                });
+            }
+
             var normalizedEmail = request.Email
                 .Trim()
                 .ToLowerInvariant();
 
             var accountExists = await _context.AppUsers
+                .AsNoTracking()
                 .AnyAsync(
                     user => user.NormalizedEmail == normalizedEmail,
                     cancellationToken);
 
-            if (accountExists)
-            {
-                return Conflict(new
-                {
-                    message =
-                        "An account already exists with this email address."
-                });
-            }
-
             var playerExists = await _context.Players
+                .AsNoTracking()
                 .AnyAsync(
                     player => player.Email.ToLower() == normalizedEmail,
                     cancellationToken);
 
-            if (playerExists)
+            if (accountExists || playerExists)
             {
                 return Conflict(new
                 {
                     message =
-                        "A player already exists with this email address."
+                        "A registered ParaVolley account already exists with this email address."
                 });
             }
 
-            await using var transaction =
-                await _context.Database.BeginTransactionAsync(cancellationToken);
-
-            try
-            {
-                var player = new Player
-                {
-                    Name = request.Name.Trim(),
-                    Position = request.Position.Trim(),
-                    Team = request.Team.Trim(),
-                    Status = PlayerStatus.Inactive,
-                    Age = request.Age,
-                    Matches = 0,
-                    Email = normalizedEmail,
-                    Phone = request.Phone.Trim(),
-                    Disability = request.Disability.Trim()
-                };
-
-                _context.Players.Add(player);
-
-                await _context.SaveChangesAsync(cancellationToken);
-
-                _context.PlayerProfileDetails.Add(
-                    new PlayerProfileDetails
-                    {
-                        PlayerId = player.Id,
-                        JoinedDate = DateTime.UtcNow.Date
-                    });
-
-                var appUser = new AppUser
-                {
-                    Email = normalizedEmail,
-                    NormalizedEmail = normalizedEmail,
-                    Role = AppUserRole.Player,
-                    IsActive = false,
-                    PlayerId = player.Id
-                };
-
-                appUser.PasswordHash =
-                    _passwordHasher.HashPassword(
-                        appUser,
-                        request.Password);
-
-                _context.AppUsers.Add(appUser);
-
-                await _context.SaveChangesAsync(cancellationToken);
-
-                await transaction.CommitAsync(cancellationToken);
-
-                await NotifyNewPlayerRegistrationAsync(
-                    player,
+            var alreadyPending = await _context.PlayerRegistrationApplications
+                .AsNoTracking()
+                .AnyAsync(
+                    application =>
+                        application.Email.ToLower() == normalizedEmail &&
+                        application.Status == PlayerApplicationStatus.Pending,
                     cancellationToken);
 
-                return StatusCode(
-                    StatusCodes.Status201Created,
-                    new
-                    {
-                        message =
-                            "Registration submitted successfully. An administrator must approve the account before login.",
-                        playerId = player.Id
-                    });
-            }
-            catch (DbUpdateException exception)
-                when (DatabaseConflictClassifier.IsUniqueViolation(
-                    exception,
-                    _context.Database,
-                    "IX_AppUsers_NormalizedEmail"))
+            if (alreadyPending)
             {
-                await transaction.RollbackAsync(cancellationToken);
-
                 return Conflict(new
                 {
                     message =
-                        "An account already exists with this email address."
+                        "A pending player application already exists for this email address."
                 });
             }
-            catch
+
+            var application = new PlayerRegistrationApplication
             {
-                await transaction.RollbackAsync(cancellationToken);
-                throw;
-            }
+                FullName = request.FullName.Trim(),
+                Email = normalizedEmail,
+                Phone = request.Phone.Trim(),
+                DateOfBirth = request.DateOfBirth,
+                Province = request.Province?.Trim(),
+                Town = request.Town?.Trim(),
+                ExperienceLevel = request.ExperienceLevel?.Trim(),
+                PreferredPosition = request.PreferredPosition?.Trim(),
+                Classification = request.Classification.Trim(),
+                EmergencyContactName = request.EmergencyContactName?.Trim(),
+                EmergencyContactPhone = request.EmergencyContactPhone?.Trim(),
+                MedicalNotes = request.MedicalNotes?.Trim(),
+                Consent = true,
+                Status = PlayerApplicationStatus.Pending,
+                IsRead = false,
+                SubmittedAtUtc = DateTime.UtcNow
+            };
+
+            _context.PlayerRegistrationApplications.Add(application);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            await NotifyNewPlayerApplicationAsync(
+                application,
+                cancellationToken);
+
+            return StatusCode(
+                StatusCodes.Status201Created,
+                new
+                {
+                    message =
+                        "Player application submitted successfully. ParaVolley Mpumalanga will contact you after it has been reviewed.",
+                    applicationId = application.Id
+                });
         }
 
-        private async Task NotifyNewPlayerRegistrationAsync(
-            Player player,
+        private async Task NotifyNewPlayerApplicationAsync(
+            PlayerRegistrationApplication application,
             CancellationToken cancellationToken)
         {
             try
             {
-                var subject = $"New player registration: {player.Name}";
+                var subject = $"New player application: {application.FullName}";
                 var textBody =
-                    $"A new Android player registration was submitted by {player.Name}. " +
-                    $"Email: {player.Email}. Phone: {player.Phone}. Team: {player.Team}. " +
-                    "The account is inactive until an administrator approves it.";
+                    $"A new Android player application was submitted by {application.FullName}. " +
+                    $"Email: {application.Email}. Phone: {application.Phone}. " +
+                    $"Province: {application.Province ?? "Not provided"}. " +
+                    $"Preferred position: {application.PreferredPosition ?? "Not provided"}.";
 
-                var safeName = System.Net.WebUtility.HtmlEncode(player.Name);
-                var safeEmail = System.Net.WebUtility.HtmlEncode(player.Email);
-                var safePhone = System.Net.WebUtility.HtmlEncode(player.Phone);
-                var safeTeam = System.Net.WebUtility.HtmlEncode(player.Team);
+                var safeName =
+                    System.Net.WebUtility.HtmlEncode(application.FullName);
+                var safeEmail =
+                    System.Net.WebUtility.HtmlEncode(application.Email);
+                var safePhone =
+                    System.Net.WebUtility.HtmlEncode(application.Phone);
+                var safeProvince =
+                    System.Net.WebUtility.HtmlEncode(
+                        application.Province ?? "Not provided");
+                var safePosition =
+                    System.Net.WebUtility.HtmlEncode(
+                        application.PreferredPosition ?? "Not provided");
 
                 var htmlBody = $"""
-                    <p>A new ParaVolley Mpumalanga Android player registration has been submitted.</p>
+                    <p>A new ParaVolley Mpumalanga player application was submitted from the Android app.</p>
                     <p><strong>Name:</strong> {safeName}</p>
                     <p><strong>Email:</strong> {safeEmail}</p>
                     <p><strong>Phone:</strong> {safePhone}</p>
-                    <p><strong>Team:</strong> {safeTeam}</p>
-                    <p>The account is inactive until an administrator approves it.</p>
+                    <p><strong>Province:</strong> {safeProvince}</p>
+                    <p><strong>Preferred position:</strong> {safePosition}</p>
+                    <p>Open Player Applications in the ParaVolley web portal to review it.</p>
                     """;
 
                 var results = await _staffNotifications.SendAsync(
@@ -261,25 +288,23 @@ namespace SportsManagementMVC.Controllers.Api
                     subject,
                     textBody,
                     htmlBody,
-                    includeCoaches: false,
+                    includeCoaches: true,
                     cancellationToken);
 
                 foreach (var result in results.Where(item => !item.Success))
                 {
                     _logger.LogWarning(
-                        "New Android player registration {PlayerId} notification reported: {Message}",
-                        player.Id,
+                        "New player application {ApplicationId} notification reported: {Message}",
+                        application.Id,
                         result.Message);
                 }
             }
             catch (Exception exception)
             {
-                // Registration has already committed; notification failure must
-                // not turn a successful registration into an API error.
                 _logger.LogWarning(
                     exception,
-                    "Player registration {PlayerId} was saved, but staff notification delivery failed.",
-                    player.Id);
+                    "Player application {ApplicationId} was saved, but staff notification delivery failed.",
+                    application.Id);
             }
         }
 

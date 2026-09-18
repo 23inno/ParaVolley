@@ -178,18 +178,10 @@
 
 
             <div class="col-md-4 mb-3">
-                <label asp-for="Participants"
-                       class="form-label fw-semibold">
-                </label>
-
-                <input asp-for="Participants"
-                       class="form-control"
-                       type="number"
-                       min="0" />
-
-                <span asp-validation-for="Participants"
-                      class="text-danger small">
-                </span>
+                <label class="form-label fw-semibold">Participants</label>
+                <div class="form-control bg-light text-muted">
+                    Updated automatically from player registrations
+                </div>
             </div>
 
         </div>

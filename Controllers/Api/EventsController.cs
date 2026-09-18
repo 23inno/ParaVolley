@@ -42,8 +42,31 @@ namespace SportsManagementMVC.Controllers.Api
                 .Take(pageSize)
                 .ToListAsync(cancellationToken);
 
+            var eventIds = events
+                .Select(eventItem => eventItem.Id)
+                .ToList();
+
+            var participantCounts = await _db.EventRegistrations
+                .AsNoTracking()
+                .Where(registration =>
+                    eventIds.Contains(registration.EventId) &&
+                    registration.Status == EventRegistrationStatus.Registered)
+                .GroupBy(registration => registration.EventId)
+                .Select(group => new
+                {
+                    EventId = group.Key,
+                    Count = group.Count()
+                })
+                .ToDictionaryAsync(
+                    item => item.EventId,
+                    item => item.Count,
+                    cancellationToken);
+
             var response = events
-                .Select(MapToDto)
+                .Select(eventItem =>
+                    MapToDto(
+                        eventItem,
+                        participantCounts.GetValueOrDefault(eventItem.Id)))
                 .ToList();
 
             return Ok(response);
@@ -64,7 +87,14 @@ namespace SportsManagementMVC.Controllers.Api
                 });
             }
 
-            return Ok(MapToDto(eventItem));
+            var participantCount = await _db.EventRegistrations
+                .AsNoTracking()
+                .CountAsync(
+                    registration =>
+                        registration.EventId == id &&
+                        registration.Status == EventRegistrationStatus.Registered);
+
+            return Ok(MapToDto(eventItem, participantCount));
         }
 
         [HttpPost]
@@ -118,15 +148,6 @@ namespace SportsManagementMVC.Controllers.Api
                 });
             }
 
-            if (request.Participants < 0)
-            {
-                return BadRequest(new
-                {
-                    message =
-                        "Participants cannot be less than zero."
-                });
-            }
-
             var eventItem = new EventEntity
             {
                 Title = request.Title.Trim(),
@@ -134,7 +155,7 @@ namespace SportsManagementMVC.Controllers.Api
                 Time = request.Time.Trim(),
                 Location = request.Location.Trim(),
                 Type = eventType,
-                Participants = request.Participants,
+                Participants = 0,
                 Status = eventStatus,
                 Description = request.Description?.Trim()
                     ?? string.Empty
@@ -150,7 +171,7 @@ namespace SportsManagementMVC.Controllers.Api
                 {
                     id = eventItem.Id
                 },
-                MapToDto(eventItem));
+                MapToDto(eventItem, 0));
         }
 
         [HttpPut("{id:int:min(1)}")]
@@ -216,21 +237,16 @@ namespace SportsManagementMVC.Controllers.Api
                 });
             }
 
-            if (request.Participants < 0)
-            {
-                return BadRequest(new
-                {
-                    message =
-                        "Participants cannot be less than zero."
-                });
-            }
-
             eventItem.Title = request.Title.Trim();
             eventItem.Date = request.Date;
             eventItem.Time = request.Time.Trim();
             eventItem.Location = request.Location.Trim();
             eventItem.Type = eventType;
-            eventItem.Participants = request.Participants;
+            eventItem.Participants = await _db.EventRegistrations
+                .AsNoTracking()
+                .CountAsync(registration =>
+                    registration.EventId == id &&
+                    registration.Status == EventRegistrationStatus.Registered);
             eventItem.Status = eventStatus;
             eventItem.Description =
                 request.Description?.Trim() ?? string.Empty;
@@ -282,7 +298,8 @@ namespace SportsManagementMVC.Controllers.Api
         }
 
         private static EventDto MapToDto(
-            EventEntity eventItem)
+            EventEntity eventItem,
+            int? participantCount = null)
         {
             return new EventDto
             {
@@ -292,7 +309,7 @@ namespace SportsManagementMVC.Controllers.Api
                 Time = eventItem.Time,
                 Location = eventItem.Location,
                 Type = eventItem.Type.ToString(),
-                Participants = eventItem.Participants,
+                Participants = participantCount ?? eventItem.Participants,
                 Status = eventItem.Status.ToString(),
                 Description = eventItem.Description
             };
