@@ -1,19 +1,14 @@
 package com.paravolley.mobile.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Home
@@ -26,7 +21,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -69,8 +63,10 @@ fun AppBottomBar(
                     selected = selectedRoute == Routes.EVENTS,
                     onClick = { onNavigate(Routes.EVENTS) }
                 )
-                ScanNavItem(
+                BottomNavItem(
                     modifier = Modifier.weight(1f),
+                    label = "Scan",
+                    icon = Icons.Filled.QrCodeScanner,
                     selected = selectedRoute == Routes.SCANNER,
                     onClick = { onNavigate(Routes.SCANNER) }
                 )
@@ -112,43 +108,6 @@ private fun BottomNavItem(
         Text(
             text = label,
             color = color,
-            fontSize = 11.sp,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
-        )
-    }
-}
-
-@Composable
-private fun ScanNavItem(
-    modifier: Modifier,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    Column(
-        modifier = modifier
-            .clickable(onClick = onClick)
-            .padding(top = 6.dp, bottom = 4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Box(
-            modifier = Modifier
-                .offset(y = (-9).dp)
-                .size(52.dp)
-                .shadow(7.dp, CircleShape)
-                .background(AppColors.Yellow, CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Filled.QrCodeScanner,
-                contentDescription = "Scan QR",
-                tint = AppColors.DarkText,
-                modifier = Modifier.size(26.dp)
-            )
-        }
-        Text(
-            modifier = Modifier.offset(y = (-5).dp),
-            text = "Scan",
-            color = if (selected) AppColors.Green else Color(0xFF9CA3AF),
             fontSize = 11.sp,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
         )
