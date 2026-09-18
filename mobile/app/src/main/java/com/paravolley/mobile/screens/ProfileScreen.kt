@@ -24,6 +24,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -170,25 +174,44 @@ fun ProfileScreen(
                     playerRepository.uploadProfilePhoto(uri)
                 }
 
-                uploadResult
-                    .onSuccess { updated ->
-                        player = updated
-                        Toast.makeText(
-                            context,
-                            "Profile picture updated.",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                if (uploadResult.isSuccess) {
+                    val updated = uploadResult.getOrThrow()
+                    player = updated
+
+                    val persistedPhotoResult = withContext(Dispatchers.IO) {
+                        playerRepository.getProfilePhoto()
                     }
-                    .onFailure { failure ->
-                        if (preview != null) {
-                            actionMessage =
-                                "The picture is showing on your phone, but it could not be saved to the server yet. " +
-                                    (failure.message ?: "Please try again.")
-                        } else if (actionMessage == null) {
-                            actionMessage =
-                                failure.message ?: "Could not upload the profile picture."
+
+                    persistedPhotoResult
+                        .onSuccess { bytes ->
+                            profilePhoto =
+                                bytes?.toImageBitmapOrNull() ?: preview
                         }
+                        .onFailure { failure ->
+                            if (profilePhoto == null) {
+                                actionMessage =
+                                    failure.message
+                                        ?: "The profile picture was saved, but it could not be displayed."
+                            }
+                        }
+
+                    Toast.makeText(
+                        context,
+                        "Profile picture updated.",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } else {
+                    val failure = uploadResult.exceptionOrNull()
+
+                    if (preview != null) {
+                        actionMessage =
+                            "The picture is showing on your phone, but it could not be saved to the server yet. " +
+                                (failure?.message ?: "Please try again.")
+                    } else if (actionMessage == null) {
+                        actionMessage =
+                            failure?.message ?: "Could not upload the profile picture."
                     }
+                }
 
                 isPhotoUploading = false
             }
@@ -204,14 +227,29 @@ fun ProfileScreen(
             .onSuccess { loaded ->
                 player = loaded
 
-                if (loaded.hasProfilePhoto) {
-                    withContext(Dispatchers.IO) {
-                        playerRepository.getProfilePhoto()
-                    }
-                        .onSuccess { bytes ->
-                            profilePhoto = bytes?.toImageBitmapOrNull()
-                        }
+                // Always ask the API for the photo instead of relying only on
+                // hasProfilePhoto. This keeps the UI correct if profile metadata
+                // is stale or the photo was uploaded on another device/session.
+                withContext(Dispatchers.IO) {
+                    playerRepository.getProfilePhoto()
                 }
+                    .onSuccess { bytes ->
+                        profilePhoto = bytes?.toImageBitmapOrNull()
+
+                        if (bytes != null && profilePhoto == null) {
+                            actionMessage =
+                                "Your profile picture was downloaded, but it could not be displayed."
+                        }
+                    }
+                    .onFailure { failure ->
+                        profilePhoto = null
+
+                        if (loaded.hasProfilePhoto) {
+                            actionMessage =
+                                failure.message
+                                    ?: "Could not load the profile picture."
+                        }
+                    }
             }
             .onFailure {
                 errorMessage = it.message ?: "Could not load profile."
@@ -228,6 +266,9 @@ fun ProfileScreen(
 
     Scaffold(
         containerColor = ProfileBackground,
+        contentWindowInsets = WindowInsets.safeDrawing.only(
+            WindowInsetsSides.Top + WindowInsetsSides.Horizontal
+        ),
         bottomBar = {
             AppBottomBar(
                 selectedRoute = Routes.PROFILE,

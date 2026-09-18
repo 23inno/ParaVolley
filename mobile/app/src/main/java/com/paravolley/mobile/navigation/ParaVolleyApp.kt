@@ -31,6 +31,7 @@ import com.paravolley.mobile.screens.NotificationsScreen
 import com.paravolley.mobile.screens.ProfileScreen
 import com.paravolley.mobile.screens.RegisterPlayerScreen
 import com.paravolley.mobile.screens.ResultsScreen
+import com.paravolley.mobile.screens.UpcomingMatchesScreen
 import com.paravolley.mobile.screens.ScannerScreen
 import kotlinx.coroutines.delay
 
@@ -78,13 +79,28 @@ fun ParaVolleyApp(
     }
 
     val navigateFromBottomBar: (String) -> Unit = { route ->
-        navController.navigate(route) {
-            popUpTo(Routes.DASHBOARD) {
-                saveState = true
-            }
+        if (route == Routes.DASHBOARD) {
+            val returnedToDashboard =
+                navController.popBackStack(
+                    route = Routes.DASHBOARD,
+                    inclusive = false
+                )
 
-            launchSingleTop = true
-            restoreState = true
+            if (!returnedToDashboard &&
+                navController.currentDestination?.route != Routes.DASHBOARD
+            ) {
+                navController.navigate(Routes.DASHBOARD) {
+                    launchSingleTop = true
+                }
+            }
+        } else {
+            navController.navigate(route) {
+                popUpTo(Routes.DASHBOARD) {
+                    inclusive = false
+                }
+
+                launchSingleTop = true
+            }
         }
     }
 
@@ -182,6 +198,16 @@ fun ParaVolleyApp(
             }
         }
 
+        composable(Routes.UPCOMING_MATCHES) { backStackEntry ->
+            RefreshableDestination(
+                lifecycle = backStackEntry.lifecycle
+            ) {
+                UpcomingMatchesScreen(
+                    onNavigate = navigateFromBottomBar
+                )
+            }
+        }
+
         composable(
             route = "${Routes.NOTIFICATIONS}?announcementId={announcementId}",
             arguments = listOf(
@@ -209,7 +235,8 @@ fun ParaVolleyApp(
 
         composable(Routes.PROFILE) { backStackEntry ->
             RefreshableDestination(
-                lifecycle = backStackEntry.lifecycle
+                lifecycle = backStackEntry.lifecycle,
+                refreshOnResume = false
             ) {
                 ProfileScreen(
                     onNavigate = navigateFromBottomBar,
@@ -242,6 +269,7 @@ fun ParaVolleyApp(
 @Composable
 private fun RefreshableDestination(
     lifecycle: Lifecycle,
+    refreshOnResume: Boolean = true,
     content: @Composable () -> Unit
 ) {
     var refreshGeneration by remember {
@@ -256,21 +284,25 @@ private fun RefreshableDestination(
         mutableStateOf(false)
     }
 
-    DisposableEffect(lifecycle) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                if (hasResumedOnce) {
-                    refreshGeneration++
-                } else {
-                    hasResumedOnce = true
+    DisposableEffect(lifecycle, refreshOnResume) {
+        if (!refreshOnResume) {
+            onDispose { }
+        } else {
+            val observer = LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    if (hasResumedOnce) {
+                        refreshGeneration++
+                    } else {
+                        hasResumedOnce = true
+                    }
                 }
             }
-        }
 
-        lifecycle.addObserver(observer)
+            lifecycle.addObserver(observer)
 
-        onDispose {
-            lifecycle.removeObserver(observer)
+            onDispose {
+                lifecycle.removeObserver(observer)
+            }
         }
     }
 

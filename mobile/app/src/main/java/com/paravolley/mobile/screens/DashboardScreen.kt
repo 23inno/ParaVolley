@@ -15,6 +15,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -130,6 +134,9 @@ fun DashboardScreen(
 
     Scaffold(
         containerColor = Color.White,
+        contentWindowInsets = WindowInsets.safeDrawing.only(
+            WindowInsetsSides.Top + WindowInsetsSides.Horizontal
+        ),
         bottomBar = {
             AppBottomBar(
                 selectedRoute = Routes.DASHBOARD,
@@ -268,6 +275,9 @@ private fun DashboardContent(
             item {
                 QuickActionsSection(
                     onScan = { onNavigate(Routes.SCANNER) },
+                    onUpcomingMatches = {
+                        onNavigate(Routes.UPCOMING_MATCHES)
+                    },
                     onResults = { onNavigate(Routes.RESULTS) }
                 )
             }
@@ -628,6 +638,7 @@ private fun DashboardEventCard(
 @Composable
 private fun QuickActionsSection(
     onScan: () -> Unit,
+    onUpcomingMatches: () -> Unit,
     onResults: () -> Unit
 ) {
     Column(
@@ -662,14 +673,26 @@ private fun QuickActionsSection(
 
             QuickActionCard(
                 modifier = Modifier.weight(1f),
-                title = "View Results",
-                icon = Icons.Filled.EmojiEvents,
+                title = "Upcoming Matches",
+                icon = Icons.Filled.Event,
                 iconBackground = DashboardGreen,
                 iconTint = Color.White,
                 borderColor = DashboardGreen,
-                onClick = onResults
+                onClick = onUpcomingMatches
             )
         }
+
+        Spacer(Modifier.height(14.dp))
+
+        QuickActionCard(
+            modifier = Modifier.fillMaxWidth(),
+            title = "View Results",
+            icon = Icons.Filled.EmojiEvents,
+            iconBackground = DashboardGreen.copy(alpha = 0.12f),
+            iconTint = DashboardGreen,
+            borderColor = Color(0xFFE5E7EB),
+            onClick = onResults
+        )
     }
 }
 

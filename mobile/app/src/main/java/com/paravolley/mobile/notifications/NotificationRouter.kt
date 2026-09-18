@@ -11,6 +11,11 @@ object NotificationRouter {
 
         return when {
             normalized.startsWith(
+                "Upcoming match:",
+                ignoreCase = true
+            ) -> Routes.UPCOMING_MATCHES
+
+            normalized.startsWith(
                 "Match result:",
                 ignoreCase = true
             ) -> Routes.RESULTS
@@ -33,6 +38,7 @@ object NotificationRouter {
         route == Routes.DASHBOARD ||
             route == Routes.EVENTS ||
             route == Routes.RESULTS ||
+            route == Routes.UPCOMING_MATCHES ||
             route == Routes.NOTIFICATIONS ||
             route == Routes.PROFILE
 }

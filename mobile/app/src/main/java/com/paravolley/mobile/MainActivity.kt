@@ -2,13 +2,18 @@ package com.paravolley.mobile
 
 import android.Manifest
 import android.content.Intent
+import android.graphics.Color as AndroidColor
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.paravolley.mobile.navigation.ParaVolleyApp
@@ -16,6 +21,7 @@ import com.paravolley.mobile.network.RetrofitClient
 import com.paravolley.mobile.network.SessionManager
 import com.paravolley.mobile.notifications.NotificationRouter
 import com.paravolley.mobile.notifications.PushNotifications
+import com.paravolley.mobile.screens.LaunchAnimationScreen
 import com.paravolley.mobile.ui.theme.ParaVolleyMobileTheme
 
 class MainActivity : ComponentActivity() {
@@ -48,17 +54,38 @@ class MainActivity : ComponentActivity() {
         handleNotificationIntent(intent)
         requestNotificationPermissionIfNeeded()
 
-        enableEdgeToEdge()
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.light(
+                AndroidColor.TRANSPARENT,
+                AndroidColor.TRANSPARENT
+            ),
+            navigationBarStyle = SystemBarStyle.light(
+                AndroidColor.TRANSPARENT,
+                AndroidColor.TRANSPARENT
+            )
+        )
 
         setContent {
             ParaVolleyMobileTheme {
-                ParaVolleyApp(
-                    notificationRoute =
-                        notificationRoute.value,
-                    onNotificationRouteConsumed = {
-                        notificationRoute.value = null
-                    }
-                )
+                var showLaunchAnimation by remember {
+                    mutableStateOf(savedInstanceState == null)
+                }
+
+                if (showLaunchAnimation) {
+                    LaunchAnimationScreen(
+                        onFinished = {
+                            showLaunchAnimation = false
+                        }
+                    )
+                } else {
+                    ParaVolleyApp(
+                        notificationRoute =
+                            notificationRoute.value,
+                        onNotificationRouteConsumed = {
+                            notificationRoute.value = null
+                        }
+                    )
+                }
             }
         }
     }

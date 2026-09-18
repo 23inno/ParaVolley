@@ -6,6 +6,7 @@ object Routes {
     const val DASHBOARD = "dashboard"
     const val EVENTS = "events"
     const val RESULTS = "results"
+    const val UPCOMING_MATCHES = "upcoming-matches"
     const val NOTIFICATIONS = "notifications"
     const val PROFILE = "profile"
     const val SCANNER = "scanner"
