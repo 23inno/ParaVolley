@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
@@ -42,9 +44,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
@@ -71,6 +76,46 @@ fun LoginScreen(
     val authRepository = remember { AuthRepository() }
     val sessionManager = remember { SessionManager(context.applicationContext) }
     val coroutineScope = rememberCoroutineScope()
+    val emailFocusRequester = remember { FocusRequester() }
+    val passwordFocusRequester = remember { FocusRequester() }
+
+    fun submitLogin() {
+        if (isLoading) return
+
+        when {
+            email.isBlank() -> {
+                errorMessage = "Enter your email or username."
+                emailFocusRequester.requestFocus()
+            }
+            password.isBlank() -> {
+                errorMessage = "Enter your password."
+                passwordFocusRequester.requestFocus()
+            }
+            else -> {
+                isLoading = true
+                errorMessage = null
+                coroutineScope.launch {
+                    authRepository.login(
+                        email = email,
+                        password = password
+                    )
+                        .onSuccess { response ->
+                            isLoading = false
+                            if (response.user.role.equals("Player", ignoreCase = true)) {
+                                sessionManager.saveLogin(response)
+                                onLoginSuccessful()
+                            } else {
+                                errorMessage = "This mobile app is for player accounts only."
+                            }
+                        }
+                        .onFailure { exception ->
+                            isLoading = false
+                            errorMessage = exception.message ?: "Login failed."
+                        }
+                }
+            }
+        }
+    }
 
     val fieldColors = OutlinedTextFieldDefaults.colors(
         focusedTextColor = AppColors.DarkText,
@@ -146,7 +191,9 @@ fun LoginScreen(
             }
 
             OutlinedTextField(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(emailFocusRequester),
                 value = email,
                 onValueChange = {
                     email = it
@@ -159,12 +206,29 @@ fun LoginScreen(
                     Icon(Icons.Filled.Email, contentDescription = null)
                 },
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    imeAction = if (password.isBlank()) ImeAction.Next else ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = {
+                        passwordFocusRequester.requestFocus()
+                    },
+                    onDone = {
+                        if (password.isBlank()) {
+                            passwordFocusRequester.requestFocus()
+                        } else {
+                            submitLogin()
+                        }
+                    }
+                ),
                 shape = RoundedCornerShape(10.dp),
                 colors = fieldColors
             )
 
             OutlinedTextField(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(passwordFocusRequester),
                 value = password,
                 onValueChange = {
                     password = it
@@ -189,6 +253,18 @@ fun LoginScreen(
                 },
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        if (email.isBlank()) {
+                            emailFocusRequester.requestFocus()
+                        } else {
+                            submitLogin()
+                        }
+                    }
+                ),
                 shape = RoundedCornerShape(10.dp),
                 colors = fieldColors
             )
@@ -221,31 +297,7 @@ fun LoginScreen(
                     .fillMaxWidth()
                     .height(52.dp),
                 enabled = !isLoading,
-                onClick = {
-                    if (email.isBlank() || password.isBlank()) {
-                        errorMessage = "Enter your email and password."
-                        return@Button
-                    }
-
-                    isLoading = true
-                    errorMessage = null
-                    coroutineScope.launch {
-                        authRepository.login(email = email, password = password)
-                            .onSuccess { response ->
-                                isLoading = false
-                                if (response.user.role.equals("Player", ignoreCase = true)) {
-                                    sessionManager.saveLogin(response)
-                                    onLoginSuccessful()
-                                } else {
-                                    errorMessage = "This mobile app is for player accounts only."
-                                }
-                            }
-                            .onFailure { exception ->
-                                isLoading = false
-                                errorMessage = exception.message ?: "Login failed."
-                            }
-                    }
-                },
+                onClick = { submitLogin() },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = AppColors.Yellow,
                     contentColor = AppColors.DarkText
