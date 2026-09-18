@@ -17,7 +17,7 @@
 
     var unreadPlayerApplications = User.Identity != null
 && User.Identity.IsAuthenticated
-&& User.IsInRole("Admin")
+&& (User.IsInRole("Admin") || User.IsInRole("Coach"))
     ? await Db.PlayerRegistrationApplications
         .CountAsync(a => !a.IsRead)
     : 0;
@@ -147,22 +147,25 @@
                     </a>
                 }
 
-                <a class="pv-nav-link @(currentController == "PlayerApplications" ? "active" : "")"
-                   asp-controller="PlayerApplications"
-                   asp-action="Index"
-                   title="Player Applications">
+                @if (isAdmin || isCoach)
+                {
+                    <a class="pv-nav-link @(currentController == "PlayerApplications" ? "active" : "")"
+                       asp-controller="PlayerApplications"
+                       asp-action="Index"
+                       title="Player Applications">
 
-                    <i class="bi bi-person-plus-fill"></i>
-                    <span>Player Applications</span>
+                        <i class="bi bi-person-plus-fill"></i>
+                        <span>Player Applications</span>
 
-                    @if (unreadPlayerApplications > 0)
-                    {
-                        <span class="badge bg-warning text-dark ms-auto">
-                            @unreadPlayerApplications
-                        </span>
-                    }
+                        @if (unreadPlayerApplications > 0)
+                        {
+                            <span class="badge bg-warning text-dark ms-auto">
+                                @unreadPlayerApplications
+                            </span>
+                        }
 
-                </a>
+                    </a>
+                }
 
                 @if (isAdmin || isCoach)
                 {
