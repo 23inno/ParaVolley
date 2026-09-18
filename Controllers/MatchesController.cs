@@ -223,6 +223,11 @@ namespace SportsManagementMVC.Controllers
                     QueueMatchResult(match);
                 }
 
+                if (IsUpcomingMatch(match))
+                {
+                    QueueUpcomingMatch(match);
+                }
+
                 if (IsAjaxRequest())
                 {
                     return Json(new { success = true });
@@ -370,6 +375,86 @@ namespace SportsManagementMVC.Controllers
             match.Status == MatchStatus.Completed &&
             match.ScoreA.HasValue &&
             match.ScoreB.HasValue;
+
+        private static bool IsUpcomingMatch(Match match) =>
+            match.Status == MatchStatus.Scheduled &&
+            match.Date.Date >= DateTime.Today;
+
+        private void QueueUpcomingMatch(Match match)
+        {
+            var subject =
+                $"Upcoming match: {match.TeamA} vs {match.TeamB}";
+
+            var details = new List<string>
+            {
+                $"Date: {match.Date:dd MMM yyyy}"
+            };
+
+            if (!string.IsNullOrWhiteSpace(match.Time))
+            {
+                details.Add($"Time: {match.Time.Trim()}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(match.Venue))
+            {
+                details.Add($"Venue: {match.Venue.Trim()}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(match.Tournament))
+            {
+                details.Add($"Tournament: {match.Tournament.Trim()}");
+            }
+
+            var textBody =
+                $"{match.TeamA} vs {match.TeamB}. {string.Join(" • ", details)}";
+
+            var encodedTeamA =
+                System.Net.WebUtility.HtmlEncode(match.TeamA);
+            var encodedTeamB =
+                System.Net.WebUtility.HtmlEncode(match.TeamB);
+            var encodedDate =
+                System.Net.WebUtility.HtmlEncode(match.Date.ToString("dd MMM yyyy"));
+            var encodedTime =
+                System.Net.WebUtility.HtmlEncode(match.Time ?? string.Empty);
+            var encodedVenue =
+                System.Net.WebUtility.HtmlEncode(match.Venue ?? string.Empty);
+            var encodedTournament =
+                System.Net.WebUtility.HtmlEncode(match.Tournament ?? string.Empty);
+
+            var htmlDetails = new List<string>
+            {
+                $"<strong>Date:</strong> {encodedDate}"
+            };
+
+            if (!string.IsNullOrWhiteSpace(match.Time))
+            {
+                htmlDetails.Add($"<strong>Time:</strong> {encodedTime}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(match.Venue))
+            {
+                htmlDetails.Add($"<strong>Venue:</strong> {encodedVenue}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(match.Tournament))
+            {
+                htmlDetails.Add($"<strong>Tournament:</strong> {encodedTournament}");
+            }
+
+            var htmlBody = $@"
+                <p>A new ParaVolley match has been scheduled:</p>
+                <h3>{encodedTeamA} vs {encodedTeamB}</h3>
+                <p>{string.Join("<br />", htmlDetails)}</p>";
+
+            BackgroundNotificationDispatcher.QueuePlayerNotification(
+                _scopeFactory,
+                _logger,
+                "upcoming_match",
+                subject,
+                textBody,
+                htmlBody,
+                $"upcoming match {match.Id}");
+        }
 
         private void QueueMatchResult(Match match)
         {
