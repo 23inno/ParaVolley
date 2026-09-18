@@ -115,7 +115,7 @@ else
                 <div id="countdownPanel" class="live-countdown-panel mb-3">
                     <div class="small text-muted">Session countdown</div>
                     <div id="sessionCountdown" class="live-countdown">--:--</div>
-                    <div id="sessionHint" class="small text-muted">Generate a QR code to start a 15-minute session.</div>
+                    <div id="sessionHint" class="small text-muted">Generate attendance access for today. It stays valid until the end of the day.</div>
                 </div>
 
                 <div id="qrPanel" class="live-qr-panel mb-3">
@@ -123,6 +123,18 @@ else
                     <div id="qrPlaceholder" class="text-center text-muted py-4">
                         <i class="bi bi-qr-code fs-1 d-block mb-2"></i>
                         No active QR code
+                    </div>
+                </div>
+
+                <div class="border rounded-3 bg-light p-3 mb-3 text-center">
+                    <div class="small text-muted fw-semibold text-uppercase">
+                        Manual check-in code
+                    </div>
+                    <div id="manualAttendanceCode"
+                         class="fs-2 fw-bold text-success"
+                         style="letter-spacing:.35rem;">------</div>
+                    <div class="small text-muted">
+                        Players can type this 6-character code in the mobile app.
                     </div>
                 </div>
 
@@ -255,6 +267,7 @@ else
             const sessionHint = document.getElementById('sessionHint');
             const qrBox = document.getElementById('qrCode');
             const qrPlaceholder = document.getElementById('qrPlaceholder');
+            const manualCodeEl = document.getElementById('manualAttendanceCode');
             const searchInput = document.getElementById('playerSearch');
             const checkedPanel = document.getElementById('checkedPanel');
             const waitingPanel = document.getElementById('waitingPanel');
@@ -319,6 +332,8 @@ else
 
             function renderQr(token) {
                 qrBox.innerHTML = '';
+                manualCodeEl.textContent = token || '------';
+
                 if (!token) {
                     qrBox.classList.add('d-none');
                     qrPlaceholder.classList.remove('d-none');
@@ -348,7 +363,7 @@ else
                     countdownEl.textContent = '00:00';
                     sessionBadge.className = 'live-session-badge ended';
                     sessionBadge.innerHTML = '<span class="live-dot"></span> EXPIRED';
-                    sessionHint.textContent = 'QR session expired. Generate a new QR to continue check-ins.';
+                    sessionHint.textContent = 'Attendance access has expired. Generate a new code to continue check-ins.';
                     endBtn.disabled = true;
                     markAbsent.disabled = true;
                     generateText.textContent = 'Generate New QR';
@@ -357,18 +372,22 @@ else
                 }
 
                 const totalSeconds = Math.ceil(remainingMs / 1000);
-                const minutes = Math.floor(totalSeconds / 60);
+                const hours = Math.floor(totalSeconds / 3600);
+                const minutes = Math.floor((totalSeconds % 3600) / 60);
                 const seconds = totalSeconds % 60;
-                countdownEl.textContent = String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+                countdownEl.textContent =
+                    String(hours).padStart(2, '0') + ':' +
+                    String(minutes).padStart(2, '0') + ':' +
+                    String(seconds).padStart(2, '0');
 
                 if (totalSeconds <= 120) {
                     sessionBadge.className = 'live-session-badge warning';
                     sessionBadge.innerHTML = '<span class="live-dot"></span> LIVE';
-                    sessionHint.textContent = 'QR session expires soon.';
+                    sessionHint.textContent = 'Attendance access expires at the end of today.';
                 } else {
                     sessionBadge.className = 'live-session-badge live';
                     sessionBadge.innerHTML = '<span class="live-dot"></span> LIVE';
-                    sessionHint.textContent = 'Players can scan the QR code while this timer is running.';
+                    sessionHint.textContent = 'Players can scan the QR code or type the 6-character code until the end of today.';
                 }
             }
 
@@ -376,7 +395,7 @@ else
                 if (!session) {
                     sessionBadge.className = 'live-session-badge idle';
                     sessionBadge.innerHTML = '<span class="live-dot"></span> NOT STARTED';
-                    sessionHint.textContent = 'Generate a QR code to start a 15-minute session.';
+                    sessionHint.textContent = 'Generate attendance access that stays valid until the end of today.';
                     generateText.textContent = 'Generate QR';
                     endBtn.disabled = true;
                     markAbsent.disabled = true;
@@ -400,7 +419,7 @@ else
                     sessionBadge.innerHTML = '<span class="live-dot"></span> ' + (session.isRevoked ? 'ENDED' : 'EXPIRED');
                     sessionHint.textContent = session.isRevoked
                         ? 'This attendance session has ended.'
-                        : 'QR session expired. Generate a new QR to continue check-ins.';
+                        : 'Attendance access expired. Generate a new code to continue check-ins.';
                     generateText.textContent = 'Generate New QR';
                     endBtn.disabled = true;
                     markAbsent.disabled = true;
