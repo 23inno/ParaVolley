@@ -125,6 +125,7 @@ namespace SportsManagementMVC.Controllers.Api
                     DateTime.UtcNow;
 
                 await _db.SaveChangesAsync();
+                await SyncParticipantCountAsync(eventId);
 
                 return Ok(
                     MapToDto(
@@ -145,6 +146,7 @@ namespace SportsManagementMVC.Controllers.Api
             try
             {
                 await _db.SaveChangesAsync();
+                await SyncParticipantCountAsync(eventId);
             }
             catch (DbUpdateException exception)
                 when (DatabaseConflictClassifier.IsUniqueViolation(
@@ -219,6 +221,7 @@ namespace SportsManagementMVC.Controllers.Api
                 EventRegistrationStatus.Cancelled;
 
             await _db.SaveChangesAsync();
+            await SyncParticipantCountAsync(eventId);
 
             return Ok(
                 MapToDto(
@@ -270,6 +273,26 @@ namespace SportsManagementMVC.Controllers.Api
                 .ToList();
 
             return Ok(response);
+        }
+
+        private async Task SyncParticipantCountAsync(int eventId)
+        {
+            var participantCount = await _db.EventRegistrations
+                .AsNoTracking()
+                .CountAsync(registration =>
+                    registration.EventId == eventId &&
+                    registration.Status == EventRegistrationStatus.Registered);
+
+            var eventItem = await _db.Events
+                .FirstOrDefaultAsync(item => item.Id == eventId);
+
+            if (eventItem == null)
+            {
+                return;
+            }
+
+            eventItem.Participants = participantCount;
+            await _db.SaveChangesAsync();
         }
 
         private static EventRegistrationDto MapToDto(
