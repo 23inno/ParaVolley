@@ -141,8 +141,8 @@ fun ScannerScreen(onBack: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
             .safeDrawingPadding()
+            .background(Color.Black)
     ) {
         if (cameraPermissionGranted) {
             QrCameraPreview(
