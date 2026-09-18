@@ -79,13 +79,28 @@ fun ParaVolleyApp(
     }
 
     val navigateFromBottomBar: (String) -> Unit = { route ->
-        navController.navigate(route) {
-            popUpTo(Routes.DASHBOARD) {
-                saveState = true
-            }
+        if (route == Routes.DASHBOARD) {
+            val returnedToDashboard =
+                navController.popBackStack(
+                    route = Routes.DASHBOARD,
+                    inclusive = false
+                )
 
-            launchSingleTop = true
-            restoreState = true
+            if (!returnedToDashboard &&
+                navController.currentDestination?.route != Routes.DASHBOARD
+            ) {
+                navController.navigate(Routes.DASHBOARD) {
+                    launchSingleTop = true
+                }
+            }
+        } else {
+            navController.navigate(route) {
+                popUpTo(Routes.DASHBOARD) {
+                    inclusive = false
+                }
+
+                launchSingleTop = true
+            }
         }
     }
 
