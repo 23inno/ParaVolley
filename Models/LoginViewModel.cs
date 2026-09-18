@@ -23,10 +23,16 @@ namespace SportsManagementMVC.Models
     {
         public string Token { get; set; } = string.Empty;
 
-        [Required, DataType(DataType.Password), Display(Name = "New Password")]
+        [Required]
+        [DataType(DataType.Password)]
+        [StringLength(128, MinimumLength = 8)]
+        [Display(Name = "New Password")]
         public string NewPassword { get; set; } = string.Empty;
 
-        [Required, DataType(DataType.Password), Display(Name = "Confirm Password")]
+        [Required]
+        [DataType(DataType.Password)]
+        [Compare(nameof(NewPassword), ErrorMessage = "The passwords do not match.")]
+        [Display(Name = "Confirm Password")]
         public string ConfirmPassword { get; set; } = string.Empty;
     }
 }
