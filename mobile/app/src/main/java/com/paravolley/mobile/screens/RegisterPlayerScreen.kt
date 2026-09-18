@@ -1,5 +1,6 @@
 package com.paravolley.mobile.screens
 
+import android.app.DatePickerDialog
 import android.util.Patterns
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -20,6 +21,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
@@ -27,6 +29,7 @@ import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
@@ -42,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -50,7 +54,9 @@ import com.paravolley.mobile.network.AuthRepository
 import com.paravolley.mobile.network.RegisterPlayerRequest
 import com.paravolley.mobile.ui.theme.AppColors
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 import kotlinx.coroutines.launch
 
 @Composable
@@ -176,19 +182,14 @@ fun RegisterPlayerScreen(
                 keyboardType = KeyboardType.Phone
             ) { phone = it }
 
-            RegistrationField(
-                label = "Date of Birth * (YYYY-MM-DD)",
+            DateOfBirthField(
                 value = dateOfBirth,
-                colors = fieldColors,
                 isLoading = isLoading,
-                keyboardType = KeyboardType.Number
-            ) {
-                dateOfBirth = it
-                    .filter { character ->
-                        character.isDigit() || character == '-'
-                    }
-                    .take(10)
-            }
+                onDateSelected = {
+                    dateOfBirth = it
+                    message = null
+                }
+            )
 
             RegistrationField(
                 label = "Province",
@@ -437,6 +438,132 @@ fun RegisterPlayerScreen(
 }
 
 @Composable
+private fun DateOfBirthField(
+    value: String,
+    isLoading: Boolean,
+    onDateSelected: (String) -> Unit
+) {
+    val context = LocalContext.current
+    val today = remember { LocalDate.now() }
+    val earliestAllowedDate = remember(today) {
+        today.minusYears(100)
+    }
+    val latestAllowedDate = remember(today) {
+        today.minusYears(5)
+    }
+
+    val selectedDate = remember(value) {
+        runCatching {
+            LocalDate.parse(
+                value,
+                DateTimeFormatter.ISO_LOCAL_DATE
+            )
+        }.getOrNull()
+    }
+
+    val displayDate = selectedDate?.format(
+        DateTimeFormatter.ofPattern(
+            "dd MMM yyyy",
+            Locale.getDefault()
+        )
+    ) ?: "Select date of birth"
+
+    OutlinedButton(
+        modifier = Modifier.fillMaxWidth(),
+        enabled = !isLoading,
+        shape = RoundedCornerShape(10.dp),
+        colors = ButtonDefaults.outlinedButtonColors(
+            contentColor = AppColors.DarkText
+        ),
+        onClick = {
+            val initialDate =
+                selectedDate ?: today.minusYears(18)
+
+            DatePickerDialog(
+                context,
+                { _, year, month, dayOfMonth ->
+                    val chosenDate = LocalDate.of(
+                        year,
+                        month + 1,
+                        dayOfMonth
+                    )
+
+                    onDateSelected(
+                        chosenDate.format(
+                            DateTimeFormatter.ISO_LOCAL_DATE
+                        )
+                    )
+                },
+                initialDate.year,
+                initialDate.monthValue - 1,
+                initialDate.dayOfMonth
+            ).apply {
+                datePicker.minDate =
+                    earliestAllowedDate
+                        .atStartOfDay(ZoneId.systemDefault())
+                        .toInstant()
+                        .toEpochMilli()
+
+                datePicker.maxDate =
+                    latestAllowedDate
+                        .atStartOfDay(ZoneId.systemDefault())
+                        .toInstant()
+                        .toEpochMilli()
+            }.show()
+        }
+    ) {
+        Icon(
+            imageVector = Icons.Filled.DateRange,
+            contentDescription = null,
+            tint = AppColors.Green
+        )
+
+        Spacer(Modifier.width(10.dp))
+
+        Column(
+            modifier = Modifier.weight(1f),
+            horizontalAlignment = Alignment.Start
+        ) {
+            Text(
+                text = "Date of Birth *",
+                color = AppColors.GreyText,
+                fontSize = 11.sp
+            )
+            Text(
+                text = displayDate,
+                color =
+                    if (selectedDate == null) {
+                        AppColors.GreyText
+                    } else {
+                        AppColors.DarkText
+                    },
+                fontSize = 15.sp,
+                fontWeight =
+                    if (selectedDate == null) {
+                        FontWeight.Normal
+                    } else {
+                        FontWeight.Medium
+                    }
+            )
+        }
+
+        Text(
+            text = "Choose",
+            color = AppColors.Green,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 13.sp
+        )
+    }
+
+    Text(
+        modifier = Modifier.padding(start = 4.dp),
+        text = "Tap to choose your date. No typing is required.",
+        color = AppColors.GreyText,
+        fontSize = 11.sp
+    )
+}
+
+@Composable
 private fun RegistrationField(
     label: String,
     value: String,
@@ -494,7 +621,7 @@ private fun validateApplication(
             DateTimeFormatter.ISO_LOCAL_DATE
         )
     }.getOrNull()
-        ?: return "Enter your date of birth as YYYY-MM-DD."
+        ?: return "Choose your date of birth."
 
     val today = LocalDate.now()
 
