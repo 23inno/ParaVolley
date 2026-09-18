@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
@@ -21,6 +22,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,34 +44,40 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.paravolley.mobile.network.AuthRepository
 import com.paravolley.mobile.network.RegisterPlayerRequest
 import com.paravolley.mobile.ui.theme.AppColors
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.launch
 
 @Composable
 fun RegisterPlayerScreen(
     onBackToLogin: () -> Unit
 ) {
-    var name by rememberSaveable { mutableStateOf("") }
-    var position by rememberSaveable { mutableStateOf("") }
-    var team by rememberSaveable { mutableStateOf("") }
-    var age by rememberSaveable { mutableStateOf("") }
+    var fullName by rememberSaveable { mutableStateOf("") }
     var email by rememberSaveable { mutableStateOf("") }
     var phone by rememberSaveable { mutableStateOf("") }
-    var disability by rememberSaveable { mutableStateOf("") }
-    var password by rememberSaveable { mutableStateOf("") }
-    var confirmPassword by rememberSaveable { mutableStateOf("") }
+    var dateOfBirth by rememberSaveable { mutableStateOf("") }
+    var province by rememberSaveable { mutableStateOf("Mpumalanga") }
+    var town by rememberSaveable { mutableStateOf("") }
+    var experienceLevel by rememberSaveable { mutableStateOf("") }
+    var preferredPosition by rememberSaveable { mutableStateOf("") }
+    var classification by rememberSaveable { mutableStateOf("") }
+    var emergencyContactName by rememberSaveable { mutableStateOf("") }
+    var emergencyContactPhone by rememberSaveable { mutableStateOf("") }
+    var medicalNotes by rememberSaveable { mutableStateOf("") }
+    var consent by rememberSaveable { mutableStateOf(false) }
+
     var message by rememberSaveable { mutableStateOf<String?>(null) }
     var registrationComplete by rememberSaveable { mutableStateOf(false) }
     var isLoading by rememberSaveable { mutableStateOf(false) }
 
     val repository = remember { AuthRepository() }
     val scope = rememberCoroutineScope()
+
     val fieldColors = OutlinedTextFieldDefaults.colors(
         focusedTextColor = AppColors.DarkText,
         unfocusedTextColor = AppColors.DarkText,
@@ -96,19 +105,28 @@ fun RegisterPlayerScreen(
                 .padding(horizontal = 8.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onBackToLogin, enabled = !isLoading) {
-                Icon(Icons.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+            IconButton(
+                onClick = onBackToLogin,
+                enabled = !isLoading
+            ) {
+                Icon(
+                    Icons.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = Color.White
+                )
             }
+
             Spacer(Modifier.width(4.dp))
+
             Column {
                 Text(
-                    text = "Player Registration",
+                    text = "Player Application",
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
                     fontSize = 21.sp
                 )
                 Text(
-                    text = "Create your ParaVolley player account",
+                    text = "Apply to join ParaVolley Mpumalanga",
                     color = Color.White.copy(alpha = 0.78f),
                     fontSize = 12.sp
                 )
@@ -116,66 +134,204 @@ fun RegisterPlayerScreen(
         }
 
         Column(
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 22.dp),
+            modifier = Modifier.padding(
+                horizontal = 20.dp,
+                vertical = 22.dp
+            ),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "Personal & player details",
+                text = "Personal Information",
                 color = AppColors.DarkText,
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp
             )
+
             Text(
-                text = "Your registration is submitted for administrator approval before mobile access is activated.",
+                text = "This form matches the player application used on the ParaVolley website. Your application will be sent to Player Applications for review.",
                 color = AppColors.GreyText,
                 fontSize = 13.sp
             )
 
-            RegistrationField("Full name", name, fieldColors, isLoading) { name = it }
-            RegistrationField("Position", position, fieldColors, isLoading) { position = it }
-            RegistrationField("Team", team, fieldColors, isLoading) { team = it }
-            RegistrationField("Age", age, fieldColors, isLoading, KeyboardType.Number) {
-                age = it.filter(Char::isDigit)
+            RegistrationField(
+                label = "Full Name *",
+                value = fullName,
+                colors = fieldColors,
+                isLoading = isLoading
+            ) { fullName = it }
+
+            RegistrationField(
+                label = "Email Address *",
+                value = email,
+                colors = fieldColors,
+                isLoading = isLoading,
+                keyboardType = KeyboardType.Email
+            ) { email = it }
+
+            RegistrationField(
+                label = "Phone Number *",
+                value = phone,
+                colors = fieldColors,
+                isLoading = isLoading,
+                keyboardType = KeyboardType.Phone
+            ) { phone = it }
+
+            RegistrationField(
+                label = "Date of Birth * (YYYY-MM-DD)",
+                value = dateOfBirth,
+                colors = fieldColors,
+                isLoading = isLoading,
+                keyboardType = KeyboardType.Number
+            ) {
+                dateOfBirth = it
+                    .filter { character ->
+                        character.isDigit() || character == '-'
+                    }
+                    .take(10)
             }
-            RegistrationField("Email", email, fieldColors, isLoading, KeyboardType.Email) { email = it }
-            RegistrationField("Phone", phone, fieldColors, isLoading, KeyboardType.Phone) { phone = it }
-            RegistrationField("Disability / classification (optional)", disability, fieldColors, isLoading) { disability = it }
+
             RegistrationField(
-                "Password (minimum 8 characters)",
-                password,
-                fieldColors,
-                isLoading,
-                KeyboardType.Password,
-                true
-            ) { password = it }
+                label = "Province",
+                value = province,
+                colors = fieldColors,
+                isLoading = isLoading
+            ) { province = it.take(100) }
+
             RegistrationField(
-                "Confirm password",
-                confirmPassword,
-                fieldColors,
-                isLoading,
-                KeyboardType.Password,
-                true
-            ) { confirmPassword = it }
+                label = "Town / City",
+                value = town,
+                colors = fieldColors,
+                isLoading = isLoading
+            ) { town = it.take(100) }
+
+            Spacer(Modifier.height(6.dp))
+
+            Text(
+                text = "Player Information",
+                color = AppColors.DarkText,
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp
+            )
+
+            Text(
+                text = "Experience examples: Beginner, Intermediate, Experienced, Competitive Athlete.",
+                color = AppColors.GreyText,
+                fontSize = 12.sp
+            )
+
+            RegistrationField(
+                label = "Experience Level",
+                value = experienceLevel,
+                colors = fieldColors,
+                isLoading = isLoading
+            ) { experienceLevel = it.take(50) }
+
+            Text(
+                text = "Position examples: Setter, Outside Hitter, Middle Blocker, Opposite Hitter, Libero, Not Sure Yet.",
+                color = AppColors.GreyText,
+                fontSize = 12.sp
+            )
+
+            RegistrationField(
+                label = "Preferred Position",
+                value = preferredPosition,
+                colors = fieldColors,
+                isLoading = isLoading
+            ) { preferredPosition = it.take(50) }
+
+            RegistrationField(
+                label = "Disability Classification *",
+                value = classification,
+                colors = fieldColors,
+                isLoading = isLoading
+            ) { classification = it.take(500) }
+
+            Spacer(Modifier.height(6.dp))
+
+            Text(
+                text = "Emergency Contact",
+                color = AppColors.DarkText,
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp
+            )
+
+            RegistrationField(
+                label = "Contact Name",
+                value = emergencyContactName,
+                colors = fieldColors,
+                isLoading = isLoading
+            ) { emergencyContactName = it.take(120) }
+
+            RegistrationField(
+                label = "Contact Number",
+                value = emergencyContactPhone,
+                colors = fieldColors,
+                isLoading = isLoading,
+                keyboardType = KeyboardType.Phone
+            ) { emergencyContactPhone = it.take(30) }
+
+            RegistrationField(
+                label = "Additional Support Information",
+                value = medicalNotes,
+                colors = fieldColors,
+                isLoading = isLoading,
+                singleLine = false,
+                minLines = 3
+            ) { medicalNotes = it.take(1000) }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top
+            ) {
+                Checkbox(
+                    checked = consent,
+                    onCheckedChange = {
+                        consent = it
+                        message = null
+                    },
+                    enabled = !isLoading,
+                    colors = CheckboxDefaults.colors(
+                        checkedColor = AppColors.Green
+                    )
+                )
+
+                Text(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(top = 12.dp),
+                    text = "I confirm that the information I provided is correct and I agree that ParaVolley Mpumalanga may contact me regarding my application.",
+                    color = AppColors.DarkText,
+                    fontSize = 13.sp
+                )
+            }
 
             message?.let {
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    color = if (registrationComplete) AppColors.LightGreen else AppColors.Error.copy(alpha = 0.08f),
+                    color =
+                        if (registrationComplete) {
+                            AppColors.LightGreen
+                        } else {
+                            AppColors.Error.copy(alpha = 0.08f)
+                        },
                     shape = RoundedCornerShape(10.dp)
                 ) {
                     Text(
                         modifier = Modifier.padding(12.dp),
                         text = it,
-                        color = if (registrationComplete) AppColors.Green else AppColors.Error,
+                        color =
+                            if (registrationComplete) {
+                                AppColors.Green
+                            } else {
+                                AppColors.Error
+                            },
                         fontSize = 13.sp
                     )
                 }
             }
 
             Button(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 4.dp),
+                modifier = Modifier.fillMaxWidth(),
                 enabled = !isLoading && !registrationComplete,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = AppColors.Yellow,
@@ -183,41 +339,66 @@ fun RegisterPlayerScreen(
                 ),
                 shape = RoundedCornerShape(10.dp),
                 onClick = {
-                    val parsedAge = age.toIntOrNull()
-                    message = validateRegistration(
-                        name,
-                        position,
-                        team,
-                        parsedAge,
-                        email,
-                        phone,
-                        password,
-                        confirmPassword
+                    val validationMessage = validateApplication(
+                        fullName = fullName,
+                        email = email,
+                        phone = phone,
+                        dateOfBirth = dateOfBirth,
+                        classification = classification,
+                        consent = consent
                     )
 
-                    if (message != null) return@Button
+                    if (validationMessage != null) {
+                        message = validationMessage
+                        return@Button
+                    }
 
                     isLoading = true
+                    message = null
+
                     scope.launch {
                         repository.registerPlayer(
                             RegisterPlayerRequest(
-                                name = name.trim(),
-                                position = position.trim(),
-                                team = team.trim(),
-                                age = parsedAge!!,
+                                fullName = fullName.trim(),
                                 email = email.trim(),
                                 phone = phone.trim(),
-                                disability = disability.trim(),
-                                password = password
+                                dateOfBirth = dateOfBirth.trim(),
+                                province = province
+                                    .trim()
+                                    .ifBlank { null },
+                                town = town
+                                    .trim()
+                                    .ifBlank { null },
+                                experienceLevel = experienceLevel
+                                    .trim()
+                                    .ifBlank { null },
+                                preferredPosition = preferredPosition
+                                    .trim()
+                                    .ifBlank { null },
+                                classification = classification.trim(),
+                                emergencyContactName = emergencyContactName
+                                    .trim()
+                                    .ifBlank { null },
+                                emergencyContactPhone = emergencyContactPhone
+                                    .trim()
+                                    .ifBlank { null },
+                                medicalNotes = medicalNotes
+                                    .trim()
+                                    .ifBlank { null },
+                                consent = true
                             )
-                        ).onSuccess {
-                            isLoading = false
-                            registrationComplete = true
-                            message = it.message
-                        }.onFailure {
-                            isLoading = false
-                            message = it.message ?: "Registration failed."
-                        }
+                        )
+                            .onSuccess {
+                                registrationComplete = true
+                                message = it.message
+                            }
+                            .onFailure {
+                                message =
+                                    it.message
+                                        ?: "The player application could not be submitted."
+                            }
+
+                        isLoading = false
                     }
                 }
             ) {
@@ -228,7 +409,10 @@ fun RegisterPlayerScreen(
                         strokeWidth = 2.dp
                     )
                 } else {
-                    Text("Submit Registration", fontWeight = FontWeight.Bold)
+                    Text(
+                        "Submit Player Application",
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
 
@@ -238,7 +422,12 @@ fun RegisterPlayerScreen(
                 onClick = onBackToLogin
             ) {
                 Text(
-                    text = if (registrationComplete) "Return to Login" else "Already registered? Back to Login",
+                    text =
+                        if (registrationComplete) {
+                            "Return to Login"
+                        } else {
+                            "Already registered? Back to Login"
+                        },
                     color = AppColors.Green,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -254,41 +443,81 @@ private fun RegistrationField(
     colors: androidx.compose.material3.TextFieldColors,
     isLoading: Boolean,
     keyboardType: KeyboardType = KeyboardType.Text,
-    isPassword: Boolean = false,
+    singleLine: Boolean = true,
+    minLines: Int = 1,
     onValueChange: (String) -> Unit
 ) {
     OutlinedTextField(
         modifier = Modifier.fillMaxWidth(),
         value = value,
-        onValueChange = onValueChange,
+        onValueChange = {
+            onValueChange(it)
+        },
         label = { Text(label) },
-        singleLine = true,
+        singleLine = singleLine,
+        minLines = minLines,
         enabled = !isLoading,
         colors = colors,
         shape = RoundedCornerShape(10.dp),
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-        visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None
+        keyboardOptions = KeyboardOptions(
+            keyboardType = keyboardType
+        )
     )
 }
 
-private fun validateRegistration(
-    name: String,
-    position: String,
-    team: String,
-    age: Int?,
+private fun validateApplication(
+    fullName: String,
     email: String,
     phone: String,
-    password: String,
-    confirmPassword: String
-): String? = when {
-    name.isBlank() || position.isBlank() || team.isBlank() ->
-        "Enter your name, position, and team."
-    age == null || age !in 5..100 ->
-        "Enter an age between 5 and 100."
-    !Patterns.EMAIL_ADDRESS.matcher(email.trim()).matches() ->
-        "Enter a valid email address."
-    phone.isBlank() -> "Enter a phone number."
-    password.length < 8 -> "Password must contain at least 8 characters."
-    password != confirmPassword -> "The passwords do not match."
-    else -> null
+    dateOfBirth: String,
+    classification: String,
+    consent: Boolean
+): String? {
+    if (fullName.isBlank()) {
+        return "Enter your full name."
+    }
+
+    if (!Patterns.EMAIL_ADDRESS
+            .matcher(email.trim())
+            .matches()
+    ) {
+        return "Enter a valid email address."
+    }
+
+    if (phone.isBlank()) {
+        return "Enter a phone number."
+    }
+
+    val parsedDate = runCatching {
+        LocalDate.parse(
+            dateOfBirth.trim(),
+            DateTimeFormatter.ISO_LOCAL_DATE
+        )
+    }.getOrNull()
+        ?: return "Enter your date of birth as YYYY-MM-DD."
+
+    val today = LocalDate.now()
+
+    if (parsedDate.isAfter(today)) {
+        return "Date of birth cannot be in the future."
+    }
+
+    var age = today.year - parsedDate.year
+    if (parsedDate.isAfter(today.minusYears(age.toLong()))) {
+        age--
+    }
+
+    if (age !in 5..100) {
+        return "Player age must be between 5 and 100 years."
+    }
+
+    if (classification.isBlank()) {
+        return "Enter your disability classification."
+    }
+
+    if (!consent) {
+        return "Confirm the consent statement before submitting."
+    }
+
+    return null
 }
