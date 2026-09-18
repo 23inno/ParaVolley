@@ -21,9 +21,11 @@
         ? orgWords[1]
         : "Mpumalanga";
 
-    var adminEmail =
-        adminProfile?.Email
-        ?? "paravolleympumalanga@gmail.com";
+    var supportEmail =
+        !string.IsNullOrWhiteSpace(org.OfficialEmail)
+            ? org.OfficialEmail
+            : adminProfile?.Email
+              ?? "admin@paravolleympumalanga.com";
 }
 
 
@@ -306,11 +308,11 @@
                             Contact ParaVolley Mpumalanga for account assistance.
                         </p>
 
-                        <a href="mailto:paravolleympumalanga@gmail.com">
+                        <a href="mailto:@supportEmail">
 
                             <i class="bi bi-envelope-fill"></i>
 
-                            paravolleympumalanga@gmail.com
+                            @supportEmail
 
                         </a>
 
