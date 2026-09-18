@@ -109,7 +109,12 @@ namespace SportsManagementMVC.Data
             string? password,
             bool explicitlyEnabled)
         {
-            if (AccountExists(context, AdminEmail))
+            var adminAlreadyExists =
+                context.AppUsers.Any(user =>
+                    user.Role == AppUserRole.Admin);
+
+            if (adminAlreadyExists ||
+                AccountExists(context, AdminEmail))
             {
                 return;
             }

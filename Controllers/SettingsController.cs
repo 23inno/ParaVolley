@@ -3,6 +3,8 @@ using System.IO.Compression;
 using System.Text.Json;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -187,8 +189,165 @@ namespace SportsManagementMVC.Controllers
         public async Task<IActionResult> Security()
         {
             ViewBag.ActiveSettingsTab = "Security";
-            var profile = await _context.UserProfiles.FirstOrDefaultAsync() ?? new UserProfile();
+
+            var profile =
+                await _context.UserProfiles.FirstOrDefaultAsync()
+                ?? new UserProfile();
+
+            var appUserIdValue =
+                User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (int.TryParse(appUserIdValue, out var appUserId))
+            {
+                var appUser = await _context.AppUsers
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(user =>
+                        user.Id == appUserId &&
+                        user.Role == AppUserRole.Admin &&
+                        user.IsActive);
+
+                if (appUser != null)
+                {
+                    profile.Email = appUser.Email;
+                }
+            }
+
             return View(profile);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [EnableRateLimiting("sensitive")]
+        public async Task<IActionResult> ChangeAdminEmail(
+            string currentPassword,
+            string newEmail,
+            string confirmEmail)
+        {
+            var appUserIdValue =
+                User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (!int.TryParse(
+                    appUserIdValue,
+                    out var appUserId))
+            {
+                return Forbid();
+            }
+
+            var appUser = await _context.AppUsers
+                .FirstOrDefaultAsync(user =>
+                    user.Id == appUserId &&
+                    user.Role == AppUserRole.Admin &&
+                    user.IsActive);
+
+            if (appUser == null)
+            {
+                return Forbid();
+            }
+
+            if (string.IsNullOrWhiteSpace(currentPassword) ||
+                _passwordHasher.VerifyHashedPassword(
+                    appUser,
+                    appUser.PasswordHash,
+                    currentPassword) ==
+                    PasswordVerificationResult.Failed)
+            {
+                TempData["Error"] =
+                    "Current password is incorrect.";
+
+                return RedirectToAction(nameof(Security));
+            }
+
+            var normalizedNewEmail =
+                (newEmail ?? string.Empty)
+                    .Trim()
+                    .ToLowerInvariant();
+
+            var normalizedConfirmEmail =
+                (confirmEmail ?? string.Empty)
+                    .Trim()
+                    .ToLowerInvariant();
+
+            if (!new EmailAddressAttribute()
+                    .IsValid(normalizedNewEmail))
+            {
+                TempData["Error"] =
+                    "Enter a valid new email address.";
+
+                return RedirectToAction(nameof(Security));
+            }
+
+            if (normalizedNewEmail !=
+                normalizedConfirmEmail)
+            {
+                TempData["Error"] =
+                    "New email and confirmation do not match.";
+
+                return RedirectToAction(nameof(Security));
+            }
+
+            var emailInUse = await _context.AppUsers
+                .AsNoTracking()
+                .AnyAsync(user =>
+                    user.Id != appUser.Id &&
+                    user.NormalizedEmail ==
+                        normalizedNewEmail);
+
+            if (emailInUse)
+            {
+                TempData["Error"] =
+                    "Another ParaVolley account already uses that email address.";
+
+                return RedirectToAction(nameof(Security));
+            }
+
+            var oldEmail = appUser.Email;
+
+            appUser.Email = normalizedNewEmail;
+            appUser.NormalizedEmail =
+                normalizedNewEmail;
+
+            var profile =
+                await _context.UserProfiles
+                    .FirstOrDefaultAsync();
+
+            if (profile != null)
+            {
+                profile.Email =
+                    normalizedNewEmail;
+            }
+
+            var organisation =
+                await _context.OrganisationSettings
+                    .FirstOrDefaultAsync();
+
+            if (organisation != null &&
+                (string.IsNullOrWhiteSpace(
+                    organisation.OfficialEmail) ||
+                 string.Equals(
+                    organisation.OfficialEmail,
+                    oldEmail,
+                    StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(
+                    organisation.OfficialEmail,
+                    "paravolleympumalanga@gmail.com",
+                    StringComparison.OrdinalIgnoreCase)))
+            {
+                organisation.OfficialEmail =
+                    normalizedNewEmail;
+            }
+
+            await _context.SaveChangesAsync();
+
+            await HttpContext.SignOutAsync(
+                CookieAuthenticationDefaults
+                    .AuthenticationScheme);
+
+            TempData["LoginSuccess"] =
+                $"Administrator email updated. Sign in again using {normalizedNewEmail}.";
+
+            return RedirectToAction(
+                "Login",
+                "Account");
         }
 
         [HttpPost]
