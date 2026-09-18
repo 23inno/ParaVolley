@@ -382,7 +382,8 @@
 
     </div>
 
-    @if (Model.Status == PlayerApplicationStatus.Pending)
+    @if (Model.Status == PlayerApplicationStatus.Pending &&
+         User.IsInRole(nameof(AppUserRole.Admin)))
     {
         <div class="card border-0 shadow-sm mt-4">
 
