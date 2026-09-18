@@ -87,10 +87,16 @@ namespace SportsManagementMVC.Controllers
             ViewBag.SelectedType = type;
             ViewBag.SelectedStatus = status;
 
-            return View(await query.OrderBy(e => e.Date).ThenBy(e => e.Id)
+            var events = await query
+                .OrderBy(e => e.Date)
+                .ThenBy(e => e.Id)
                 .Skip((page - 1) * Paging.DefaultPageSize)
                 .Take(Paging.DefaultPageSize)
-                .ToListAsync(cancellationToken));
+                .ToListAsync(cancellationToken);
+
+            await PopulateParticipantCountsAsync(events, cancellationToken);
+
+            return View(events);
         }
 
         // GET: Events/Export - downloads the current filtered list as a CSV file
@@ -139,6 +145,14 @@ namespace SportsManagementMVC.Controllers
 
             if (ev == null) return NotFound();
 
+            ev.Participants = await _context.EventRegistrations
+                .AsNoTracking()
+                .CountAsync(
+                    registration =>
+                        registration.EventId == ev.Id &&
+                        registration.Status == EventRegistrationStatus.Registered,
+                    cancellationToken);
+
             var canManageEvents =
                 User.IsInRole(nameof(AppUserRole.Admin)) ||
                 User.IsInRole(nameof(AppUserRole.Coach));
@@ -182,11 +196,12 @@ namespace SportsManagementMVC.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Policy = AuthorizationPolicies.AdminOrCoach)]
-        public async Task<IActionResult> Create([Bind("Title,Date,Time,Location,Type,Participants,Status,Description")] Event ev)
+        public async Task<IActionResult> Create([Bind("Title,Date,Time,Location,Type,Status,Description")] Event ev)
         {
             if (User.IsInRole(nameof(AppUserRole.Coach))) ev.Type = EventType.Practice;
             if (ModelState.IsValid)
             {
+                ev.Participants = 0;
                 _context.Add(ev);
                 await _context.SaveChangesAsync();
                 TempData["Success"] = $"Event \"{ev.Title}\" was created.";
@@ -231,7 +246,7 @@ namespace SportsManagementMVC.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Policy = AuthorizationPolicies.AdminOrCoach)]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Title,Date,Time,Location,Type,Participants,Status,Description")] Event ev)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Title,Date,Time,Location,Type,Status,Description")] Event ev)
         {
             if (id != ev.Id) return NotFound();
 
@@ -247,6 +262,13 @@ namespace SportsManagementMVC.Controllers
 
                 try
                 {
+                    ev.Participants = await _context.EventRegistrations
+                        .AsNoTracking()
+                        .CountAsync(
+                            registration =>
+                                registration.EventId == id &&
+                                registration.Status == EventRegistrationStatus.Registered);
+
                     _context.Update(ev);
                     await _context.SaveChangesAsync();
                     TempData["Success"] = $"Event \"{ev.Title}\" was updated.";
@@ -404,6 +426,42 @@ namespace SportsManagementMVC.Controllers
                 textBody,
                 htmlBody,
                 $"event {ev.Id} reminder");
+        }
+
+        private async Task PopulateParticipantCountsAsync(
+            IReadOnlyCollection<Event> events,
+            CancellationToken cancellationToken)
+        {
+            if (events.Count == 0)
+            {
+                return;
+            }
+
+            var eventIds = events
+                .Select(eventItem => eventItem.Id)
+                .ToList();
+
+            var participantCounts = await _context.EventRegistrations
+                .AsNoTracking()
+                .Where(registration =>
+                    eventIds.Contains(registration.EventId) &&
+                    registration.Status == EventRegistrationStatus.Registered)
+                .GroupBy(registration => registration.EventId)
+                .Select(group => new
+                {
+                    EventId = group.Key,
+                    Count = group.Count()
+                })
+                .ToDictionaryAsync(
+                    item => item.EventId,
+                    item => item.Count,
+                    cancellationToken);
+
+            foreach (var eventItem in events)
+            {
+                eventItem.Participants =
+                    participantCounts.GetValueOrDefault(eventItem.Id);
+            }
         }
 
         private Task<bool> EventExistsAsync(int id) =>
