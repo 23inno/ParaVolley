@@ -6,7 +6,12 @@
     Layout = "_Layout";
     var isAuthed = User.Identity != null && User.Identity.IsAuthenticated;
     var profile = await Db.UserProfiles.FirstOrDefaultAsync();
-    var adminEmail = profile?.Email ?? "admin@paravolley.com";
+    var organisation = await Db.OrganisationSettings.FirstOrDefaultAsync();
+    var adminEmail =
+        !string.IsNullOrWhiteSpace(organisation?.OfficialEmail)
+            ? organisation!.OfficialEmail!
+            : profile?.Email
+              ?? "admin@paravolleympumalanga.com";
     var adminPhone = profile?.Phone ?? "+27 13 000 0000";
 }
 
