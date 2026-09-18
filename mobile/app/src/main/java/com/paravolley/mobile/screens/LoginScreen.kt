@@ -47,6 +47,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -55,6 +56,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.paravolley.mobile.BuildConfig
 import com.paravolley.mobile.R
 import com.paravolley.mobile.network.AuthRepository
 import com.paravolley.mobile.network.SessionManager
@@ -73,6 +75,7 @@ fun LoginScreen(
     var isLoading by rememberSaveable { mutableStateOf(false) }
 
     val context = LocalContext.current
+    val uriHandler = LocalUriHandler.current
     val authRepository = remember { AuthRepository() }
     val sessionManager = remember { SessionManager(context.applicationContext) }
     val coroutineScope = rememberCoroutineScope()
@@ -272,7 +275,10 @@ fun LoginScreen(
             TextButton(
                 modifier = Modifier.align(Alignment.End),
                 enabled = !isLoading,
-                onClick = { }
+                onClick = {
+                    val baseUrl = BuildConfig.API_BASE_URL.trimEnd('/')
+                    uriHandler.openUri("$baseUrl/Account/ForgotPassword")
+                }
             ) {
                 Text("Forgot Password?", color = AppColors.Green)
             }
