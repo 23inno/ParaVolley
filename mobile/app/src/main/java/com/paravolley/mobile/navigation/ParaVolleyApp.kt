@@ -235,7 +235,8 @@ fun ParaVolleyApp(
 
         composable(Routes.PROFILE) { backStackEntry ->
             RefreshableDestination(
-                lifecycle = backStackEntry.lifecycle
+                lifecycle = backStackEntry.lifecycle,
+                refreshOnResume = false
             ) {
                 ProfileScreen(
                     onNavigate = navigateFromBottomBar,
@@ -268,6 +269,7 @@ fun ParaVolleyApp(
 @Composable
 private fun RefreshableDestination(
     lifecycle: Lifecycle,
+    refreshOnResume: Boolean = true,
     content: @Composable () -> Unit
 ) {
     var refreshGeneration by remember {
@@ -282,21 +284,25 @@ private fun RefreshableDestination(
         mutableStateOf(false)
     }
 
-    DisposableEffect(lifecycle) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                if (hasResumedOnce) {
-                    refreshGeneration++
-                } else {
-                    hasResumedOnce = true
+    DisposableEffect(lifecycle, refreshOnResume) {
+        if (!refreshOnResume) {
+            onDispose { }
+        } else {
+            val observer = LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    if (hasResumedOnce) {
+                        refreshGeneration++
+                    } else {
+                        hasResumedOnce = true
+                    }
                 }
             }
-        }
 
-        lifecycle.addObserver(observer)
+            lifecycle.addObserver(observer)
 
-        onDispose {
-            lifecycle.removeObserver(observer)
+            onDispose {
+                lifecycle.removeObserver(observer)
+            }
         }
     }
 
