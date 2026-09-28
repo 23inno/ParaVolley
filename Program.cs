@@ -377,7 +377,10 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+app.UseWhen(
+    context => !context.Request.Path.StartsWithSegments("/health"),
+    branchApp => branchApp.UseHttpsRedirection());
+
 app.UseRouting();
 
 app.UseAuthentication();

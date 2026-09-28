@@ -6,7 +6,7 @@ services:
     region: frankfurt
     branch: thapelo-android-api-integration
     dockerfilePath: ./Dockerfile
-    healthCheckPath: /health/ready
+    healthCheckPath: /health/live
     autoDeployTrigger: commit
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
