@@ -391,9 +391,9 @@ fun ProfileScreen(
                         age == null || age !in 5..100 ->
                             "Enter an age between 5 and 100."
 
-                        email.isBlank() ||
+                        email.isNotBlank() &&
                             !Patterns.EMAIL_ADDRESS.matcher(email).matches() ->
-                            "Enter a valid email address."
+                            "Enter a valid email address or leave it blank."
 
                         phone.isBlank() ->
                             "Enter a phone number."
@@ -433,7 +433,7 @@ fun ProfileScreen(
                                 if (emailChanged) {
                                     Toast.makeText(
                                         context,
-                                        "Email updated. Sign in again with your new email.",
+                                        "Login details updated. Please sign in again.",
                                         Toast.LENGTH_LONG
                                     ).show()
                                     sessionManager.clearSession()
