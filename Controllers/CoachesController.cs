@@ -233,9 +233,15 @@ namespace SportsManagementMVC.Controllers
 
             foreach (var coach in coaches)
             {
+                var exportEmail =
+                    LoginIdentifierHelper.IsPlaceholderEmail(
+                        coach.Email)
+                        ? string.Empty
+                        : coach.Email;
+
                 sb.AppendLine(
                     $"\"{coach.Name}\"," +
-                    $"\"{coach.Email}\"," +
+                    $"\"{exportEmail}\"," +
                     $"\"{coach.Phone}\"," +
                     $"\"{coach.Specialty}\"," +
                     $"\"{coach.Experience}\"," +
