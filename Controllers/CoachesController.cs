@@ -1018,27 +1018,31 @@ namespace SportsManagementMVC.Controllers
                                 normalizedEmail),
                         cancellationToken);
 
+            var phoneConflict =
+                await _context.AppUsers
+                    .AsNoTracking()
+                    .AnyAsync(
+                        user =>
+                            user.Id !=
+                                (account == null
+                                    ? 0
+                                    : account.Id) &&
+                            user.NormalizedPhone ==
+                                normalizedPhone,
+                        cancellationToken);
+
+            if (phoneConflict)
+            {
+                TempData["Error"] =
+                    "That phone number is already linked to another login account.";
+
+                return RedirectToAction(
+                    nameof(Details),
+                    new { id });
+            }
+
             if (account == null)
             {
-                var phoneConflict =
-                    await _context.AppUsers
-                        .AsNoTracking()
-                        .AnyAsync(
-                            user =>
-                                user.NormalizedPhone ==
-                                normalizedPhone,
-                            cancellationToken);
-
-                if (phoneConflict)
-                {
-                    TempData["Error"] =
-                        "That phone number is already linked to another login account.";
-
-                    return RedirectToAction(
-                        nameof(Details),
-                        new { id });
-                }
-
                 account =
                     CreateCoachAccount(
                         coach,
