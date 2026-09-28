@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SportsManagementMVC.Data;
+using SportsManagementMVC.Infrastructure;
 using SportsManagementMVC.Models;
 using SportsManagementMVC.Security;
 using SportsManagementMVC.Services;
@@ -218,10 +219,16 @@ namespace SportsManagementMVC.Controllers
                     application.Classification.Trim()
             };
 
+            var normalizedPhone =
+                LoginIdentifierHelper.NormalizePhone(
+                    application.Phone);
+
             var appUser = new AppUser
             {
                 Email = application.Email.Trim(),
                 NormalizedEmail = normalizedEmail,
+                Phone = application.Phone.Trim(),
+                NormalizedPhone = normalizedPhone,
                 Role = AppUserRole.Player,
                 IsActive = true,
                 Player = player
