@@ -84,14 +84,14 @@
         </div>
 
         <div class="mb-3">
-            <label asp-for="Email" class="form-label fw-semibold"></label>
-            <input asp-for="Email" class="form-control" />
+            <label asp-for="Email" class="form-label fw-semibold">Email <span class="text-muted fw-normal">(optional)</span></label>
+            <input asp-for="Email" class="form-control" type="email" placeholder="Optional email address" />
             <span asp-validation-for="Email" class="text-danger small"></span>
         </div>
 
         <div class="mb-3">
-            <label asp-for="Phone" class="form-label fw-semibold"></label>
-            <input asp-for="Phone" class="form-control" />
+            <label asp-for="Phone" class="form-label fw-semibold">WhatsApp / Mobile Number</label>
+            <input asp-for="Phone" class="form-control" placeholder="e.g. 079 123 4567" />
         </div>
 
         <div class="mb-0">
