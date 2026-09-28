@@ -31,7 +31,7 @@ namespace SportsManagementMVC.Models
         [Range(0, int.MaxValue)]
         public int Matches { get; set; }
 
-        [Required, EmailAddress]
+        [EmailAddress]
         public string Email { get; set; } = string.Empty;
 
         [Required, Phone]
