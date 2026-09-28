@@ -289,12 +289,6 @@ namespace SportsManagementMVC.Controllers
                 return NotFound();
             }
 
-            if (LoginIdentifierHelper.IsPlaceholderEmail(
-                    coach.Email))
-            {
-                coach.Email = string.Empty;
-            }
-
 
             ViewBag.Teams =
                 await GetTeamOptionsAsync(
