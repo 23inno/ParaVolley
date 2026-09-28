@@ -30,6 +30,5 @@ jobs:
           java-version: '17'
           cache: gradle
           cache-dependency-path: mobile/**/*.gradle*
-      - uses: android-actions/setup-android@v3
       - run: chmod +x gradlew
       - run: ./gradlew :app:assembleDebug --stacktrace
