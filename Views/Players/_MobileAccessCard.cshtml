@@ -1,8 +1,17 @@
 @model Player
+@using SportsManagementMVC.Infrastructure
 
 @{
     var mobileAccount = ViewBag.MobileAppUser as AppUser;
     var hasMobileAccount = mobileAccount != null;
+    var normalizedPhone =
+        LoginIdentifierHelper.NormalizePhone(Model.Phone);
+    var displayPhone =
+        LoginIdentifierHelper.DisplayPhone(Model.Phone);
+    var displayEmail =
+        LoginIdentifierHelper.IsPlaceholderEmail(Model.Email)
+            ? "Not provided"
+            : Model.Email;
 }
 
 <div class="mt-4 pt-3 border-top">
@@ -10,23 +19,24 @@
         <div>
             <h5 class="fw-bold mb-1">
                 <i class="bi bi-phone me-1"></i>
-                Mobile App Access
+                Player App Access
             </h5>
             <p class="text-muted small mb-0">
-                Create, activate or reset this player's Android login.
+                Players can use their WhatsApp/mobile number to sign in
+                after creating their own password.
             </p>
         </div>
 
         @if (hasMobileAccount)
         {
             <span class="badge @(mobileAccount!.IsActive ? "text-bg-success" : "text-bg-secondary")">
-                @(mobileAccount.IsActive ? "Active" : "Inactive")
+                @(mobileAccount.IsActive ? "Account active" : "Account inactive")
             </span>
         }
         else
         {
             <span class="badge text-bg-warning">
-                Not configured
+                Account not created
             </span>
         }
     </div>
@@ -34,78 +44,54 @@
     @if (Model.Status != PlayerStatus.Active)
     {
         <div class="alert alert-warning py-2 small">
-            This player record is inactive. Activate the player before enabling mobile app access.
+            This player record is inactive. Activate the player before
+            sending a Player App setup link.
         </div>
     }
 
     <div class="row g-3 mb-3">
         <div class="col-md-6">
-            <div class="small text-muted">Login email</div>
-            <div class="fw-semibold text-break">@Model.Email</div>
+            <div class="small text-muted">Player App login</div>
+            <div class="fw-semibold">@displayPhone</div>
         </div>
 
         <div class="col-md-6">
-            <div class="small text-muted">Mobile account</div>
-            <div class="fw-semibold">
-                @(hasMobileAccount ? "Linked to player" : "No AppUser linked")
-            </div>
+            <div class="small text-muted">Email</div>
+            <div class="fw-semibold text-break">@displayEmail</div>
         </div>
     </div>
 
-    <form asp-action="SaveMobileAccess"
+    <div class="alert alert-light border small">
+        <i class="bi bi-whatsapp me-1 text-success"></i>
+        The button below opens WhatsApp with a secure 48-hour password
+        setup/reset link already included. The player chooses their own
+        password; the admin never needs to know it.
+    </div>
+
+    <form asp-action="SendMobileSetupWhatsApp"
           asp-route-id="@Model.Id"
           method="post"
-          class="row g-3">
+          target="_blank"
+          class="d-inline">
+        @Html.AntiForgeryToken()
 
-        <div class="col-md-6">
-            <label for="mobilePassword-@Model.Id" class="form-label fw-semibold">
-                @(hasMobileAccount ? "New mobile password" : "Mobile password")
-            </label>
-            <input id="mobilePassword-@Model.Id"
-                   name="password"
-                   type="password"
-                   class="form-control"
-                   minlength="8"
-                   maxlength="128"
-                   autocomplete="new-password"
-                   required />
-        </div>
-
-        <div class="col-md-6">
-            <label for="mobilePasswordConfirm-@Model.Id" class="form-label fw-semibold">
-                Confirm password
-            </label>
-            <input id="mobilePasswordConfirm-@Model.Id"
-                   name="confirmPassword"
-                   type="password"
-                   class="form-control"
-                   minlength="8"
-                   maxlength="128"
-                   autocomplete="new-password"
-                   required />
-        </div>
-
-        <div class="col-12">
-            <div class="form-text mb-2">
-                The password is hashed by the server and is never stored or displayed in plain text.
-                @if (hasMobileAccount)
-                {
-                    <span>Saving will reset the mobile password and activate the account.</span>
-                }
-                else
-                {
-                    <span>Saving will create and activate a Player login for the Android app.</span>
-                }
-            </div>
-
-            <button type="submit"
-                    class="btn btn-pv"
-                    @(Model.Status != PlayerStatus.Active ? "disabled" : null)>
-                <i class="bi bi-shield-lock me-1"></i>
-                @(hasMobileAccount ? "Reset Password & Activate" : "Create Mobile Access")
-            </button>
-        </div>
+        <button type="submit"
+                class="btn btn-success"
+                @(Model.Status != PlayerStatus.Active ||
+                  normalizedPhone == null
+                    ? "disabled"
+                    : null)>
+            <i class="bi bi-whatsapp me-1"></i>
+            Send Password Setup / Reset on WhatsApp
+        </button>
     </form>
+
+    @if (normalizedPhone == null)
+    {
+        <div class="text-danger small mt-2">
+            Add a valid WhatsApp/mobile number before sending a setup link.
+        </div>
+    }
 
     @if (hasMobileAccount)
     {
@@ -113,11 +99,15 @@
               asp-route-id="@Model.Id"
               method="post"
               class="mt-3">
+            @Html.AntiForgeryToken()
+
             <button type="submit"
                     class="btn btn-sm @(mobileAccount!.IsActive ? "btn-outline-danger" : "btn-outline-success")"
-                    onclick="return confirm('@(mobileAccount.IsActive ? "Deactivate this player's mobile app access?" : "Activate this player's mobile app access?")');">
+                    onclick="return confirm('@(mobileAccount.IsActive ? "Deactivate this player\'s mobile app access?" : "Activate this player\'s mobile app access?")');">
                 <i class="bi @(mobileAccount.IsActive ? "bi-person-lock" : "bi-person-check") me-1"></i>
-                @(mobileAccount.IsActive ? "Deactivate Mobile Access" : "Activate Mobile Access")
+                @(mobileAccount.IsActive
+                    ? "Deactivate Player App Access"
+                    : "Activate Player App Access")
             </button>
         </form>
     }
