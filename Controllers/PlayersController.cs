@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -16,13 +17,16 @@ namespace SportsManagementMVC.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly IPasswordHasher<AppUser> _passwordHasher;
+        private readonly PasswordResetTokenService _passwordResetTokens;
 
         public PlayersController(
             ApplicationDbContext context,
-            IPasswordHasher<AppUser> passwordHasher)
+            IPasswordHasher<AppUser> passwordHasher,
+            PasswordResetTokenService passwordResetTokens)
         {
             _context = context;
             _passwordHasher = passwordHasher;
+            _passwordResetTokens = passwordResetTokens;
         }
 
         // GET: Players
@@ -326,6 +330,141 @@ namespace SportsManagementMVC.Controllers
             return RedirectToAction(nameof(Details), new { id });
         }
 
+        // POST: Players/SendMobileSetupWhatsApp/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
+        [EnableRateLimiting("sensitive")]
+        public async Task<IActionResult> SendMobileSetupWhatsApp(
+            int id,
+            CancellationToken cancellationToken = default)
+        {
+            var player = await _context.Players
+                .FirstOrDefaultAsync(
+                    item => item.Id == id,
+                    cancellationToken);
+
+            if (player == null)
+            {
+                return NotFound();
+            }
+
+            if (player.Status != PlayerStatus.Active)
+            {
+                TempData["Error"] =
+                    "Activate this player before sending a Player App setup link.";
+
+                return RedirectToAction(
+                    nameof(Details),
+                    new { id });
+            }
+
+            var normalizedPhone =
+                LoginIdentifierHelper.NormalizePhone(
+                    player.Phone);
+
+            if (normalizedPhone == null)
+            {
+                TempData["Error"] =
+                    "This player does not have a valid WhatsApp/mobile number.";
+
+                return RedirectToAction(
+                    nameof(Details),
+                    new { id });
+            }
+
+            var account = await _context.AppUsers
+                .FirstOrDefaultAsync(
+                    user =>
+                        user.Role == AppUserRole.Player &&
+                        user.PlayerId == id,
+                    cancellationToken);
+
+            if (account == null)
+            {
+                var phoneConflict =
+                    await _context.AppUsers
+                        .AsNoTracking()
+                        .AnyAsync(
+                            user =>
+                                user.NormalizedPhone ==
+                                normalizedPhone,
+                            cancellationToken);
+
+                if (phoneConflict)
+                {
+                    TempData["Error"] =
+                        "That phone number is already linked to another login account.";
+
+                    return RedirectToAction(
+                        nameof(Details),
+                        new { id });
+                }
+
+                var storageEmail =
+                    LoginIdentifierHelper.BuildStorageEmail(
+                        player.Email,
+                        "player",
+                        normalizedPhone);
+
+                account = CreatePlayerAccount(
+                    player,
+                    normalizedPhone);
+
+                account.Email = storageEmail;
+                account.NormalizedEmail = storageEmail;
+
+                _context.AppUsers.Add(account);
+            }
+            else
+            {
+                account.Phone = player.Phone.Trim();
+                account.NormalizedPhone =
+                    normalizedPhone;
+                account.IsActive = true;
+            }
+
+            await _context.SaveChangesAsync(
+                cancellationToken);
+
+            var token =
+                _passwordResetTokens.CreateToken(
+                    account,
+                    TimeSpan.FromHours(48));
+
+            var setupUrl =
+                Url.Action(
+                    nameof(AccountController.CreatePlayerPassword),
+                    "Account",
+                    new { token },
+                    Request.Scheme);
+
+            if (string.IsNullOrWhiteSpace(setupUrl))
+            {
+                TempData["Error"] =
+                    "The password setup link could not be generated.";
+
+                return RedirectToAction(
+                    nameof(Details),
+                    new { id });
+            }
+
+            var loginNumber =
+                LoginIdentifierHelper.DisplayPhone(
+                    player.Phone);
+
+            var message =
+                $"Hello {player.Name}, you have been added to the ParaVolley Mpumalanga Player App.\n\n" +
+                $"Please create your own password using this secure link:\n{setupUrl}\n\n" +
+                "The link expires in 48 hours. " +
+                $"After setup, sign in with {loginNumber} and your password.";
+
+            return Redirect(
+                LoginIdentifierHelper.BuildWhatsAppUrl(
+                    normalizedPhone,
+                    message));
+        }
+
         // POST: Players/ToggleMobileAccess/5
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -395,33 +534,123 @@ namespace SportsManagementMVC.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
-        public async Task<IActionResult> Create([Bind("Name,Position,Team,Status,Age,Matches,Email,Phone,Disability")] Player player)
+        public async Task<IActionResult> Create(
+            [Bind("Name,Position,Team,Status,Age,Matches,Email,Phone,Disability")]
+            Player player,
+            CancellationToken cancellationToken = default)
         {
+            var normalizedPhone =
+                LoginIdentifierHelper.NormalizePhone(player.Phone);
+
+            if (normalizedPhone == null)
+            {
+                ModelState.AddModelError(
+                    nameof(Player.Phone),
+                    "Enter a valid WhatsApp/mobile number.");
+            }
+
+            var suppliedEmail =
+                LoginIdentifierHelper.NormalizeEmail(player.Email);
+
             if (ModelState.IsValid)
             {
-                _context.Add(player);
-                await _context.SaveChangesAsync();
+                var storageEmail =
+                    LoginIdentifierHelper.BuildStorageEmail(
+                        suppliedEmail,
+                        "player",
+                        normalizedPhone!);
 
-                _context.PlayerProfileDetails.Add(new PlayerProfileDetails
+                var phoneAlreadyUsed =
+                    await _context.AppUsers
+                        .AsNoTracking()
+                        .AnyAsync(
+                            user =>
+                                user.NormalizedPhone ==
+                                normalizedPhone,
+                            cancellationToken);
+
+                var emailAlreadyUsed =
+                    await _context.AppUsers
+                        .AsNoTracking()
+                        .AnyAsync(
+                            user =>
+                                user.NormalizedEmail ==
+                                storageEmail,
+                            cancellationToken);
+
+                if (phoneAlreadyUsed)
                 {
-                    PlayerId = player.Id,
-                    JoinedDate = DateTime.UtcNow.Date
-                });
-                await _context.SaveChangesAsync();
-
-                TempData["Success"] = $"Player \"{player.Name}\" was created.";
-
-                if (IsAjaxRequest())
-                {
-                    return Json(new { success = true });
+                    ModelState.AddModelError(
+                        nameof(Player.Phone),
+                        "That phone number is already used by another login account.");
                 }
-                return RedirectToAction(nameof(Index));
+
+                if (emailAlreadyUsed)
+                {
+                    ModelState.AddModelError(
+                        nameof(Player.Email),
+                        "That email address is already used by another login account.");
+                }
+
+                if (ModelState.IsValid)
+                {
+                    player.Email = storageEmail;
+                    player.Phone = player.Phone.Trim();
+
+                    await using var transaction =
+                        await _context.Database
+                            .BeginTransactionAsync(
+                                cancellationToken);
+
+                    try
+                    {
+                        _context.Players.Add(player);
+                        await _context.SaveChangesAsync(
+                            cancellationToken);
+
+                        _context.PlayerProfileDetails.Add(
+                            new PlayerProfileDetails
+                            {
+                                PlayerId = player.Id,
+                                JoinedDate = DateTime.UtcNow.Date
+                            });
+
+                        var account = CreatePlayerAccount(
+                            player,
+                            normalizedPhone!);
+
+                        _context.AppUsers.Add(account);
+
+                        await _context.SaveChangesAsync(
+                            cancellationToken);
+
+                        await transaction.CommitAsync(
+                            cancellationToken);
+                    }
+                    catch
+                    {
+                        await transaction.RollbackAsync(
+                            cancellationToken);
+                        throw;
+                    }
+
+                    TempData["Success"] =
+                        $"Player \"{player.Name}\" was created with a Player App account. Open the player profile to send their password setup link on WhatsApp.";
+
+                    if (IsAjaxRequest())
+                    {
+                        return Json(new { success = true });
+                    }
+
+                    return RedirectToAction(nameof(Index));
+                }
             }
 
             if (IsAjaxRequest())
             {
                 return PartialView("_CreatePartial", player);
             }
+
             return View(player);
         }
 
@@ -434,6 +663,11 @@ namespace SportsManagementMVC.Controllers
             var player = await _context.Players.FindAsync(id);
             if (player == null) return NotFound();
 
+            if (LoginIdentifierHelper.IsPlaceholderEmail(player.Email))
+            {
+                player.Email = string.Empty;
+            }
+
             if (IsAjaxRequest())
             {
                 return PartialView("_EditPartial", player);
@@ -445,35 +679,134 @@ namespace SportsManagementMVC.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Position,Team,Status,Age,Matches,Email,Phone,Disability")] Player player)
+        public async Task<IActionResult> Edit(
+            int id,
+            [Bind("Id,Name,Position,Team,Status,Age,Matches,Email,Phone,Disability")]
+            Player player,
+            CancellationToken cancellationToken = default)
         {
             if (id != player.Id) return NotFound();
 
+            var normalizedPhone =
+                LoginIdentifierHelper.NormalizePhone(player.Phone);
+
+            if (normalizedPhone == null)
+            {
+                ModelState.AddModelError(
+                    nameof(Player.Phone),
+                    "Enter a valid WhatsApp/mobile number.");
+            }
+
             if (ModelState.IsValid)
             {
-                try
+                var storageEmail =
+                    LoginIdentifierHelper.BuildStorageEmail(
+                        player.Email,
+                        "player",
+                        normalizedPhone!);
+
+                var linkedAccount =
+                    await _context.AppUsers
+                        .FirstOrDefaultAsync(
+                            user =>
+                                user.Role == AppUserRole.Player &&
+                                user.PlayerId == id,
+                            cancellationToken);
+
+                var phoneConflict =
+                    await _context.AppUsers
+                        .AsNoTracking()
+                        .AnyAsync(
+                            user =>
+                                user.Id !=
+                                    (linkedAccount == null
+                                        ? 0
+                                        : linkedAccount.Id) &&
+                                user.NormalizedPhone ==
+                                    normalizedPhone,
+                            cancellationToken);
+
+                var emailConflict =
+                    await _context.AppUsers
+                        .AsNoTracking()
+                        .AnyAsync(
+                            user =>
+                                user.Id !=
+                                    (linkedAccount == null
+                                        ? 0
+                                        : linkedAccount.Id) &&
+                                user.NormalizedEmail ==
+                                    storageEmail,
+                            cancellationToken);
+
+                if (phoneConflict)
                 {
-                    _context.Update(player);
-                    await _context.SaveChangesAsync();
-                    TempData["Success"] = $"Player \"{player.Name}\" was updated.";
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!await PlayerExistsAsync(player.Id)) return NotFound();
-                    throw;
+                    ModelState.AddModelError(
+                        nameof(Player.Phone),
+                        "That phone number is already used by another login account.");
                 }
 
-                if (IsAjaxRequest())
+                if (emailConflict)
                 {
-                    return Json(new { success = true });
+                    ModelState.AddModelError(
+                        nameof(Player.Email),
+                        "That email address is already used by another login account.");
                 }
-                return RedirectToAction(nameof(Index));
+
+                if (ModelState.IsValid)
+                {
+                    player.Email = storageEmail;
+                    player.Phone = player.Phone.Trim();
+
+                    try
+                    {
+                        _context.Update(player);
+
+                        if (linkedAccount != null)
+                        {
+                            linkedAccount.Email =
+                                storageEmail;
+
+                            linkedAccount.NormalizedEmail =
+                                storageEmail;
+
+                            linkedAccount.Phone =
+                                player.Phone;
+
+                            linkedAccount.NormalizedPhone =
+                                normalizedPhone;
+                        }
+
+                        await _context.SaveChangesAsync(
+                            cancellationToken);
+
+                        TempData["Success"] =
+                            $"Player \"{player.Name}\" was updated.";
+                    }
+                    catch (DbUpdateConcurrencyException)
+                    {
+                        if (!await PlayerExistsAsync(player.Id))
+                        {
+                            return NotFound();
+                        }
+
+                        throw;
+                    }
+
+                    if (IsAjaxRequest())
+                    {
+                        return Json(new { success = true });
+                    }
+
+                    return RedirectToAction(nameof(Index));
+                }
             }
 
             if (IsAjaxRequest())
             {
                 return PartialView("_EditPartial", player);
             }
+
             return View(player);
         }
 
@@ -512,6 +845,41 @@ namespace SportsManagementMVC.Controllers
                 return Json(new { success = true });
             }
             return RedirectToAction(nameof(Index));
+        }
+
+        private AppUser CreatePlayerAccount(
+            Player player,
+            string normalizedPhone)
+        {
+            var storageEmail =
+                LoginIdentifierHelper.BuildStorageEmail(
+                    player.Email,
+                    "player",
+                    normalizedPhone);
+
+            var account = new AppUser
+            {
+                Email = storageEmail,
+                NormalizedEmail =
+                    LoginIdentifierHelper.NormalizeEmail(
+                        storageEmail),
+                Phone = player.Phone.Trim(),
+                NormalizedPhone = normalizedPhone,
+                Role = AppUserRole.Player,
+                IsActive = true,
+                Player = player
+            };
+
+            var temporarySecret =
+                Convert.ToBase64String(
+                    RandomNumberGenerator.GetBytes(48));
+
+            account.PasswordHash =
+                _passwordHasher.HashPassword(
+                    account,
+                    temporarySecret);
+
+            return account;
         }
 
         private Task<bool> PlayerExistsAsync(int id) =>
