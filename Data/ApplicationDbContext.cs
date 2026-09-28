@@ -57,6 +57,14 @@ namespace SportsManagementMVC.Data
             modelBuilder.Entity<AppUser>()
                 .HasIndex(user => user.NormalizedPhone);
 
+            modelBuilder.Entity<Player>()
+                .Property(player => player.Email)
+                .IsRequired();
+
+            modelBuilder.Entity<Coach>()
+                .Property(coach => coach.Email)
+                .IsRequired();
+
             modelBuilder.Entity<AppUser>()
                 .HasOne(user => user.Player)
                 .WithOne()
