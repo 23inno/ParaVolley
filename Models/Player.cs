@@ -32,7 +32,7 @@ namespace SportsManagementMVC.Models
         public int Matches { get; set; }
 
         [EmailAddress]
-        public string Email { get; set; } = string.Empty;
+        public string? Email { get; set; }
 
         [Required, Phone]
         public string Phone { get; set; } = string.Empty;
