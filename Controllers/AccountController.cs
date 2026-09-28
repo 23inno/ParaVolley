@@ -77,10 +77,30 @@ namespace SportsManagementMVC.Controllers
                 await _context.SaveChangesAsync();
             }
 
+            var displayName =
+                user.Player?.Name ??
+                user.Email;
+
+            if (user.Role == AppUserRole.Coach)
+            {
+                var coachName = await _context.Coaches
+                    .AsNoTracking()
+                    .Where(coach =>
+                        coach.Email.ToLower() ==
+                        user.NormalizedEmail)
+                    .Select(coach => coach.Name)
+                    .FirstOrDefaultAsync();
+
+                if (!string.IsNullOrWhiteSpace(coachName))
+                {
+                    displayName = coachName;
+                }
+            }
+
             var claims = new List<Claim>
             {
                 new(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new(ClaimTypes.Name, user.Player?.Name ?? user.Email),
+                new(ClaimTypes.Name, displayName),
                 new(ClaimTypes.Email, user.Email),
                 new(ClaimTypes.Role, user.Role.ToString())
             };
