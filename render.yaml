@@ -1,0 +1,50 @@
+services:
+  - type: web
+    name: paravolley-mpumalanga
+    runtime: docker
+    plan: free
+    branch: thapelo-android-api-integration
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health/ready
+    autoDeploy: true
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ConnectionStrings__DefaultConnection
+        sync: false
+      - key: Jwt__Key
+        sync: false
+      - key: Jwt__Issuer
+        sync: false
+      - key: Jwt__Audience
+        sync: false
+      - key: SeedUsers__AdminPassword
+        sync: false
+      - key: SeedUsers__CoachPassword
+        sync: false
+      - key: SeedUsers__PlayerPassword
+        sync: false
+      - key: Firebase__ProjectId
+        sync: false
+      - key: Firebase__ServiceAccountJsonBase64
+        sync: false
+      - key: BulkSMS__TokenId
+        sync: false
+      - key: BulkSMS__TokenSecret
+        sync: false
+      - key: WhatsApp__ApprovalTemplateName
+        sync: false
+      - key: WhatsApp__GraphApiVersion
+        sync: false
+      - key: WhatsApp__LanguageCode
+        sync: false
+      - key: WhatsApp__AccessToken
+        sync: false
+      - key: WhatsApp__PhoneNumberId
+        sync: false
+      - key: Resend__ApiKey
+        sync: false
+      - key: Resend__SenderEmail
+        sync: false
+      - key: Resend__SenderName
+        value: ParaVolley Mpumalanga
