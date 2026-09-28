@@ -18,7 +18,7 @@ namespace SportsManagementMVC.Models
         [Display(Name = "Full Name")]
         public string Name { get; set; } = string.Empty;
 
-        [Required, EmailAddress]
+        [EmailAddress]
         public string Email { get; set; } = string.Empty;
 
         [Required, Phone]
