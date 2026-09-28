@@ -39,7 +39,7 @@ namespace SportsManagementMVC.Models.Api
         public int Age { get; set; }
 
         [EmailAddress, StringLength(200)]
-        public string Email { get; set; } = string.Empty;
+        public string? Email { get; set; }
 
         [Required, Phone, StringLength(50)]
         public string Phone { get; set; } = string.Empty;
