@@ -38,7 +38,7 @@ namespace SportsManagementMVC.Models.Api
         [Range(5, 100)]
         public int Age { get; set; }
 
-        [Required, EmailAddress, StringLength(200)]
+        [EmailAddress, StringLength(200)]
         public string Email { get; set; } = string.Empty;
 
         [Required, Phone, StringLength(50)]
