@@ -1,3 +1,4 @@
+@using SportsManagementMVC.Infrastructure
 @model Player
 @{
     ViewData["Title"] = "Player Profile";
@@ -52,7 +53,7 @@
         <dd class="col-sm-8">@Model.Matches</dd>
 
         <dt class="col-sm-4 text-muted">Email</dt>
-        <dd class="col-sm-8">@Model.Email</dd>
+        <dd class="col-sm-8">@(LoginIdentifierHelper.IsPlaceholderEmail(Model.Email) ? "Not provided" : Model.Email)</dd>
 
         <dt class="col-sm-4 text-muted">Phone</dt>
         <dd class="col-sm-8">@Model.Phone</dd>
