@@ -106,9 +106,17 @@ namespace SportsManagementMVC.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<string>("NormalizedPhone")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
 
                     b.Property<int?>("PlayerId")
                         .HasColumnType("integer");
@@ -120,6 +128,8 @@ namespace SportsManagementMVC.Migrations
 
                     b.HasIndex("NormalizedEmail")
                         .IsUnique();
+
+                    b.HasIndex("NormalizedPhone");
 
                     b.HasIndex("PlayerId")
                         .IsUnique();
