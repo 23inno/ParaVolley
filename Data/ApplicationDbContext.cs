@@ -55,6 +55,9 @@ namespace SportsManagementMVC.Data
                 .IsUnique();
 
             modelBuilder.Entity<AppUser>()
+                .HasIndex(user => user.NormalizedPhone);
+
+            modelBuilder.Entity<AppUser>()
                 .HasOne(user => user.Player)
                 .WithOne()
                 .HasForeignKey<AppUser>(user => user.PlayerId)
