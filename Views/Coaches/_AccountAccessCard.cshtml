@@ -1,0 +1,76 @@
+@model Coach
+@using SportsManagementMVC.Infrastructure
+
+@{
+    var coachAccount = ViewBag.CoachAppUser as AppUser;
+    var hasAccount = coachAccount != null;
+    var normalizedPhone =
+        LoginIdentifierHelper.NormalizePhone(Model.Phone);
+    var displayPhone =
+        LoginIdentifierHelper.DisplayPhone(Model.Phone);
+    var displayEmail =
+        LoginIdentifierHelper.IsPlaceholderEmail(Model.Email)
+            ? "Not provided"
+            : Model.Email;
+}
+
+<div class="mt-4 pt-3 border-top">
+    <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
+        <div>
+            <h5 class="fw-bold mb-1">
+                <i class="bi bi-person-badge me-1"></i>
+                Coach Portal Access
+            </h5>
+            <p class="text-muted small mb-0">
+                Coaches can sign in to the web portal with their
+                WhatsApp/mobile number after choosing their own password.
+            </p>
+        </div>
+
+        <span class="badge @(hasAccount && coachAccount!.IsActive ? "text-bg-success" : "text-bg-warning")">
+            @(hasAccount
+                ? (coachAccount!.IsActive ? "Account active" : "Account inactive")
+                : "Account not created")
+        </span>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-6">
+            <div class="small text-muted">Coach Portal login</div>
+            <div class="fw-semibold">@displayPhone</div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="small text-muted">Email</div>
+            <div class="fw-semibold text-break">@displayEmail</div>
+        </div>
+    </div>
+
+    <div class="alert alert-light border small">
+        <i class="bi bi-whatsapp me-1 text-success"></i>
+        This opens WhatsApp with a secure 48-hour password setup/reset
+        link. The coach chooses their own password.
+    </div>
+
+    <form asp-action="SendAccountSetupWhatsApp"
+          asp-route-id="@Model.Id"
+          method="post"
+          target="_blank"
+          class="d-inline">
+        @Html.AntiForgeryToken()
+
+        <button type="submit"
+                class="btn btn-success"
+                @(normalizedPhone == null ? "disabled" : null)>
+            <i class="bi bi-whatsapp me-1"></i>
+            Send Password Setup / Reset on WhatsApp
+        </button>
+    </form>
+
+    @if (normalizedPhone == null)
+    {
+        <div class="text-danger small mt-2">
+            Add a valid WhatsApp/mobile number before sending a setup link.
+        </div>
+    }
+</div>
