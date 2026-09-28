@@ -130,7 +130,12 @@ namespace SportsManagementMVC.Controllers
             sb.AppendLine("Name,Position,Team,Age,Matches,Status,Email,Phone,Disability");
             foreach (var p in players)
             {
-                sb.AppendLine($"\"{p.Name}\",\"{p.Position}\",\"{p.Team}\",{p.Age},{p.Matches},\"{p.Status}\",\"{p.Email}\",\"{p.Phone}\",\"{p.Disability}\"");
+                var exportEmail =
+                    LoginIdentifierHelper.IsPlaceholderEmail(p.Email)
+                        ? string.Empty
+                        : p.Email;
+
+                sb.AppendLine($"\"{p.Name}\",\"{p.Position}\",\"{p.Team}\",{p.Age},{p.Matches},\"{p.Status}\",\"{exportEmail}\",\"{p.Phone}\",\"{p.Disability}\"");
             }
 
             var bytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
