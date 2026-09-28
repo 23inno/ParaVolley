@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -13,13 +15,19 @@ namespace SportsManagementMVC.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly IWebHostEnvironment _env;
+        private readonly IPasswordHasher<AppUser> _passwordHasher;
+        private readonly PasswordResetTokenService _passwordResetTokens;
 
         public CoachesController(
             ApplicationDbContext context,
-            IWebHostEnvironment env)
+            IWebHostEnvironment env,
+            IPasswordHasher<AppUser> passwordHasher,
+            PasswordResetTokenService passwordResetTokens)
         {
             _context = context;
             _env = env;
+            _passwordHasher = passwordHasher;
+            _passwordResetTokens = passwordResetTokens;
         }
 
         private bool IsAjaxRequest()
@@ -275,6 +283,12 @@ namespace SportsManagementMVC.Controllers
                 return NotFound();
             }
 
+            if (LoginIdentifierHelper.IsPlaceholderEmail(
+                    coach.Email))
+            {
+                coach.Email = string.Empty;
+            }
+
 
             ViewBag.Teams =
                 await GetTeamOptionsAsync(
@@ -368,6 +382,27 @@ namespace SportsManagementMVC.Controllers
             {
                 return NotFound();
             }
+
+            var normalizedPhone =
+                LoginIdentifierHelper.NormalizePhone(
+                    coach.Phone);
+
+            var normalizedEmail =
+                LoginIdentifierHelper.NormalizeEmail(
+                    coach.Email);
+
+            ViewBag.CoachAppUser =
+                await _context.AppUsers
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(
+                        user =>
+                            user.Role == AppUserRole.Coach &&
+                            ((normalizedPhone != null &&
+                              user.NormalizedPhone ==
+                                normalizedPhone) ||
+                             user.NormalizedEmail ==
+                                normalizedEmail),
+                        cancellationToken);
 
 
             if (IsAjaxRequest())
@@ -472,9 +507,83 @@ namespace SportsManagementMVC.Controllers
             }
 
 
-            // Clean text values
+            var normalizedPhone =
+                LoginIdentifierHelper.NormalizePhone(
+                    coach.Phone);
+
+            if (normalizedPhone == null)
+            {
+                ModelState.AddModelError(
+                    nameof(Coach.Phone),
+                    "Enter a valid WhatsApp/mobile number.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                ViewBag.Teams =
+                    await GetTeamOptionsAsync(
+                        cancellationToken);
+
+                return IsAjaxRequest()
+                    ? PartialView(
+                        "_CreatePartial",
+                        coach)
+                    : View(coach);
+            }
+
+            var storageEmail =
+                LoginIdentifierHelper.BuildStorageEmail(
+                    coach.Email,
+                    "coach",
+                    normalizedPhone!);
+
+            var phoneAlreadyUsed =
+                await _context.AppUsers
+                    .AsNoTracking()
+                    .AnyAsync(
+                        user =>
+                            user.NormalizedPhone ==
+                            normalizedPhone,
+                        cancellationToken);
+
+            var emailAlreadyUsed =
+                await _context.AppUsers
+                    .AsNoTracking()
+                    .AnyAsync(
+                        user =>
+                            user.NormalizedEmail ==
+                            storageEmail,
+                        cancellationToken);
+
+            if (phoneAlreadyUsed)
+            {
+                ModelState.AddModelError(
+                    nameof(Coach.Phone),
+                    "That phone number is already used by another login account.");
+            }
+
+            if (emailAlreadyUsed)
+            {
+                ModelState.AddModelError(
+                    nameof(Coach.Email),
+                    "That email address is already used by another login account.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                ViewBag.Teams =
+                    await GetTeamOptionsAsync(
+                        cancellationToken);
+
+                return IsAjaxRequest()
+                    ? PartialView(
+                        "_CreatePartial",
+                        coach)
+                    : View(coach);
+            }
+
             coach.Name = coach.Name.Trim();
-            coach.Email = coach.Email.Trim();
+            coach.Email = storageEmail;
             coach.Phone = coach.Phone.Trim();
 
             coach.AssignedTeam =
@@ -483,16 +592,36 @@ namespace SportsManagementMVC.Controllers
                     ? null
                     : coach.AssignedTeam.Trim();
 
+            var account =
+                CreateCoachAccount(
+                    coach,
+                    normalizedPhone!);
 
-            _context.Coaches.Add(coach);
+            await using var transaction =
+                await _context.Database
+                    .BeginTransactionAsync(
+                        cancellationToken);
 
+            try
+            {
+                _context.Coaches.Add(coach);
+                _context.AppUsers.Add(account);
 
-            await _context.SaveChangesAsync(
-                cancellationToken);
+                await _context.SaveChangesAsync(
+                    cancellationToken);
 
+                await transaction.CommitAsync(
+                    cancellationToken);
+            }
+            catch
+            {
+                await transaction.RollbackAsync(
+                    cancellationToken);
+                throw;
+            }
 
             TempData["Success"] =
-                $"Coach \"{coach.Name}\" was created.";
+                $"Coach \"{coach.Name}\" was created with a Coach Portal account. Open the coach profile to send their password setup link on WhatsApp.";
 
 
             if (IsAjaxRequest())
@@ -718,6 +847,133 @@ namespace SportsManagementMVC.Controllers
 
 
         // ============================================================
+        // WHATSAPP ACCOUNT SETUP
+        // ============================================================
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SendAccountSetupWhatsApp(
+            int id,
+            CancellationToken cancellationToken = default)
+        {
+            var coach = await _context.Coaches
+                .FirstOrDefaultAsync(
+                    item => item.Id == id,
+                    cancellationToken);
+
+            if (coach == null)
+            {
+                return NotFound();
+            }
+
+            var normalizedPhone =
+                LoginIdentifierHelper.NormalizePhone(
+                    coach.Phone);
+
+            if (normalizedPhone == null)
+            {
+                TempData["Error"] =
+                    "This coach does not have a valid WhatsApp/mobile number.";
+
+                return RedirectToAction(
+                    nameof(Details),
+                    new { id });
+            }
+
+            var normalizedEmail =
+                LoginIdentifierHelper.NormalizeEmail(
+                    coach.Email);
+
+            var account =
+                await _context.AppUsers
+                    .FirstOrDefaultAsync(
+                        user =>
+                            user.Role == AppUserRole.Coach &&
+                            (user.NormalizedPhone ==
+                                normalizedPhone ||
+                             user.NormalizedEmail ==
+                                normalizedEmail),
+                        cancellationToken);
+
+            if (account == null)
+            {
+                var phoneConflict =
+                    await _context.AppUsers
+                        .AsNoTracking()
+                        .AnyAsync(
+                            user =>
+                                user.NormalizedPhone ==
+                                normalizedPhone,
+                            cancellationToken);
+
+                if (phoneConflict)
+                {
+                    TempData["Error"] =
+                        "That phone number is already linked to another login account.";
+
+                    return RedirectToAction(
+                        nameof(Details),
+                        new { id });
+                }
+
+                account =
+                    CreateCoachAccount(
+                        coach,
+                        normalizedPhone);
+
+                _context.AppUsers.Add(account);
+            }
+            else
+            {
+                account.Phone = coach.Phone.Trim();
+                account.NormalizedPhone =
+                    normalizedPhone;
+                account.IsActive = true;
+            }
+
+            await _context.SaveChangesAsync(
+                cancellationToken);
+
+            var token =
+                _passwordResetTokens.CreateToken(
+                    account,
+                    TimeSpan.FromHours(48));
+
+            var setupUrl =
+                Url.Action(
+                    nameof(AccountController.CreatePlayerPassword),
+                    "Account",
+                    new { token },
+                    Request.Scheme);
+
+            if (string.IsNullOrWhiteSpace(setupUrl))
+            {
+                TempData["Error"] =
+                    "The password setup link could not be generated.";
+
+                return RedirectToAction(
+                    nameof(Details),
+                    new { id });
+            }
+
+            var loginNumber =
+                LoginIdentifierHelper.DisplayPhone(
+                    coach.Phone);
+
+            var message =
+                $"Hello {coach.Name}, you have been added to the ParaVolley Mpumalanga Coach Portal.\n\n" +
+                $"Please create your own password using this secure link:\n{setupUrl}\n\n" +
+                "The link expires in 48 hours. " +
+                $"After setup, sign in with {loginNumber} and your password.";
+
+            return Redirect(
+                LoginIdentifierHelper.BuildWhatsAppUrl(
+                    normalizedPhone,
+                    message));
+        }
+
+
+        // ============================================================
         // DELETE
         // ============================================================
 
@@ -847,6 +1103,41 @@ namespace SportsManagementMVC.Controllers
         // ============================================================
         // HELPERS
         // ============================================================
+
+        private AppUser CreateCoachAccount(
+            Coach coach,
+            string normalizedPhone)
+        {
+            var storageEmail =
+                LoginIdentifierHelper.BuildStorageEmail(
+                    coach.Email,
+                    "coach",
+                    normalizedPhone);
+
+            var account = new AppUser
+            {
+                Email = storageEmail,
+                NormalizedEmail =
+                    LoginIdentifierHelper.NormalizeEmail(
+                        storageEmail),
+                Phone = coach.Phone.Trim(),
+                NormalizedPhone = normalizedPhone,
+                Role = AppUserRole.Coach,
+                IsActive = true
+            };
+
+            var temporarySecret =
+                Convert.ToBase64String(
+                    RandomNumberGenerator.GetBytes(48));
+
+            account.PasswordHash =
+                _passwordHasher.HashPassword(
+                    account,
+                    temporarySecret);
+
+            return account;
+        }
+
 
         private Task<bool> CoachExistsAsync(
             int id,
