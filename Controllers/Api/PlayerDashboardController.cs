@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SportsManagementMVC.Data;
+using SportsManagementMVC.Infrastructure;
 using SportsManagementMVC.Models;
 
 namespace SportsManagementMVC.Controllers.Api
@@ -161,7 +162,11 @@ namespace SportsManagementMVC.Controllers.Api
                 {
                     id = player.Id,
                     name = player.Name,
-                    email = player.Email,
+                    email =
+                        LoginIdentifierHelper.IsPlaceholderEmail(
+                            player.Email)
+                            ? string.Empty
+                            : player.Email,
                     position = player.Position,
                     team = player.Team,
                     status = player.Status.ToString()
