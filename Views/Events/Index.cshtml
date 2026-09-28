@@ -137,9 +137,9 @@
                                     </span>
 
                                     <span class="event-date-month">
-                                        @eventItem.Date
-                                        .ToString("MMM")
-                                        .ToUpper()
+                                        @(eventItem.Date
+                                            .ToString("MMM")
+                                            .ToUpperInvariant())
                                     </span>
 
                                     <span class="event-date-year">
