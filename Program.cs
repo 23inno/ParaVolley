@@ -4,10 +4,12 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Npgsql;
 using SportsManagementMVC.Data;
 using SportsManagementMVC.Health;
 using SportsManagementMVC.Models;
@@ -23,10 +25,14 @@ builder.Services.AddAntiforgery(options =>
     options.HeaderName = "X-CSRF-TOKEN";
 });
 
-var connectionString =
+var rawConnectionString =
     builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? builder.Configuration["DATABASE_URL"]
     ?? throw new InvalidOperationException(
-        "Connection string 'DefaultConnection' was not found.");
+        "A PostgreSQL connection string was not found. Configure ConnectionStrings:DefaultConnection or DATABASE_URL.");
+
+var connectionString =
+    NormalizePostgresConnectionString(rawConnectionString);
 
 var jwtKey =
     builder.Configuration["Jwt:Key"]
@@ -66,6 +72,19 @@ builder.WebHost.ConfigureKestrel(options =>
 builder.Services.Configure<FormOptions>(options =>
 {
     options.MultipartBodyLengthLimit = 12 * 1024 * 1024;
+});
+
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders =
+        ForwardedHeaders.XForwardedFor |
+        ForwardedHeaders.XForwardedProto;
+
+    // The application is deployed behind a managed reverse proxy
+    // (for example Render). The public service is not directly exposed
+    // to arbitrary clients except through that proxy.
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
 });
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -296,6 +315,8 @@ builder.Services.AddRateLimiter(options =>
 
 var app = builder.Build();
 
+app.UseForwardedHeaders();
+
 if (!app.Configuration.GetValue<bool>("SkipDatabaseInitialization"))
 {
     using var scope = app.Services.CreateScope();
@@ -475,6 +496,50 @@ static Task WriteMinimalHealthResponse(
                 ? "Healthy"
                 : "Unhealthy"
     });
+}
+
+static string NormalizePostgresConnectionString(
+    string value)
+{
+    var trimmed = value.Trim();
+
+    if (!trimmed.StartsWith(
+            "postgres://",
+            StringComparison.OrdinalIgnoreCase) &&
+        !trimmed.StartsWith(
+            "postgresql://",
+            StringComparison.OrdinalIgnoreCase))
+    {
+        return trimmed;
+    }
+
+    var uri = new Uri(trimmed);
+    var userInfo = uri.UserInfo.Split(':', 2);
+
+    if (userInfo.Length == 0 ||
+        string.IsNullOrWhiteSpace(userInfo[0]))
+    {
+        throw new InvalidOperationException(
+            "The PostgreSQL URL does not contain a username.");
+    }
+
+    var builder = new NpgsqlConnectionStringBuilder
+    {
+        Host = uri.Host,
+        Port = uri.IsDefaultPort ? 5432 : uri.Port,
+        Database = Uri.UnescapeDataString(
+            uri.AbsolutePath.TrimStart('/')),
+        Username = Uri.UnescapeDataString(
+            userInfo[0]),
+        Password =
+            userInfo.Length > 1
+                ? Uri.UnescapeDataString(userInfo[1])
+                : string.Empty,
+        SslMode = SslMode.Require,
+        Pooling = true
+    };
+
+    return builder.ConnectionString;
 }
 
 public partial class Program

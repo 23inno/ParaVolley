@@ -12,4 +12,4 @@ WORKDIR /app
 
 COPY --from=build /app/publish .
 
-ENTRYPOINT ["dotnet", "SportsManagementMVC.dll"]
+ENTRYPOINT ["sh", "-c", "dotnet SportsManagementMVC.dll --urls http://0.0.0.0:${PORT:-8080}"]
