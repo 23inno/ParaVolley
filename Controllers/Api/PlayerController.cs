@@ -115,6 +115,14 @@ namespace SportsManagementMVC.Controllers.Api
                 });
             }
 
+            var phoneUsedByAnotherAccount = await _db.AppUsers
+                .AsNoTracking()
+                .AnyAsync(
+                    user =>
+                        user.Id != appUser.Id &&
+                        user.NormalizedPhone == normalizedPhone,
+                    cancellationToken);
+
             var emailUsedByAnotherAccount = await _db.AppUsers
                 .AsNoTracking()
                 .AnyAsync(
@@ -130,6 +138,14 @@ namespace SportsManagementMVC.Controllers.Api
                         other.Id != player.Id &&
                         other.Email.ToLower() == storageEmail,
                     cancellationToken);
+
+            if (phoneUsedByAnotherAccount)
+            {
+                return Conflict(new
+                {
+                    message = "That phone number is already used by another login account."
+                });
+            }
 
             if (emailUsedByAnotherAccount || emailUsedByAnotherPlayer)
             {
