@@ -663,6 +663,12 @@ namespace SportsManagementMVC.Controllers
                 return NotFound();
             }
 
+            if (LoginIdentifierHelper.IsPlaceholderEmail(
+                    coach.Email))
+            {
+                coach.Email = string.Empty;
+            }
+
 
             ViewBag.Teams =
                 await GetTeamOptionsAsync(
@@ -711,6 +717,89 @@ namespace SportsManagementMVC.Controllers
                 return NotFound();
             }
 
+            var existingPhone =
+                LoginIdentifierHelper.NormalizePhone(
+                    coach.Phone);
+
+            var existingEmail =
+                LoginIdentifierHelper.NormalizeEmail(
+                    coach.Email);
+
+            var linkedAccount =
+                await _context.AppUsers
+                    .FirstOrDefaultAsync(
+                        user =>
+                            user.Role == AppUserRole.Coach &&
+                            ((existingPhone != null &&
+                              user.NormalizedPhone ==
+                                existingPhone) ||
+                             user.NormalizedEmail ==
+                                existingEmail),
+                        cancellationToken);
+
+            var normalizedPhone =
+                LoginIdentifierHelper.NormalizePhone(
+                    input.Phone);
+
+            if (normalizedPhone == null)
+            {
+                ModelState.AddModelError(
+                    nameof(Coach.Phone),
+                    "Enter a valid WhatsApp/mobile number.");
+            }
+
+            var storageEmail =
+                normalizedPhone == null
+                    ? LoginIdentifierHelper.NormalizeEmail(
+                        input.Email)
+                    : LoginIdentifierHelper.BuildStorageEmail(
+                        input.Email,
+                        "coach",
+                        normalizedPhone);
+
+            if (normalizedPhone != null)
+            {
+                var phoneConflict =
+                    await _context.AppUsers
+                        .AsNoTracking()
+                        .AnyAsync(
+                            user =>
+                                user.Id !=
+                                    (linkedAccount == null
+                                        ? 0
+                                        : linkedAccount.Id) &&
+                                user.NormalizedPhone ==
+                                    normalizedPhone,
+                            cancellationToken);
+
+                var emailConflict =
+                    await _context.AppUsers
+                        .AsNoTracking()
+                        .AnyAsync(
+                            user =>
+                                user.Id !=
+                                    (linkedAccount == null
+                                        ? 0
+                                        : linkedAccount.Id) &&
+                                user.NormalizedEmail ==
+                                    storageEmail,
+                            cancellationToken);
+
+                if (phoneConflict)
+                {
+                    ModelState.AddModelError(
+                        nameof(Coach.Phone),
+                        "That phone number is already used by another login account.");
+                }
+
+                if (emailConflict)
+                {
+                    ModelState.AddModelError(
+                        nameof(Coach.Email),
+                        "That email address is already used by another login account.");
+                }
+            }
+
 
             if (!ModelState.IsValid)
             {
@@ -736,8 +825,36 @@ namespace SportsManagementMVC.Controllers
 
 
             coach.Name = input.Name.Trim();
-            coach.Email = input.Email.Trim();
+            coach.Email = storageEmail;
             coach.Phone = input.Phone.Trim();
+
+            if (linkedAccount == null)
+            {
+                linkedAccount =
+                    CreateCoachAccount(
+                        coach,
+                        normalizedPhone!);
+
+                _context.AppUsers.Add(
+                    linkedAccount);
+            }
+            else
+            {
+                linkedAccount.Email =
+                    storageEmail;
+
+                linkedAccount.NormalizedEmail =
+                    LoginIdentifierHelper.NormalizeEmail(
+                        storageEmail);
+
+                linkedAccount.Phone =
+                    coach.Phone;
+
+                linkedAccount.NormalizedPhone =
+                    normalizedPhone;
+
+                linkedAccount.IsActive = true;
+            }
 
             coach.AssignedTeam =
                 string.IsNullOrWhiteSpace(
