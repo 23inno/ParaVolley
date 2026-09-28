@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using SportsManagementMVC.Data;
+using SportsManagementMVC.Infrastructure;
 using SportsManagementMVC.Models;
 using SportsManagementMVC.Security;
 
@@ -49,11 +50,8 @@ namespace SportsManagementMVC.Controllers
                 return View(model);
             }
 
-            var normalizedEmail = NormalizeEmail(model.Email);
-            var user = await _context.AppUsers
-                .Include(appUser => appUser.Player)
-                .SingleOrDefaultAsync(appUser =>
-                    appUser.NormalizedEmail == normalizedEmail);
+            var user = await FindUserForLoginAsync(
+                model.Email);
 
             if (user == null || !user.IsActive)
             {
@@ -79,10 +77,30 @@ namespace SportsManagementMVC.Controllers
                 await _context.SaveChangesAsync();
             }
 
+            var displayName =
+                user.Player?.Name ??
+                user.Email;
+
+            if (user.Role == AppUserRole.Coach)
+            {
+                var coachName = await _context.Coaches
+                    .AsNoTracking()
+                    .Where(coach =>
+                        coach.Email.ToLower() ==
+                        user.NormalizedEmail)
+                    .Select(coach => coach.Name)
+                    .FirstOrDefaultAsync();
+
+                if (!string.IsNullOrWhiteSpace(coachName))
+                {
+                    displayName = coachName;
+                }
+            }
+
             var claims = new List<Claim>
             {
                 new(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new(ClaimTypes.Name, user.Player?.Name ?? user.Email),
+                new(ClaimTypes.Name, displayName),
                 new(ClaimTypes.Email, user.Email),
                 new(ClaimTypes.Role, user.Role.ToString())
             };
@@ -284,7 +302,7 @@ namespace SportsManagementMVC.Controllers
                     out var userId))
             {
                 ViewBag.SetupError =
-                    "This Player App setup link is invalid or has expired.";
+                    "This account setup link is invalid or has expired.";
 
                 return View(
                     new ResetPasswordViewModel
@@ -298,7 +316,8 @@ namespace SportsManagementMVC.Controllers
                 .FirstOrDefaultAsync(
                     appUser =>
                         appUser.Id == userId &&
-                        appUser.Role == AppUserRole.Player &&
+                        (appUser.Role == AppUserRole.Player ||
+                         appUser.Role == AppUserRole.Coach) &&
                         appUser.IsActive);
 
             if (user == null ||
@@ -307,7 +326,7 @@ namespace SportsManagementMVC.Controllers
                     user))
             {
                 ViewBag.SetupError =
-                    "This Player App setup link is invalid or has expired.";
+                    "This account setup link is invalid or has expired.";
 
                 return View(
                     new ResetPasswordViewModel
@@ -316,7 +335,7 @@ namespace SportsManagementMVC.Controllers
                     });
             }
 
-            ViewBag.PlayerEmail = user.Email;
+            PopulateSetupViewBag(user);
 
             return View(
                 new ResetPasswordViewModel
@@ -332,28 +351,30 @@ namespace SportsManagementMVC.Controllers
         public async Task<IActionResult> CreatePlayerPassword(
             ResetPasswordViewModel model)
         {
+            AppUser? user = null;
+
+            if (_passwordResetTokens.TryGetUserId(
+                    model.Token,
+                    out var userId))
+            {
+                user = await _context.AppUsers
+                    .FirstOrDefaultAsync(
+                        appUser =>
+                            appUser.Id == userId &&
+                            (appUser.Role == AppUserRole.Player ||
+                             appUser.Role == AppUserRole.Coach) &&
+                            appUser.IsActive);
+            }
+
+            if (user != null)
+            {
+                PopulateSetupViewBag(user);
+            }
+
             if (!ModelState.IsValid)
             {
                 return View(model);
             }
-
-            if (!_passwordResetTokens.TryGetUserId(
-                    model.Token,
-                    out var userId))
-            {
-                ModelState.AddModelError(
-                    string.Empty,
-                    "This Player App setup link is invalid or has expired.");
-
-                return View(model);
-            }
-
-            var user = await _context.AppUsers
-                .FirstOrDefaultAsync(
-                    appUser =>
-                        appUser.Id == userId &&
-                        appUser.Role == AppUserRole.Player &&
-                        appUser.IsActive);
 
             if (user == null ||
                 !_passwordResetTokens.IsValid(
@@ -362,7 +383,7 @@ namespace SportsManagementMVC.Controllers
             {
                 ModelState.AddModelError(
                     string.Empty,
-                    "This Player App setup link is invalid or has expired.");
+                    "This account setup link is invalid or has expired.");
 
                 return View(model);
             }
@@ -374,7 +395,7 @@ namespace SportsManagementMVC.Controllers
 
             await _context.SaveChangesAsync();
 
-            ViewBag.PlayerEmail = user.Email;
+            PopulateSetupViewBag(user);
 
             return View(
                 "PlayerPasswordCreated");
@@ -396,7 +417,7 @@ namespace SportsManagementMVC.Controllers
         {
             ModelState.AddModelError(
                 string.Empty,
-                "Invalid email or password.");
+                "Invalid email/phone number or password.");
             return View(model);
         }
 
@@ -411,9 +432,56 @@ namespace SportsManagementMVC.Controllers
             };
         }
 
+        private async Task<AppUser?> FindUserForLoginAsync(
+            string identifier)
+        {
+            var normalizedPhone =
+                LoginIdentifierHelper.NormalizePhone(identifier);
+
+            if (normalizedPhone != null &&
+                !identifier.Contains('@'))
+            {
+                var matches = await _context.AppUsers
+                    .Include(appUser => appUser.Player)
+                    .Where(appUser =>
+                        appUser.NormalizedPhone ==
+                        normalizedPhone)
+                    .Take(2)
+                    .ToListAsync();
+
+                return matches.Count == 1
+                    ? matches[0]
+                    : null;
+            }
+
+            var normalizedEmail =
+                LoginIdentifierHelper.NormalizeEmail(
+                    identifier);
+
+            return await _context.AppUsers
+                .Include(appUser => appUser.Player)
+                .SingleOrDefaultAsync(appUser =>
+                    appUser.NormalizedEmail ==
+                    normalizedEmail);
+        }
+
+        private void PopulateSetupViewBag(
+            AppUser user)
+        {
+            ViewBag.SetupRole = user.Role.ToString();
+
+            ViewBag.LoginIdentifier =
+                !string.IsNullOrWhiteSpace(
+                    user.Phone)
+                    ? LoginIdentifierHelper.DisplayPhone(
+                        user.Phone)
+                    : user.Email;
+        }
+
         private static string NormalizeEmail(string email)
         {
-            return email.Trim().ToLowerInvariant();
+            return LoginIdentifierHelper.NormalizeEmail(
+                email);
         }
     }
 }

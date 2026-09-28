@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SportsManagementMVC.Data;
+using SportsManagementMVC.Infrastructure;
 using SportsManagementMVC.Models;
 using SportsManagementMVC.Models.Api;
 using SportsManagementMVC.Security;
@@ -72,10 +73,24 @@ namespace SportsManagementMVC.Controllers.Api
                 });
             }
 
-            var normalizedEmail = request.Email
-                .Trim()
-                .ToLowerInvariant();
             var phone = request.Phone.Trim();
+            var normalizedPhone =
+                LoginIdentifierHelper.NormalizePhone(phone);
+
+            if (normalizedPhone == null)
+            {
+                return BadRequest(new
+                {
+                    message = "Enter a valid WhatsApp/mobile number."
+                });
+            }
+
+            var storageEmail =
+                LoginIdentifierHelper.BuildStorageEmail(
+                    request.Email,
+                    "player",
+                    normalizedPhone);
+
             var emergencyContactName = request.EmergencyContactName.Trim();
             var emergencyContactPhone = request.EmergencyContactPhone.Trim();
 
@@ -100,12 +115,20 @@ namespace SportsManagementMVC.Controllers.Api
                 });
             }
 
+            var phoneUsedByAnotherAccount = await _db.AppUsers
+                .AsNoTracking()
+                .AnyAsync(
+                    user =>
+                        user.Id != appUser.Id &&
+                        user.NormalizedPhone == normalizedPhone,
+                    cancellationToken);
+
             var emailUsedByAnotherAccount = await _db.AppUsers
                 .AsNoTracking()
                 .AnyAsync(
                     user =>
                         user.Id != appUser.Id &&
-                        user.NormalizedEmail == normalizedEmail,
+                        user.NormalizedEmail == storageEmail,
                     cancellationToken);
 
             var emailUsedByAnotherPlayer = await _db.Players
@@ -113,8 +136,16 @@ namespace SportsManagementMVC.Controllers.Api
                 .AnyAsync(
                     other =>
                         other.Id != player.Id &&
-                        other.Email.ToLower() == normalizedEmail,
+                        other.Email.ToLower() == storageEmail,
                     cancellationToken);
+
+            if (phoneUsedByAnotherAccount)
+            {
+                return Conflict(new
+                {
+                    message = "That phone number is already used by another login account."
+                });
+            }
 
             if (emailUsedByAnotherAccount || emailUsedByAnotherPlayer)
             {
@@ -147,16 +178,18 @@ namespace SportsManagementMVC.Controllers.Api
             try
             {
                 player.Age = request.Age;
-                player.Email = normalizedEmail;
+                player.Email = storageEmail;
                 player.Phone = phone;
 
                 profileDetails.EmergencyContactName = emergencyContactName;
                 profileDetails.EmergencyContactPhone = emergencyContactPhone;
 
-                // The player's authentication account uses the same email.
-                // Updating both records makes the edited email the next login email.
-                appUser.Email = normalizedEmail;
-                appUser.NormalizedEmail = normalizedEmail;
+                appUser.Email = storageEmail;
+                appUser.NormalizedEmail =
+                    LoginIdentifierHelper.NormalizeEmail(
+                        storageEmail);
+                appUser.Phone = phone;
+                appUser.NormalizedPhone = normalizedPhone;
 
                 await _db.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
@@ -324,7 +357,11 @@ namespace SportsManagementMVC.Controllers.Api
                 Status = player.Status.ToString(),
                 Age = player.Age,
                 Matches = player.Matches,
-                Email = player.Email,
+                Email =
+                    LoginIdentifierHelper.IsPlaceholderEmail(
+                        player.Email)
+                        ? string.Empty
+                        : player.Email,
                 Phone = player.Phone,
                 EmergencyContactName = profileDetails?.EmergencyContactName ?? string.Empty,
                 EmergencyContactPhone = profileDetails?.EmergencyContactPhone ?? string.Empty,

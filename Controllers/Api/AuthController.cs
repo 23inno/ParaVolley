@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using SportsManagementMVC.Data;
 using SportsManagementMVC.Dtos;
+using SportsManagementMVC.Infrastructure;
 using SportsManagementMVC.Models;
 using SportsManagementMVC.Models.Api;
 using SportsManagementMVC.Services;
@@ -45,20 +46,47 @@ namespace SportsManagementMVC.Controllers.Api
         public async Task<ActionResult<LoginResponse>> Login(
             LoginRequest request)
         {
-            var normalizedEmail = request.Email
-                .Trim()
-                .ToLowerInvariant();
+            var identifier = request.Email.Trim();
 
-            var user = await _context.AppUsers
-                .Include(x => x.Player)
-                .FirstOrDefaultAsync(x =>
-                    x.NormalizedEmail == normalizedEmail);
+            AppUser? user;
+
+            var normalizedPhone =
+                LoginIdentifierHelper.NormalizePhone(
+                    identifier);
+
+            if (normalizedPhone != null &&
+                !identifier.Contains('@'))
+            {
+                var matches = await _context.AppUsers
+                    .Include(x => x.Player)
+                    .Where(x =>
+                        x.NormalizedPhone ==
+                        normalizedPhone)
+                    .Take(2)
+                    .ToListAsync();
+
+                user = matches.Count == 1
+                    ? matches[0]
+                    : null;
+            }
+            else
+            {
+                var normalizedEmail =
+                    LoginIdentifierHelper.NormalizeEmail(
+                        identifier);
+
+                user = await _context.AppUsers
+                    .Include(x => x.Player)
+                    .FirstOrDefaultAsync(x =>
+                        x.NormalizedEmail ==
+                        normalizedEmail);
+            }
 
             if (user == null || !user.IsActive)
             {
                 return Unauthorized(new
                 {
-                    message = "Invalid email or password."
+                    message = "Invalid email/phone number or password."
                 });
             }
 
@@ -73,7 +101,7 @@ namespace SportsManagementMVC.Controllers.Api
             {
                 return Unauthorized(new
                 {
-                    message = "Invalid email or password."
+                    message = "Invalid email/phone number or password."
                 });
             }
 

@@ -184,16 +184,17 @@
                         <div class="pv-login-field">
 
                             <label asp-for="Email">
-                                Email Address
+                                Email or Phone Number
                             </label>
 
                             <div class="pv-login-input">
 
-                                <i class="bi bi-envelope"></i>
+                                <i class="bi bi-person-badge"></i>
 
                                 <input asp-for="Email"
-                                       type="email"
-                                       placeholder="name@example.com"
+                                       type="text"
+                                       inputmode="text"
+                                       placeholder="Email or 079 123 4567"
                                        autocomplete="username"
                                        required />
 

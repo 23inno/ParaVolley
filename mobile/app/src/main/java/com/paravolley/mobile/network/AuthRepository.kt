@@ -119,7 +119,7 @@ class AuthRepository {
                 "The login request was invalid."
 
             401 ->
-                "Invalid email or password."
+                "Invalid phone number/email or password."
 
             403 ->
                 "This account is not allowed to use the player app."

@@ -22,6 +22,13 @@ namespace SportsManagementMVC.Models
         [StringLength(200)]
         public string NormalizedEmail { get; set; } = string.Empty;
 
+        [Phone]
+        [StringLength(30)]
+        public string? Phone { get; set; }
+
+        [StringLength(20)]
+        public string? NormalizedPhone { get; set; }
+
         [Required]
         public string PasswordHash { get; set; } = string.Empty;
 

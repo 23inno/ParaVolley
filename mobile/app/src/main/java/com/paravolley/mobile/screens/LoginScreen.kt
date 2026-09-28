@@ -87,7 +87,7 @@ fun LoginScreen(
 
         when {
             email.isBlank() -> {
-                errorMessage = "Enter your email or username."
+                errorMessage = "Enter your phone number or email."
                 emailFocusRequester.requestFocus()
             }
             password.isBlank() -> {
@@ -203,8 +203,8 @@ fun LoginScreen(
                     errorMessage = null
                 },
                 enabled = !isLoading,
-                label = { Text("Email or Username") },
-                placeholder = { Text("Enter your email") },
+                label = { Text("Phone Number or Email") },
+                placeholder = { Text("079 123 4567 or email@example.com") },
                 leadingIcon = {
                     Icon(Icons.Filled.Email, contentDescription = null)
                 },

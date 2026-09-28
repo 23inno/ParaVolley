@@ -4,9 +4,9 @@ namespace SportsManagementMVC.Models
 {
     public class LoginViewModel
     {
-        [Required, EmailAddress]
+        [Required]
         [StringLength(254)]
-        [Display(Name = "Email Address")]
+        [Display(Name = "Email or Phone Number")]
         public string Email { get; set; } = string.Empty;
 
         [Required, DataType(DataType.Password)]
