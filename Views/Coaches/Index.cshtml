@@ -1,3 +1,4 @@
+@using SportsManagementMVC.Infrastructure
 @model IEnumerable<Coach>
 @{
     ViewData["Title"] = "Coaches";
@@ -189,7 +190,7 @@ ViewBag.Teams as List<string>
                         </td>
                         <td class="contact-cell">
                             <div><i class="bi bi-telephone"></i> @coach.Phone</div>
-                            <div><i class="bi bi-envelope"></i> @coach.Email</div>
+                            <div><i class="bi bi-envelope"></i> @(LoginIdentifierHelper.IsPlaceholderEmail(coach.Email) ? "—" : coach.Email)</div>
                         </td>
                         <td>
                             <div class="pm-player-name">@coach.Specialty</div>
