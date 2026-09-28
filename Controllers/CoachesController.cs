@@ -1149,16 +1149,38 @@ namespace SportsManagementMVC.Controllers
                 DeleteCoachPhotoIfExists(
                     coach.AvatarPath);
 
+                var normalizedPhone =
+                    LoginIdentifierHelper.NormalizePhone(
+                        coach.Phone);
+
+                var normalizedEmail =
+                    LoginIdentifierHelper.NormalizeEmail(
+                        coach.Email);
+
+                var account =
+                    await _context.AppUsers
+                        .FirstOrDefaultAsync(
+                            user =>
+                                user.Role == AppUserRole.Coach &&
+                                ((normalizedPhone != null &&
+                                  user.NormalizedPhone ==
+                                    normalizedPhone) ||
+                                 user.NormalizedEmail ==
+                                    normalizedEmail),
+                            cancellationToken);
+
+                if (account != null)
+                {
+                    _context.AppUsers.Remove(account);
+                }
 
                 _context.Coaches.Remove(coach);
-
 
                 await _context.SaveChangesAsync(
                     cancellationToken);
 
-
                 TempData["Success"] =
-                    "Coach was deleted.";
+                    "Coach and Coach Portal account were deleted.";
             }
 
 
