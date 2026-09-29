@@ -102,4 +102,24 @@ public static class LoginIdentifierHelper
             "?text=" +
             Uri.EscapeDataString(message);
     }
+
+    public static string BuildWhatsAppDesktopUrl(
+        string normalizedPhone,
+        string message)
+    {
+        return "whatsapp://send?phone=" +
+            Uri.EscapeDataString(normalizedPhone) +
+            "&text=" +
+            Uri.EscapeDataString(message);
+    }
+
+    public static string BuildWhatsAppWebUrl(
+        string normalizedPhone,
+        string message)
+    {
+        return "https://web.whatsapp.com/send?phone=" +
+            Uri.EscapeDataString(normalizedPhone) +
+            "&text=" +
+            Uri.EscapeDataString(message);
+    }
 }
