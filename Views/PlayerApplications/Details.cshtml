@@ -129,12 +129,17 @@
                             Email Address
                         </small>
 
-                        <a href="mailto:@Model.Email"
-                           class="text-decoration-none">
-
-                            @Model.Email
-
-                        </a>
+                        @if (!string.IsNullOrWhiteSpace(Model.Email))
+                        {
+                            <a href="mailto:@Model.Email"
+                               class="text-decoration-none">
+                                @Model.Email
+                            </a>
+                        }
+                        else
+                        {
+                            <span class="text-muted">Not provided</span>
+                        }
                     </div>
 
 
@@ -640,13 +645,16 @@
 
             </div>
 
-            <a href="mailto:@Model.Email?subject=ParaVolley%20Mpumalanga%20Player%20Application"
-               class="btn btn-success">
+            @if (!string.IsNullOrWhiteSpace(Model.Email))
+            {
+                <a href="mailto:@Model.Email?subject=ParaVolley%20Mpumalanga%20Player%20Application"
+                   class="btn btn-success">
 
-                <i class="bi bi-envelope-fill me-2"></i>
-                Email Applicant
+                    <i class="bi bi-envelope-fill me-2"></i>
+                    Email Applicant
 
-            </a>
+                </a>
+            }
 
         </div>
 
