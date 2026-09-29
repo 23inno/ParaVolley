@@ -1087,10 +1087,37 @@ namespace SportsManagementMVC.Controllers
                 "The link expires in 48 hours. " +
                 $"After setup, sign in with {loginNumber} and your password.";
 
-            return Redirect(
-                LoginIdentifierHelper.BuildWhatsAppUrl(
-                    normalizedPhone,
-                    message));
+            return View(
+                "~/Views/Shared/WhatsAppSetup.cshtml",
+                new WhatsAppSetupViewModel
+                {
+                    PersonName =
+                        coach.Name,
+                    AccountLabel =
+                        "Coach Portal",
+                    LoginIdentifier =
+                        loginNumber,
+                    Message =
+                        message,
+                    DesktopUrl =
+                        LoginIdentifierHelper
+                            .BuildWhatsAppDesktopUrl(
+                                normalizedPhone,
+                                message),
+                    WebUrl =
+                        LoginIdentifierHelper
+                            .BuildWhatsAppWebUrl(
+                                normalizedPhone,
+                                message),
+                    SetupUrl =
+                        setupUrl,
+                    BackController =
+                        "Coaches",
+                    BackAction =
+                        nameof(Details),
+                    BackId =
+                        id
+                });
         }
 
 
