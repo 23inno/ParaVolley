@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SportsManagementMVC.Data;
+using SportsManagementMVC.Infrastructure;
 using SportsManagementMVC.Models;
 using SportsManagementMVC.Security;
 using SportsManagementMVC.Services;
@@ -14,18 +15,18 @@ namespace SportsManagementMVC.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly EmailService _emailService;
-        private readonly StaffNotificationService _staffNotifications;
+        private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<HomeController> _logger;
 
         public HomeController(
             ApplicationDbContext context,
             EmailService emailService,
-            StaffNotificationService staffNotifications,
+            IServiceScopeFactory scopeFactory,
             ILogger<HomeController> logger)
         {
             _context = context;
             _emailService = emailService;
-            _staffNotifications = staffNotifications;
+            _scopeFactory = scopeFactory;
             _logger = logger;
         }
 
@@ -163,45 +164,106 @@ namespace SportsManagementMVC.Controllers
                     input);
             }
 
-            var email = input.Email.Trim().ToLowerInvariant();
+            var normalizedPhone =
+                LoginIdentifierHelper.NormalizePhone(
+                    input.Phone);
 
-            var playerAlreadyExists = await _context.Players
-                .AsNoTracking()
-                .AnyAsync(
-                    player => player.Email.ToLower() == email,
-                    cancellationToken);
-
-            if (playerAlreadyExists)
+            if (normalizedPhone == null)
             {
                 ModelState.AddModelError(
-                    nameof(input.Email),
-                    "A registered ParaVolley player already exists with this email address.");
+                    nameof(input.Phone),
+                    "Enter a valid WhatsApp/mobile number.");
 
                 return View(
                     "~/Views/Registration/Index.cshtml",
                     input);
             }
 
-            var alreadyPending = await _context.PlayerRegistrationApplications
-                .AsNoTracking()
-                .AnyAsync(
-                    application =>
-                        application.Email.ToLower() == email &&
-                        application.Status == PlayerApplicationStatus.Pending,
-                    cancellationToken);
+            var email =
+                LoginIdentifierHelper.NormalizeEmail(
+                    input.Email);
 
-            if (alreadyPending)
+            var existingPlayerPhones =
+                await _context.Players
+                    .AsNoTracking()
+                    .Select(player => player.Phone)
+                    .ToListAsync(cancellationToken);
+
+            var playerAlreadyExistsByPhone =
+                existingPlayerPhones.Any(phone =>
+                    LoginIdentifierHelper.NormalizePhone(phone) ==
+                    normalizedPhone);
+
+            var playerAlreadyExistsByEmail =
+                !string.IsNullOrWhiteSpace(email) &&
+                await _context.Players
+                    .AsNoTracking()
+                    .AnyAsync(
+                        player =>
+                            player.Email.ToLower() == email,
+                        cancellationToken);
+
+            if (playerAlreadyExistsByPhone ||
+                playerAlreadyExistsByEmail)
             {
                 ModelState.AddModelError(
-                    nameof(input.Email),
-                    "A pending player application already exists for this email address.");
+                    playerAlreadyExistsByPhone
+                        ? nameof(input.Phone)
+                        : nameof(input.Email),
+                    playerAlreadyExistsByPhone
+                        ? "A registered ParaVolley player already exists with this phone number."
+                        : "A registered ParaVolley player already exists with this email address.");
 
                 return View(
                     "~/Views/Registration/Index.cshtml",
                     input);
             }
 
-            input.Email = input.Email.Trim();
+            var pendingApplications =
+                await _context.PlayerRegistrationApplications
+                    .AsNoTracking()
+                    .Where(application =>
+                        application.Status ==
+                        PlayerApplicationStatus.Pending)
+                    .Select(application => new
+                    {
+                        application.Email,
+                        application.Phone
+                    })
+                    .ToListAsync(cancellationToken);
+
+            var alreadyPendingByPhone =
+                pendingApplications.Any(application =>
+                    LoginIdentifierHelper.NormalizePhone(
+                        application.Phone) ==
+                    normalizedPhone);
+
+            var alreadyPendingByEmail =
+                !string.IsNullOrWhiteSpace(email) &&
+                pendingApplications.Any(application =>
+                    string.Equals(
+                        LoginIdentifierHelper.NormalizeEmail(
+                            application.Email),
+                        email,
+                        StringComparison.Ordinal));
+
+            if (alreadyPendingByPhone ||
+                alreadyPendingByEmail)
+            {
+                ModelState.AddModelError(
+                    alreadyPendingByPhone
+                        ? nameof(input.Phone)
+                        : nameof(input.Email),
+                    alreadyPendingByPhone
+                        ? "A pending player application already exists for this phone number."
+                        : "A pending player application already exists for this email address.");
+
+                return View(
+                    "~/Views/Registration/Index.cshtml",
+                    input);
+            }
+
+            input.Email = email;
             input.FullName = input.FullName.Trim();
             input.Phone = input.Phone?.Trim();
             input.Classification = input.Classification?.Trim();
@@ -214,15 +276,26 @@ namespace SportsManagementMVC.Controllers
 
             await _context.SaveChangesAsync(cancellationToken);
 
-            await NotifyNewPlayerApplicationAsync(
-                input,
-                cancellationToken);
+            QueueNewPlayerApplicationNotification(
+                input);
 
             TempData["RegistrationSuccess"] =
-                "Thank you. Your player application has been submitted successfully. " +
-                "ParaVolley Mpumalanga will contact you after reviewing it.";
+                "Your player application has been submitted successfully and is pending review.";
 
-            return Redirect("/Join#player-registration-form");
+            TempData["RegistrationPhone"] =
+                LoginIdentifierHelper.DisplayPhone(
+                    input.Phone);
+
+            return RedirectToAction(
+                nameof(JoinSubmitted));
+        }
+
+        [AllowAnonymous]
+        [HttpGet("/Join/Submitted")]
+        public IActionResult JoinSubmitted()
+        {
+            return View(
+                "~/Views/Registration/Submitted.cshtml");
         }
 
         [AllowAnonymous]
@@ -554,66 +627,72 @@ namespace SportsManagementMVC.Controllers
             return View(settings);
         }
 
-        private async Task NotifyNewPlayerApplicationAsync(
-            PlayerRegistrationApplication application,
-            CancellationToken cancellationToken)
+        private void QueueNewPlayerApplicationNotification(
+            PlayerRegistrationApplication application)
         {
-            try
-            {
-                var subject = $"New player application: {application.FullName}";
-                var location = string.Join(
-                    ", ",
-                    new[] { application.Town, application.Province }
-                        .Where(value => !string.IsNullOrWhiteSpace(value)));
+            var subject =
+                $"New player application: {application.FullName}";
 
-                var textBody =
-                    $"A new ParaVolley player application was received from {application.FullName}. " +
-                    $"Email: {application.Email}. Phone: {application.Phone}. " +
-                    $"Location: {(string.IsNullOrWhiteSpace(location) ? "Not provided" : location)}. " +
-                    "Open Player Applications in the Admin website to review it.";
+            var location = string.Join(
+                ", ",
+                new[]
+                {
+                    application.Town,
+                    application.Province
+                }
+                    .Where(value =>
+                        !string.IsNullOrWhiteSpace(value)));
 
-                var safeName = WebUtility.HtmlEncode(application.FullName);
-                var safeEmail = WebUtility.HtmlEncode(application.Email);
-                var safePhone = WebUtility.HtmlEncode(application.Phone ?? "Not provided");
-                var safeLocation = WebUtility.HtmlEncode(
+            var displayEmail =
+                string.IsNullOrWhiteSpace(application.Email)
+                    ? "Not provided"
+                    : application.Email;
+
+            var textBody =
+                $"A new ParaVolley player application was received from {application.FullName}. " +
+                $"Email: {displayEmail}. Phone: {application.Phone}. " +
+                $"Location: {(string.IsNullOrWhiteSpace(location) ? "Not provided" : location)}. " +
+                "Open Player Applications in the Admin website to review it.";
+
+            var safeName =
+                WebUtility.HtmlEncode(
+                    application.FullName);
+
+            var safeEmail =
+                WebUtility.HtmlEncode(
+                    displayEmail);
+
+            var safePhone =
+                WebUtility.HtmlEncode(
+                    application.Phone ??
+                    "Not provided");
+
+            var safeLocation =
+                WebUtility.HtmlEncode(
                     string.IsNullOrWhiteSpace(location)
                         ? "Not provided"
                         : location);
 
-                var htmlBody = $"""
-                    <p>A new ParaVolley Mpumalanga player application has been received.</p>
-                    <p><strong>Name:</strong> {safeName}</p>
-                    <p><strong>Email:</strong> {safeEmail}</p>
-                    <p><strong>Phone:</strong> {safePhone}</p>
-                    <p><strong>Location:</strong> {safeLocation}</p>
-                    <p>Open <strong>Player Applications</strong> in the Admin website to review the application.</p>
-                    """;
+            var htmlBody = $"""
+                <p>A new ParaVolley Mpumalanga player application has been received.</p>
+                <p><strong>Name:</strong> {safeName}</p>
+                <p><strong>Email:</strong> {safeEmail}</p>
+                <p><strong>Phone:</strong> {safePhone}</p>
+                <p><strong>Location:</strong> {safeLocation}</p>
+                <p>Open <strong>Player Applications</strong> in the Admin website to review the application.</p>
+                """;
 
-                var results = await _staffNotifications.SendAsync(
+            BackgroundNotificationDispatcher
+                .QueueStaffNotification(
+                    _scopeFactory,
+                    _logger,
                     "new_player",
                     subject,
                     textBody,
                     htmlBody,
                     includeCoaches: false,
-                    cancellationToken);
-
-                foreach (var result in results.Where(item => !item.Success))
-                {
-                    _logger.LogWarning(
-                        "New player application {ApplicationId} notification reported: {Message}",
-                        application.Id,
-                        result.Message);
-                }
-            }
-            catch (Exception exception)
-            {
-                // A valid public registration must remain successful even if a
-                // configured staff notification provider fails.
-                _logger.LogWarning(
-                    exception,
-                    "Player application {ApplicationId} was saved, but staff notification delivery failed.",
-                    application.Id);
-            }
+                    context:
+                        $"player-application-{application.Id}");
         }
 
         [AllowAnonymous]
