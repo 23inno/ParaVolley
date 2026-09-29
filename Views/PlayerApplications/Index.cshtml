@@ -203,10 +203,17 @@
                                 </td>
 
                                 <td>
-                                    <a href="mailto:@application.Email"
-                                       class="text-decoration-none">
-                                        @application.Email
-                                    </a>
+                                    @if (!string.IsNullOrWhiteSpace(application.Email))
+                                    {
+                                        <a href="mailto:@application.Email"
+                                           class="text-decoration-none">
+                                            @application.Email
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Not provided</span>
+                                    }
                                 </td>
 
                                 <td>

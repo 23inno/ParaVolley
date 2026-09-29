@@ -18,10 +18,10 @@ namespace SportsManagementMVC.Models
         [Display(Name = "Full Name")]
         public string FullName { get; set; } = string.Empty;
 
-        [EmailAddress]
+        [EmailAddress(ErrorMessage = "Please enter a valid email address.")]
         [StringLength(150)]
         [Display(Name = "Email Address")]
-        public string Email { get; set; } = string.Empty;
+        public string? Email { get; set; }
 
         [Phone]
         [StringLength(30)]
