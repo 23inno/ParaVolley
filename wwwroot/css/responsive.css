@@ -1,0 +1,743 @@
+/* =========================================================
+   ParaVolley - Responsive Overrides
+   Loaded last so these rules safely refine the existing UI.
+   Breakpoints follow Bootstrap 5:
+   xs < 576, sm >= 576, md >= 768, lg >= 992, xl >= 1200.
+   ========================================================= */
+
+/* ---------- Universal safeguards ---------- */
+html,
+body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+body {
+    min-width: 0;
+}
+
+body *,
+body *::before,
+body *::after {
+    box-sizing: border-box;
+}
+
+img,
+video,
+canvas,
+svg,
+iframe {
+    max-width: 100%;
+}
+
+input,
+select,
+textarea,
+button {
+    max-width: 100%;
+}
+
+pre,
+code,
+.long-text,
+.text-break {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.container,
+.container-fluid,
+.row,
+[class*="col-"] {
+    min-width: 0;
+}
+
+.row > * {
+    min-width: 0;
+}
+
+.pv-public-shell main,
+.pv-public-shell section,
+.pv-app-shell .pv-content,
+.pv-app-shell .pv-card,
+.pv-app-shell .stat-card,
+.pv-app-shell .pm-header-card,
+.pv-app-shell .pm-table-card,
+.pv-app-shell .settings-content-card {
+    min-width: 0;
+    max-width: 100%;
+}
+
+/* Keep touch targets usable on phones/tablets. */
+@media (pointer: coarse) {
+    .btn,
+    button,
+    .nav-link,
+    .pv-nav-link,
+    .settings-nav-link {
+        min-height: 44px;
+    }
+}
+
+/* ---------- Public navigation ---------- */
+.pv-public-shell .navbar {
+    position: relative;
+    z-index: 1030;
+}
+
+.pv-public-shell .navbar .container {
+    min-width: 0;
+}
+
+.pv-public-shell .navbar-brand {
+    min-width: 0;
+    max-width: calc(100% - 68px);
+}
+
+.pv-public-shell .navbar-brand span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.pv-public-shell .pv-navbar-logo {
+    flex: 0 0 auto;
+}
+
+/* ---------- Public page layout safeguards ---------- */
+.pv-public-shell .home-hero,
+.pv-public-shell .about-hero-modern,
+.pv-public-shell .competition-hero,
+.pv-public-shell .events-hero,
+.pv-public-shell .news-hero,
+.pv-public-shell .players-hero,
+.pv-public-shell .sponsors-hero,
+.pv-public-shell .registration-hero,
+.pv-public-shell .contact-hero {
+    width: 100%;
+    max-width: 100%;
+}
+
+.pv-public-shell .home-hero-content,
+.pv-public-shell .about-hero-modern-content,
+.pv-public-shell .competition-hero-content,
+.pv-public-shell .events-hero-content,
+.pv-public-shell .news-hero-content,
+.pv-public-shell .players-hero-content,
+.pv-public-shell .sponsors-hero-content,
+.pv-public-shell .registration-hero-content {
+    max-width: 100%;
+}
+
+.pv-public-shell .home-hero-actions,
+.pv-public-shell .about-hero-actions,
+.pv-public-shell .competition-hero-actions,
+.pv-public-shell .events-hero-actions,
+.pv-public-shell .players-hero-actions,
+.pv-public-shell .sponsors-hero-actions,
+.pv-public-shell .about-cta-actions,
+.pv-public-shell .home-intro-actions {
+    max-width: 100%;
+}
+
+.pv-public-shell .registration-layout,
+.pv-public-shell .about-hero-grid,
+.pv-public-shell .about-coaching-grid,
+.pv-public-shell .about-athlete-grid,
+.pv-public-shell .sponsor-impact-grid,
+.pv-public-shell .pv-footer-grid {
+    min-width: 0;
+}
+
+.pv-public-shell .registration-form-card,
+.pv-public-shell .contact-info-card,
+.pv-public-shell .contact-form-card,
+.pv-public-shell .event-card,
+.pv-public-shell .news-card,
+.pv-public-shell .player-card,
+.pv-public-shell .sponsor-card,
+.pv-public-shell .competition-card,
+.pv-public-shell .competition-event-card,
+.pv-public-shell .competition-match-card,
+.pv-public-shell .competition-result-card {
+    min-width: 0;
+    max-width: 100%;
+}
+
+/* ---------- Admin / Coach shell ---------- */
+.pv-app-shell .pv-content > * {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.pv-app-shell .pv-sidebar nav {
+    scrollbar-width: thin;
+}
+
+.pv-app-shell .pm-table-card,
+.pv-app-shell .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.pv-app-shell .settings-layout {
+    min-width: 0;
+}
+
+.pv-app-shell .settings-row-control,
+.pv-app-shell .report-row-main,
+.pv-app-shell .user-info-text {
+    min-width: 0;
+}
+
+.pv-app-shell .report-title,
+.pv-app-shell .user-name,
+.pv-app-shell .user-email {
+    overflow-wrap: anywhere;
+}
+
+/* Charts and visual widgets should never force the page wider. */
+.pv-app-shell canvas,
+.pv-app-shell .chart-container,
+.pv-app-shell .ratio {
+    max-width: 100%;
+}
+
+/* =========================================================
+   Large tablets / small laptops
+   ========================================================= */
+@media (max-width: 1199.98px) {
+    .pv-app-shell .pv-content {
+        padding: 1.4rem;
+    }
+
+    .pv-public-shell .home-hero-content {
+        padding-left: clamp(24px, 4vw, 48px);
+        padding-right: clamp(24px, 5vw, 64px);
+    }
+
+    .pv-public-shell .home-section-title,
+    .pv-public-shell .section-title {
+        max-width: 100%;
+    }
+
+    .pv-public-shell .about-feature-card,
+    .pv-public-shell .home-belief-card,
+    .pv-public-shell .home-why-card {
+        padding: clamp(28px, 4vw, 40px);
+    }
+}
+
+/* =========================================================
+   Tablets / iPad portrait / compact laptops
+   ========================================================= */
+@media (max-width: 991.98px) {
+    /* Admin sidebar becomes a real off-canvas menu. */
+    .pv-app-shell .pv-sidebar {
+        width: min(320px, 86vw) !important;
+        max-width: 320px;
+        height: 100vh;
+        height: 100dvh;
+        overflow: hidden;
+    }
+
+    .pv-app-shell .pv-sidebar nav {
+        overflow-y: auto !important;
+        overflow-x: hidden;
+        overscroll-behavior: contain;
+    }
+
+    .pv-app-shell .pv-content,
+    .pv-app-shell .pv-sidebar.collapsed ~ .pv-content {
+        margin-left: 0 !important;
+        width: 100%;
+        padding: clamp(1rem, 2.5vw, 1.4rem);
+    }
+
+    .pv-app-shell .sidebar-backdrop {
+        width: 100%;
+        height: 100%;
+    }
+
+    .pv-app-shell .settings-layout {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    .pv-app-shell .settings-nav-card {
+        position: static;
+    }
+
+    /* Public collapsed navigation */
+    .pv-public-shell .navbar-collapse {
+        width: 100%;
+        max-height: calc(100vh - 78px);
+        max-height: calc(100dvh - 78px);
+        overflow-y: auto;
+        padding: 0.75rem 0 1rem;
+    }
+
+    .pv-public-shell .navbar-nav {
+        width: 100%;
+        align-items: stretch !important;
+        gap: 0.2rem;
+    }
+
+    .pv-public-shell .navbar-nav .nav-link {
+        width: 100%;
+        padding: 0.7rem 0.8rem;
+        border-radius: 0.5rem;
+    }
+
+    .pv-public-shell .navbar-nav .btn {
+        width: 100%;
+        margin-left: 0 !important;
+        margin-top: 0.55rem;
+    }
+
+    /* Two-column custom page layouts become one column. */
+    .pv-public-shell .registration-layout,
+    .pv-public-shell .about-hero-grid,
+    .pv-public-shell .about-coaching-grid,
+    .pv-public-shell .about-athlete-grid {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    .pv-public-shell .registration-layout {
+        gap: 2rem;
+    }
+
+    .pv-public-shell .contact-bottom-card {
+        flex-wrap: wrap;
+    }
+
+    .pv-public-shell .competition-match-top {
+        flex-wrap: wrap;
+    }
+
+    .pv-public-shell .competition-match-teams {
+        gap: 1rem;
+    }
+}
+
+/* =========================================================
+   Phones / small tablets
+   ========================================================= */
+@media (max-width: 767.98px) {
+    /* Consistent, comfortable section spacing. */
+    .pv-public-shell .section-padding,
+    .pv-public-shell .about-modern-section,
+    .pv-public-shell .events-section,
+    .pv-public-shell .news-section,
+    .pv-public-shell .players-section,
+    .pv-public-shell .sponsors-section,
+    .pv-public-shell .registration-section,
+    .pv-public-shell .contact-main-section,
+    .pv-public-shell .competition-events-section,
+    .pv-public-shell .competition-matches-section,
+    .pv-public-shell .competition-athletes-section,
+    .pv-public-shell .competition-results-section {
+        padding-top: 3.5rem;
+        padding-bottom: 3.5rem;
+    }
+
+    .pv-public-shell .container,
+    .pv-app-shell .container,
+    .pv-app-shell .container-fluid {
+        --bs-gutter-x: 1.5rem;
+    }
+
+    /* Hero text should fit without clipping. */
+    .pv-public-shell .about-hero-modern h1,
+    .pv-public-shell .competition-hero h1,
+    .pv-public-shell .events-hero h1,
+    .pv-public-shell .news-hero h1,
+    .pv-public-shell .players-hero h1,
+    .pv-public-shell .sponsors-hero h1,
+    .pv-public-shell .registration-hero h1,
+    .pv-public-shell .contact-hero h1 {
+        font-size: clamp(2.15rem, 10vw, 3rem) !important;
+        line-height: 1.05;
+        letter-spacing: -1px;
+        overflow-wrap: anywhere;
+    }
+
+    .pv-public-shell .home-hero h1 {
+        font-size: clamp(2.1rem, 9.5vw, 3rem) !important;
+        line-height: 1.04;
+        letter-spacing: -1px;
+    }
+
+    .pv-public-shell .home-hero-content {
+        padding-left: 1.25rem !important;
+        padding-right: 1.25rem !important;
+    }
+
+    .pv-public-shell .home-hero-text,
+    .pv-public-shell .about-hero-modern-content {
+        max-width: 100%;
+    }
+
+    .pv-public-shell .home-hero-text > p,
+    .pv-public-shell .about-hero-modern-content > p {
+        font-size: 0.98rem;
+        line-height: 1.65;
+    }
+
+    /* Action rows wrap instead of running off-screen. */
+    .pv-public-shell .home-hero-actions,
+    .pv-public-shell .about-hero-actions,
+    .pv-public-shell .competition-hero-actions,
+    .pv-public-shell .events-hero-actions,
+    .pv-public-shell .players-hero-actions,
+    .pv-public-shell .sponsors-hero-actions,
+    .pv-public-shell .about-cta-actions,
+    .pv-public-shell .home-intro-actions {
+        width: 100%;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    /* Cards and forms use smaller gutters. */
+    .pv-public-shell .registration-form-card,
+    .pv-public-shell .contact-info-card,
+    .pv-public-shell .contact-form-card,
+    .pv-public-shell .about-feature-card,
+    .pv-public-shell .about-purpose-card,
+    .pv-public-shell .about-impact-card,
+    .pv-public-shell .about-value-modern,
+    .pv-public-shell .about-work-card,
+    .pv-public-shell .home-belief-card,
+    .pv-public-shell .home-why-card {
+        padding: 1.5rem !important;
+    }
+
+    .pv-public-shell .registration-form-heading {
+        align-items: flex-start;
+    }
+
+    .pv-public-shell .registration-form-heading p {
+        line-height: 1.45;
+    }
+
+    /* Public list/card rows */
+    .pv-public-shell .competition-event-card,
+    .pv-public-shell .competition-match-card,
+    .pv-public-shell .competition-result-card {
+        max-width: 100%;
+    }
+
+    .pv-public-shell .competition-match-main {
+        min-width: 0;
+        padding: 1.25rem;
+    }
+
+    .pv-public-shell .competition-match-teams {
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+        gap: 0.65rem;
+    }
+
+    .pv-public-shell .competition-team {
+        min-width: 0;
+    }
+
+    .pv-public-shell .competition-team * {
+        overflow-wrap: anywhere;
+    }
+
+    /* Admin content */
+    .pv-app-shell .pv-content {
+        padding: 0.9rem;
+    }
+
+    .pv-app-shell .pv-card,
+    .pv-app-shell .stat-card,
+    .pv-app-shell .pm-header-card,
+    .pv-app-shell .settings-section-header,
+    .pv-app-shell .settings-section-body {
+        max-width: 100%;
+    }
+
+    .pv-app-shell .pm-header-card,
+    .pv-app-shell .news-card-top,
+    .pv-app-shell .news-card-meta,
+    .pv-app-shell .em-card-top,
+    .pv-app-shell .report-row {
+        flex-wrap: wrap;
+    }
+
+    .pv-app-shell .settings-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.6rem;
+    }
+
+    .pv-app-shell .settings-row-label {
+        width: auto;
+    }
+
+    /* Any admin table can scroll horizontally instead of breaking the viewport. */
+    .pv-app-shell .pv-content table {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .pv-app-shell .pv-content table thead,
+    .pv-app-shell .pv-content table tbody,
+    .pv-app-shell .pv-content table tfoot {
+        width: max-content;
+        min-width: 100%;
+    }
+
+    /* Bootstrap modals fit phones and small tablets. */
+    .modal-dialog {
+        width: auto;
+        max-width: calc(100vw - 1.5rem);
+        margin: 0.75rem auto;
+    }
+
+    .modal-content {
+        max-height: calc(100vh - 1.5rem);
+        max-height: calc(100dvh - 1.5rem);
+    }
+
+    .modal-body {
+        overflow-y: auto;
+    }
+
+    /* Login/auth pages */
+    .login-shell {
+        padding: 1rem;
+        min-height: 100vh;
+        min-height: 100dvh;
+        align-items: flex-start;
+    }
+
+    .login-card {
+        min-height: 0;
+        border-radius: 1rem;
+    }
+
+    .login-left,
+    .login-right {
+        padding: 1.5rem !important;
+    }
+
+    .login-brand-title,
+    .login-welcome-title {
+        font-size: clamp(1.55rem, 7vw, 2rem);
+    }
+}
+
+/* =========================================================
+   Small phones
+   ========================================================= */
+@media (max-width: 575.98px) {
+    .pv-public-shell .navbar {
+        padding-left: max(0.4rem, env(safe-area-inset-left));
+        padding-right: max(0.4rem, env(safe-area-inset-right));
+    }
+
+    .pv-public-shell .navbar .container {
+        --bs-gutter-x: 1rem;
+    }
+
+    .pv-public-shell .navbar-brand {
+        max-width: calc(100% - 58px);
+        gap: 0.45rem !important;
+    }
+
+    .pv-public-shell .navbar-brand span {
+        font-size: 0.92rem;
+        line-height: 1.15;
+    }
+
+    .pv-public-shell .pv-navbar-logo {
+        width: 40px !important;
+        height: 40px !important;
+        object-fit: contain;
+    }
+
+    /* Prevent iOS Safari from zooming into small form fields. */
+    .pv-public-shell input,
+    .pv-public-shell select,
+    .pv-public-shell textarea,
+    .pv-app-shell input,
+    .pv-app-shell select,
+    .pv-app-shell textarea {
+        font-size: 16px !important;
+    }
+
+    .pv-public-shell .registration-form-card,
+    .pv-public-shell .contact-info-card,
+    .pv-public-shell .contact-form-card {
+        padding: 1.1rem !important;
+        border-radius: 0.9rem;
+    }
+
+    .pv-public-shell .registration-form-heading {
+        gap: 0.75rem;
+    }
+
+    .pv-public-shell .registration-form-number {
+        flex: 0 0 auto;
+    }
+
+    /* Full-width primary actions on very small screens. */
+    .pv-public-shell .home-hero-actions .btn,
+    .pv-public-shell .about-hero-actions .btn,
+    .pv-public-shell .competition-hero-actions .btn,
+    .pv-public-shell .events-hero-actions .btn,
+    .pv-public-shell .players-hero-actions .btn,
+    .pv-public-shell .sponsors-hero-actions .btn,
+    .pv-public-shell .registration-submit-btn,
+    .pv-public-shell .contact-submit-btn .btn,
+    .pv-public-shell .events-cta-btn,
+    .pv-public-shell .players-cta-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .pv-public-shell .home-contact-item {
+        min-height: 0;
+        padding: 1rem;
+    }
+
+    .pv-public-shell .contact-bottom-card {
+        padding: 1.25rem !important;
+    }
+
+    .pv-public-shell .contact-email-btn {
+        width: 100%;
+        margin-left: 0 !important;
+        text-align: center;
+    }
+
+    .pv-public-shell .competition-match-teams {
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+
+    .pv-public-shell .competition-team {
+        text-align: center;
+    }
+
+    .pv-public-shell .competition-match-vs {
+        margin: 0.25rem auto;
+    }
+
+    .pv-app-shell .pv-content {
+        padding: 0.7rem;
+    }
+
+    .pv-app-shell .page-title,
+    .pv-app-shell .news-page-title,
+    .pv-app-shell .settings-page-title {
+        font-size: clamp(1.35rem, 7vw, 1.75rem);
+        overflow-wrap: anywhere;
+    }
+
+    .pv-app-shell .pv-card,
+    .pv-app-shell .stat-card,
+    .pv-app-shell .pm-header-card,
+    .pv-app-shell .news-card,
+    .pv-app-shell .settings-content-card {
+        border-radius: 0.8rem;
+    }
+
+    .pv-app-shell .report-row {
+        align-items: flex-start;
+    }
+
+    .pv-app-shell .report-row-actions {
+        margin-left: auto;
+    }
+
+    .pv-app-shell .btn-group,
+    .pv-app-shell .input-group {
+        max-width: 100%;
+    }
+
+    .pv-app-shell .pagination {
+        flex-wrap: wrap;
+        gap: 0.25rem;
+    }
+
+    .login-remember-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+}
+
+/* =========================================================
+   Very narrow phones (320-400 px)
+   ========================================================= */
+@media (max-width: 399.98px) {
+    .pv-public-shell .navbar-brand span {
+        font-size: 0.82rem;
+    }
+
+    .pv-public-shell .pv-navbar-logo {
+        width: 36px !important;
+        height: 36px !important;
+    }
+
+    .pv-public-shell .home-hero h1,
+    .pv-public-shell .about-hero-modern h1,
+    .pv-public-shell .competition-hero h1,
+    .pv-public-shell .events-hero h1,
+    .pv-public-shell .news-hero h1,
+    .pv-public-shell .players-hero h1,
+    .pv-public-shell .sponsors-hero h1,
+    .pv-public-shell .registration-hero h1,
+    .pv-public-shell .contact-hero h1 {
+        font-size: 2rem !important;
+    }
+
+    .pv-public-shell .registration-form-card,
+    .pv-public-shell .contact-info-card,
+    .pv-public-shell .contact-form-card {
+        padding: 0.9rem !important;
+    }
+
+    .pv-app-shell .pv-content {
+        padding: 0.55rem;
+    }
+}
+
+/* =========================================================
+   Short landscape phones / tablets
+   ========================================================= */
+@media (max-height: 600px) and (orientation: landscape) {
+    .pv-app-shell .pv-sidebar {
+        height: 100dvh;
+    }
+
+    .pv-app-shell .pv-sidebar nav {
+        overflow-y: auto !important;
+    }
+
+    .pv-public-shell .navbar-collapse {
+        max-height: calc(100dvh - 64px);
+        overflow-y: auto;
+    }
+
+    .modal-content {
+        max-height: calc(100dvh - 1rem);
+    }
+}
+
+/* Respect users who request less animation. */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+    }
+}
