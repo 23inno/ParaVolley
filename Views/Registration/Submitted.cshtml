@@ -1,0 +1,75 @@
+@{
+    ViewData["Title"] = "Application Submitted";
+    Layout = "_Layout";
+
+    var message =
+        TempData["RegistrationSuccess"] as string
+        ?? "Your player application has been submitted successfully and is pending review.";
+
+    var phone =
+        TempData["RegistrationPhone"] as string;
+}
+
+<section class="registration-section py-5">
+    <div class="container">
+        <div class="mx-auto" style="max-width:720px;">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4 p-md-5 text-center">
+                    <div class="mb-3">
+                        <i class="bi bi-check-circle-fill text-success"
+                           style="font-size:3.25rem;"></i>
+                    </div>
+
+                    <h1 class="fw-bold mb-3">
+                        Application Submitted
+                    </h1>
+
+                    <p class="lead mb-3">
+                        @message
+                    </p>
+
+                    <div class="alert alert-warning text-start">
+                        <div class="fw-bold mb-1">
+                            Status: Pending Review
+                        </div>
+
+                        <div>
+                            A Player App login is not active yet.
+                            After ParaVolley Mpumalanga approves your application,
+                            an administrator will send you a secure WhatsApp link
+                            so you can create your own password.
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(phone))
+                    {
+                        <div class="alert alert-light border text-start">
+                            <i class="bi bi-whatsapp text-success me-1"></i>
+                            WhatsApp/mobile number:
+                            <strong>@phone</strong>
+                        </div>
+                    }
+
+                    <p class="text-muted">
+                        You do not need to submit the form again.
+                    </p>
+
+                    <div class="d-flex flex-wrap justify-content-center gap-2 mt-4">
+                        <a asp-controller="Home"
+                           asp-action="Index"
+                           class="btn btn-success">
+                            <i class="bi bi-house-fill me-1"></i>
+                            Back to Home
+                        </a>
+
+                        <a asp-controller="Account"
+                           asp-action="Login"
+                           class="btn btn-outline-secondary">
+                            Existing Player Login
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

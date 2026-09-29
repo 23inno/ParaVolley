@@ -39,6 +39,42 @@ public static class BackgroundNotificationDispatcher
             context ?? eventKey);
     }
 
+    public static void QueueStaffNotification(
+        IServiceScopeFactory scopeFactory,
+        ILogger logger,
+        string eventKey,
+        string subject,
+        string textBody,
+        string? htmlBody = null,
+        bool includeCoaches = true,
+        string? context = null)
+    {
+        Queue(
+            scopeFactory,
+            logger,
+            async services =>
+            {
+                var staffNotifications =
+                    services.GetRequiredService<StaffNotificationService>();
+
+                var results = await staffNotifications.SendAsync(
+                    eventKey,
+                    subject,
+                    textBody,
+                    htmlBody,
+                    includeCoaches);
+
+                foreach (var result in results.Where(item => !item.Success))
+                {
+                    logger.LogWarning(
+                        "Background staff notification {Context} reported: {Message}",
+                        context ?? eventKey,
+                        result.Message);
+                }
+            },
+            context ?? eventKey);
+    }
+
     public static void QueueSubscriberBroadcast(
         IServiceScopeFactory scopeFactory,
         ILogger logger,

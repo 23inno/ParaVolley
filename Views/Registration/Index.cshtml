@@ -223,15 +223,16 @@
                                 <label asp-for="Email"
                                        class="form-label">
                                     Email Address
-                                    <span>*</span>
+                                    <span class="text-muted">(optional)</span>
                                 </label>
 
                                 <div class="registration-input-group">
                                     <i class="bi bi-envelope-fill"></i>
 
                                     <input asp-for="Email"
+                                           type="email"
                                            class="form-control"
-                                           placeholder="name@example.com" />
+                                           placeholder="Optional email address" />
                                 </div>
 
                                 <span asp-validation-for="Email"
@@ -254,6 +255,10 @@
                                            class="form-control"
                                            placeholder="e.g. 071 234 5678"
                                            required />
+                                    <div class="form-text">
+                                        Use a WhatsApp/mobile number. If your application is approved,
+                                        ParaVolley can send your Player App password setup link here.
+                                    </div>
                                 </div>
 
                                 <span asp-validation-for="Phone"

@@ -1,4 +1,5 @@
 ﻿@model PlayerRegistrationApplication
+@using SportsManagementMVC.Infrastructure
 
 @{
     ViewData["Title"] = "Player Application";
@@ -15,6 +16,17 @@
     var dateOfBirth = Model.DateOfBirth.HasValue
         ? Model.DateOfBirth.Value.ToString("dd MMMM yyyy")
         : "Not provided";
+
+    var normalizedPhone =
+        LoginIdentifierHelper.NormalizePhone(
+            Model.Phone);
+
+    var contactWhatsAppUrl =
+        normalizedPhone == null
+            ? null
+            : LoginIdentifierHelper.BuildWhatsAppUrl(
+                normalizedPhone,
+                $"Hello {Model.FullName}, ParaVolley Mpumalanga is contacting you regarding your player application.");
 }
 
 <div class="container-fluid py-4">
@@ -137,12 +149,17 @@
                             Email Address
                         </small>
 
-                        <a href="mailto:@Model.Email"
-                           class="text-decoration-none">
-
-                            @Model.Email
-
-                        </a>
+                        @if (!string.IsNullOrWhiteSpace(Model.Email))
+                        {
+                            <a href="mailto:@Model.Email"
+                               class="text-decoration-none">
+                                @Model.Email
+                            </a>
+                        }
+                        else
+                        {
+                            <span>Not provided</span>
+                        }
                     </div>
 
 
@@ -636,8 +653,9 @@
                         Player App Access
                     </h5>
                     <p class="text-muted mb-0">
-                        Send a fresh password setup link to the approved player.
-                        The new link is valid for 48 hours.
+                        Open WhatsApp with a secure 48-hour password setup/reset
+                        message already prepared. You only need to press
+                        <strong>Send</strong> in WhatsApp.
                     </p>
                 </div>
 
@@ -649,8 +667,8 @@
 
                     <button type="submit"
                             class="btn btn-success">
-                        <i class="bi bi-send-fill me-2"></i>
-                        Resend Player App Setup
+                        <i class="bi bi-whatsapp me-2"></i>
+                        Open WhatsApp Setup Message
                     </button>
                 </form>
             </div>
@@ -680,13 +698,27 @@
 
             </div>
 
-            <a href="mailto:@Model.Email?subject=ParaVolley%20Mpumalanga%20Player%20Application"
-               class="btn btn-success">
+            <div class="d-flex flex-wrap gap-2">
+                @if (contactWhatsAppUrl != null)
+                {
+                    <a href="@contactWhatsAppUrl"
+                       target="_blank"
+                       rel="noopener"
+                       class="btn btn-success">
+                        <i class="bi bi-whatsapp me-2"></i>
+                        WhatsApp Applicant
+                    </a>
+                }
 
-                <i class="bi bi-envelope-fill me-2"></i>
-                Email Applicant
-
-            </a>
+                @if (!string.IsNullOrWhiteSpace(Model.Email))
+                {
+                    <a href="mailto:@Model.Email?subject=ParaVolley%20Mpumalanga%20Player%20Application"
+                       class="btn btn-outline-success">
+                        <i class="bi bi-envelope-fill me-2"></i>
+                        Email Applicant
+                    </a>
+                }
+            </div>
 
         </div>
 
