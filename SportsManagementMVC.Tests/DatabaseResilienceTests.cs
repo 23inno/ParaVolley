@@ -74,35 +74,67 @@ public sealed class DatabaseResilienceTests
     }
 
     [Fact]
-    public async Task SimultaneousDuplicatePlayerRegistration_CreatesOneAccount()
+    public async Task SimultaneousDuplicatePlayerRegistration_CreatesOnePendingApplication()
     {
-        var email = $"concurrent-{Guid.NewGuid():N}@test.local";
+        var email =
+            $"concurrent-{Guid.NewGuid():N}@test.local";
+
         using var client = CreateClient();
+
         var payload = new
         {
-            name = "Concurrent Registration",
-            position = "Setter",
-            team = "Tests",
-            age = 25,
+            fullName = "Concurrent Registration",
             email,
             phone = "+27 82 123 4567",
-            disability = "",
-            password = AuthenticationWebApplicationFactory.Password
+            dateOfBirth = new DateOnly(2000, 1, 1),
+            preferredPosition = "Setter",
+            classification = "Physical impairment",
+            consent = true
         };
 
         var responses = await Task.WhenAll(
-            client.PostAsJsonAsync("/api/auth/register/player", payload),
-            client.PostAsJsonAsync("/api/auth/register/player", payload));
+            client.PostAsJsonAsync(
+                "/api/auth/register/player",
+                payload),
+            client.PostAsJsonAsync(
+                "/api/auth/register/player",
+                payload));
 
-        Assert.Single(responses, response => response.StatusCode == HttpStatusCode.Created);
-        Assert.Single(responses, response => response.StatusCode == HttpStatusCode.Conflict);
+        Assert.Single(
+            responses,
+            response =>
+                response.StatusCode ==
+                HttpStatusCode.Created);
 
-        using var scope = _factory.Services.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        Assert.Equal(1, await context.AppUsers.CountAsync(user =>
-            user.NormalizedEmail == email));
-        Assert.Equal(1, await context.Players.CountAsync(player =>
-            player.Email == email));
+        Assert.Single(
+            responses,
+            response =>
+                response.StatusCode ==
+                HttpStatusCode.Conflict);
+
+        using var scope =
+            _factory.Services.CreateScope();
+
+        var context = scope.ServiceProvider
+            .GetRequiredService<ApplicationDbContext>();
+
+        Assert.Equal(
+            1,
+            await context.PlayerRegistrationApplications
+                .CountAsync(application =>
+                    application.Email == email &&
+                    application.Status ==
+                    PlayerApplicationStatus.Pending));
+
+        Assert.Equal(
+            0,
+            await context.AppUsers.CountAsync(user =>
+                user.NormalizedEmail == email));
+
+        Assert.Equal(
+            0,
+            await context.Players.CountAsync(player =>
+                player.Email == email));
     }
 
     [Fact]
