@@ -741,3 +741,239 @@ code,
         animation-iteration-count: 1 !important;
     }
 }
+
+
+/* =========================================================
+   Homepage mobile refinement
+   Samsung A05 / standard Android and iPhone widths
+   ========================================================= */
+@media (max-width: 767.98px) {
+    /* Remove desktop-style forced hero height and the artificial top gap. */
+    .pv-public-shell .home-hero {
+        min-height: 0 !important;
+        margin-top: 0 !important;
+        overflow: visible;
+        background: #ffffff;
+    }
+
+    .pv-public-shell .home-hero-image {
+        position: relative;
+        width: 100%;
+        background: #ffffff;
+    }
+
+    .pv-public-shell .home-hero-image img {
+        display: block;
+        width: 100%;
+        height: auto;
+        object-fit: contain;
+        object-position: center;
+    }
+
+    /*
+       On phones the hero actions sit below the image instead of being
+       absolutely positioned inside a 590-600px desktop-style hero.
+    */
+    .pv-public-shell .home-hero-content {
+        position: relative !important;
+        inset: auto !important;
+        display: block !important;
+        min-height: 0 !important;
+        padding: 1rem 1rem 1.15rem !important;
+        background: #085d42;
+        pointer-events: auto;
+    }
+
+    .pv-public-shell .home-hero-content > .container {
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    .pv-public-shell .home-hero-actions {
+        width: 100%;
+        margin: 0;
+        transform: none !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        justify-content: center !important;
+        gap: 0.65rem;
+    }
+
+    .pv-public-shell .home-hero-actions .btn,
+    .pv-public-shell .home-btn-primary,
+    .pv-public-shell .home-btn-outline {
+        width: 100% !important;
+        min-height: 48px;
+        margin: 0;
+        padding: 0.78rem 1rem;
+        justify-content: center;
+        text-align: center;
+        font-size: 0.98rem;
+        line-height: 1.25;
+    }
+
+    .pv-public-shell .home-btn-outline {
+        color: #ffffff;
+        border-color: rgba(255, 255, 255, 0.7);
+    }
+
+    .pv-public-shell .home-hero-scroll {
+        display: none !important;
+    }
+
+    /* Contact strip content should use the available phone width. */
+    .pv-public-shell .home-contact-item {
+        width: 100%;
+        min-height: 0;
+        padding: 1rem 0.9rem;
+        gap: 0.8rem;
+    }
+
+    .pv-public-shell .home-contact-item > div:not(.home-contact-icon) {
+        min-width: 0;
+        flex: 1;
+    }
+
+    .pv-public-shell .home-contact-item strong {
+        font-size: 0.92rem !important;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .pv-public-shell .home-contact-item span:first-of-type {
+        font-size: 0.72rem;
+    }
+
+    /* Reduce excessive desktop whitespace while preserving section separation. */
+    .pv-public-shell .home-intro,
+    .pv-public-shell .home-focus,
+    .pv-public-shell .home-why,
+    .pv-public-shell .home-services,
+    .pv-public-shell .home-cta,
+    .pv-public-shell .home-final,
+    .pv-public-shell .home-dynamic-section,
+    .pv-public-shell .home-sponsors {
+        padding-top: 3.5rem !important;
+        padding-bottom: 3.5rem !important;
+    }
+
+    .pv-public-shell .home-impact {
+        padding: 0 0 3.5rem !important;
+    }
+
+    .pv-public-shell .home-section-heading {
+        margin-bottom: 2rem;
+    }
+
+    .pv-public-shell .home-section-title {
+        font-size: clamp(2rem, 9vw, 2.35rem) !important;
+        line-height: 1.08;
+        letter-spacing: -0.7px;
+    }
+
+    .pv-public-shell .home-intro p,
+    .pv-public-shell .home-focus p,
+    .pv-public-shell .home-why p,
+    .pv-public-shell .home-section-heading p {
+        font-size: 1rem;
+        line-height: 1.65;
+    }
+
+    .pv-public-shell .home-intro-lead,
+    .pv-public-shell .home-why-lead {
+        font-size: 1.05rem !important;
+    }
+
+    .pv-public-shell .home-belief-card,
+    .pv-public-shell .home-why-card {
+        padding: 1.5rem !important;
+    }
+
+    .pv-public-shell .home-belief-card h3,
+    .pv-public-shell .home-why-card h3 {
+        font-size: 1.8rem !important;
+        line-height: 1.12;
+    }
+
+    .pv-public-shell .home-impact-inner {
+        width: 100%;
+        border-radius: 14px;
+    }
+
+    .pv-public-shell .home-impact-heading {
+        padding: 1.5rem;
+    }
+
+    .pv-public-shell .home-impact-item {
+        padding: 1.25rem 1.1rem;
+    }
+
+    .pv-public-shell .home-service-card {
+        padding: 1.4rem 1.25rem !important;
+    }
+
+    .pv-public-shell .home-service-card h3 {
+        font-size: 1.15rem;
+    }
+
+    .pv-public-shell .home-service-card p {
+        font-size: 0.96rem;
+        line-height: 1.6;
+    }
+
+    .pv-public-shell .home-dynamic-card {
+        padding: 1.15rem !important;
+        border-radius: 14px;
+    }
+
+    .pv-public-shell .home-dynamic-header {
+        gap: 0.75rem;
+    }
+
+    .pv-public-shell .home-dynamic-header h3 {
+        font-size: 1.3rem;
+    }
+
+    .pv-public-shell .home-event-item,
+    .pv-public-shell .home-news-item {
+        gap: 0.75rem;
+    }
+
+    .pv-public-shell .home-sponsor-card {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    .pv-public-shell .home-cta-content h2,
+    .pv-public-shell .home-final h2 {
+        font-size: clamp(2rem, 8.5vw, 2.4rem) !important;
+    }
+
+    .pv-public-shell .home-final {
+        text-align: center;
+    }
+}
+
+@media (max-width: 399.98px) {
+    .pv-public-shell .home-hero-content {
+        padding: 0.85rem !important;
+    }
+
+    .pv-public-shell .home-hero-actions .btn {
+        min-height: 46px;
+        font-size: 0.94rem;
+    }
+
+    .pv-public-shell .home-intro,
+    .pv-public-shell .home-focus,
+    .pv-public-shell .home-why,
+    .pv-public-shell .home-services,
+    .pv-public-shell .home-cta,
+    .pv-public-shell .home-final,
+    .pv-public-shell .home-dynamic-section,
+    .pv-public-shell .home-sponsors {
+        padding-top: 3rem !important;
+        padding-bottom: 3rem !important;
+    }
+}
