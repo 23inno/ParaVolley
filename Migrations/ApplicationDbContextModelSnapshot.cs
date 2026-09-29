@@ -759,6 +759,11 @@ namespace SportsManagementMVC.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Email")
+                        .IsUnique()
+                        .HasDatabaseName("IX_PlayerRegistrationApplications_PendingEmail")
+                        .HasFilter("\"Email\" IS NOT NULL AND \"Status\" = 0");
+
                     b.ToTable("PlayerRegistrationApplications");
                 });
 
