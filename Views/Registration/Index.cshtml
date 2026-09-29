@@ -223,7 +223,7 @@
                                 <label asp-for="Email"
                                        class="form-label">
                                     Email Address
-                                    <span>*</span>
+                                    <small class="text-muted">(Optional)</small>
                                 </label>
 
                                 <div class="registration-input-group">
@@ -231,7 +231,9 @@
 
                                     <input asp-for="Email"
                                            class="form-control"
-                                           placeholder="name@example.com" />
+                                           type="email"
+                                           autocomplete="email"
+                                           placeholder="name@example.com (optional)" />
                                 </div>
 
                                 <span asp-validation-for="Email"
