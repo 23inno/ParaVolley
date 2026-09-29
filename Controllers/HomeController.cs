@@ -163,45 +163,53 @@ namespace SportsManagementMVC.Controllers
                     input);
             }
 
-            var email = input.Email.Trim().ToLowerInvariant();
+            var email = input.Email?.Trim();
 
-            var playerAlreadyExists = await _context.Players
-                .AsNoTracking()
-                .AnyAsync(
-                    player => player.Email.ToLower() == email,
-                    cancellationToken);
-
-            if (playerAlreadyExists)
+            if (!string.IsNullOrWhiteSpace(email))
             {
-                ModelState.AddModelError(
-                    nameof(input.Email),
-                    "A registered ParaVolley player already exists with this email address.");
+                var normalizedEmail = email.ToLowerInvariant();
 
-                return View(
-                    "~/Views/Registration/Index.cshtml",
-                    input);
+                var playerAlreadyExists = await _context.Players
+                    .AsNoTracking()
+                    .AnyAsync(
+                        player => player.Email.ToLower() == normalizedEmail,
+                        cancellationToken);
+
+                if (playerAlreadyExists)
+                {
+                    ModelState.AddModelError(
+                        nameof(input.Email),
+                        "A registered ParaVolley player already exists with this email address.");
+
+                    return View(
+                        "~/Views/Registration/Index.cshtml",
+                        input);
+                }
+
+                var alreadyPending = await _context.PlayerRegistrationApplications
+                    .AsNoTracking()
+                    .AnyAsync(
+                        application =>
+                            application.Email != null &&
+                            application.Email.ToLower() == normalizedEmail &&
+                            application.Status == PlayerApplicationStatus.Pending,
+                        cancellationToken);
+
+                if (alreadyPending)
+                {
+                    ModelState.AddModelError(
+                        nameof(input.Email),
+                        "A pending player application already exists for this email address.");
+
+                    return View(
+                        "~/Views/Registration/Index.cshtml",
+                        input);
+                }
             }
 
-            var alreadyPending = await _context.PlayerRegistrationApplications
-                .AsNoTracking()
-                .AnyAsync(
-                    application =>
-                        application.Email.ToLower() == email &&
-                        application.Status == PlayerApplicationStatus.Pending,
-                    cancellationToken);
-
-            if (alreadyPending)
-            {
-                ModelState.AddModelError(
-                    nameof(input.Email),
-                    "A pending player application already exists for this email address.");
-
-                return View(
-                    "~/Views/Registration/Index.cshtml",
-                    input);
-            }
-
-            input.Email = input.Email.Trim();
+            input.Email = string.IsNullOrWhiteSpace(email)
+                ? null
+                : email;
             input.FullName = input.FullName.Trim();
             input.Phone = input.Phone?.Trim();
             input.Classification = input.Classification?.Trim();
@@ -566,15 +574,23 @@ namespace SportsManagementMVC.Controllers
                     new[] { application.Town, application.Province }
                         .Where(value => !string.IsNullOrWhiteSpace(value)));
 
+                var emailDisplay = string.IsNullOrWhiteSpace(application.Email)
+                    ? "Not provided"
+                    : application.Email;
+
+                var phoneDisplay = string.IsNullOrWhiteSpace(application.Phone)
+                    ? "Not provided"
+                    : application.Phone;
+
                 var textBody =
                     $"A new ParaVolley player application was received from {application.FullName}. " +
-                    $"Email: {application.Email}. Phone: {application.Phone}. " +
+                    $"Email: {emailDisplay}. Phone: {phoneDisplay}. " +
                     $"Location: {(string.IsNullOrWhiteSpace(location) ? "Not provided" : location)}. " +
                     "Open Player Applications in the Admin website to review it.";
 
                 var safeName = WebUtility.HtmlEncode(application.FullName);
-                var safeEmail = WebUtility.HtmlEncode(application.Email);
-                var safePhone = WebUtility.HtmlEncode(application.Phone ?? "Not provided");
+                var safeEmail = WebUtility.HtmlEncode(emailDisplay);
+                var safePhone = WebUtility.HtmlEncode(phoneDisplay);
                 var safeLocation = WebUtility.HtmlEncode(
                     string.IsNullOrWhiteSpace(location)
                         ? "Not provided"
