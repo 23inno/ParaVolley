@@ -25,24 +25,25 @@ public sealed class AuthenticationAuthorizationTests
     [Theory]
     [InlineData("Admin")]
     [InlineData("Coach")]
-    public async Task PublicRegistration_IgnoresInjectedRole_AndCreatesPlayer(
+    public async Task PublicRegistration_IgnoresInjectedRole_AndCreatesPendingApplication(
         string injectedRole)
     {
-        var email = $"role-{injectedRole.ToLowerInvariant()}-{Guid.NewGuid():N}@test.local";
+        var email =
+            $"role-{injectedRole.ToLowerInvariant()}-{Guid.NewGuid():N}@test.local";
+
         using var client = CreateClient();
 
         var response = await client.PostAsJsonAsync(
             "/api/auth/register/player",
             new
             {
-                name = "Role Safety Test",
-                position = "Setter",
-                team = "Tests",
-                age = 24,
+                fullName = "Role Safety Test",
                 email,
                 phone = "+27 82 100 1000",
-                disability = "",
-                password = AuthenticationWebApplicationFactory.Password,
+                dateOfBirth = new DateOnly(2000, 1, 1),
+                preferredPosition = "Setter",
+                classification = "Physical impairment",
+                consent = true,
                 role = injectedRole
             });
 
@@ -51,11 +52,20 @@ public sealed class AuthenticationAuthorizationTests
         using var scope = _factory.Services.CreateScope();
         var context = scope.ServiceProvider
             .GetRequiredService<ApplicationDbContext>();
-        var user = context.AppUsers.Single(item =>
-            item.NormalizedEmail == email);
 
-        Assert.Equal(AppUserRole.Player, user.Role);
-        Assert.False(user.IsActive);
+        var application =
+            context.PlayerRegistrationApplications.Single(item =>
+                item.Email == email);
+
+        Assert.Equal(
+            PlayerApplicationStatus.Pending,
+            application.Status);
+
+        Assert.False(context.AppUsers.Any(item =>
+            item.NormalizedEmail == email));
+
+        Assert.False(context.Players.Any(item =>
+            item.Email == email));
     }
 
     [Fact]
@@ -229,14 +239,15 @@ public sealed class AuthenticationAuthorizationTests
             "/api/auth/register/player",
             new
             {
-                name = "Duplicate Test",
-                position = "Setter",
-                team = "Tests",
-                age = 24,
-                email = AuthenticationWebApplicationFactory.PlayerEmail.ToUpperInvariant(),
+                fullName = "Duplicate Test",
+                email =
+                    AuthenticationWebApplicationFactory.PlayerEmail
+                        .ToUpperInvariant(),
                 phone = "+27 82 100 2000",
-                disability = "",
-                password = AuthenticationWebApplicationFactory.Password
+                dateOfBirth = new DateOnly(2000, 1, 1),
+                preferredPosition = "Setter",
+                classification = "Physical impairment",
+                consent = true
             });
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);

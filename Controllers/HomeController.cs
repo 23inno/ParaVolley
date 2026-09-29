@@ -274,7 +274,25 @@ namespace SportsManagementMVC.Controllers
 
             _context.PlayerRegistrationApplications.Add(input);
 
-            await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException exception)
+                when (!string.IsNullOrWhiteSpace(input.Email) &&
+                    DatabaseConflictClassifier.IsUniqueViolation(
+                        exception,
+                        _context.Database,
+                        "IX_PlayerRegistrationApplications_PendingEmail"))
+            {
+                ModelState.AddModelError(
+                    nameof(input.Email),
+                    "A pending player application already exists for this email address.");
+
+                return View(
+                    "~/Views/Registration/Index.cshtml",
+                    input);
+            }
 
             QueueNewPlayerApplicationNotification(
                 input);
