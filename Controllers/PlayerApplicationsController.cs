@@ -93,21 +93,26 @@ namespace SportsManagementMVC.Controllers
                     new { id });
             }
 
-            var playerAlreadyExists =
-                await _context.Players
-                    .AnyAsync(
-                        p => p.Email.ToLower() ==
-                             application.Email.ToLower(),
-                        cancellationToken);
-
-            if (playerAlreadyExists)
+            if (!string.IsNullOrWhiteSpace(application.Email))
             {
-                TempData["ApplicationError"] =
-                    "A player with this email address already exists.";
+                var normalizedEmail =
+                    application.Email.Trim().ToLowerInvariant();
 
-                return RedirectToAction(
-                    nameof(Details),
-                    new { id });
+                var playerAlreadyExists =
+                    await _context.Players
+                        .AnyAsync(
+                            p => p.Email.ToLower() == normalizedEmail,
+                            cancellationToken);
+
+                if (playerAlreadyExists)
+                {
+                    TempData["ApplicationError"] =
+                        "A player with this email address already exists.";
+
+                    return RedirectToAction(
+                        nameof(Details),
+                        new { id });
+                }
             }
 
             if (!ModelState.IsValid)
@@ -188,7 +193,7 @@ namespace SportsManagementMVC.Controllers
 
                 Status = PlayerStatus.Active,
 
-                Email = application.Email.Trim(),
+                Email = application.Email?.Trim() ?? string.Empty,
 
                 Phone = application.Phone.Trim(),
 
