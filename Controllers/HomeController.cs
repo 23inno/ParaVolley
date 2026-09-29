@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SportsManagementMVC.Data;
+using SportsManagementMVC.Infrastructure;
 using SportsManagementMVC.Models;
 using SportsManagementMVC.Security;
 using SportsManagementMVC.Services;
@@ -163,45 +164,88 @@ namespace SportsManagementMVC.Controllers
                     input);
             }
 
-            var email = input.Email.Trim().ToLowerInvariant();
+            var normalizedPhone =
+                LoginIdentifierHelper.NormalizePhone(
+                    input.Phone);
 
-            var playerAlreadyExists = await _context.Players
-                .AsNoTracking()
-                .AnyAsync(
-                    player => player.Email.ToLower() == email,
-                    cancellationToken);
-
-            if (playerAlreadyExists)
+            if (normalizedPhone == null)
             {
                 ModelState.AddModelError(
-                    nameof(input.Email),
-                    "A registered ParaVolley player already exists with this email address.");
+                    nameof(input.Phone),
+                    "Enter a valid WhatsApp/mobile number.");
 
                 return View(
                     "~/Views/Registration/Index.cshtml",
                     input);
             }
 
-            var alreadyPending = await _context.PlayerRegistrationApplications
-                .AsNoTracking()
-                .AnyAsync(
-                    application =>
-                        application.Email.ToLower() == email &&
-                        application.Status == PlayerApplicationStatus.Pending,
-                    cancellationToken);
+            var suppliedEmail =
+                LoginIdentifierHelper.NormalizeEmail(
+                    input.Email);
+
+            var storageEmail =
+                LoginIdentifierHelper.BuildStorageEmail(
+                    suppliedEmail,
+                    "player",
+                    normalizedPhone);
+
+            var playerAlreadyExists =
+                await _context.Players
+                    .AsNoTracking()
+                    .AnyAsync(
+                        player =>
+                            player.Email.ToLower() ==
+                                storageEmail ||
+                            player.Phone == input.Phone,
+                        cancellationToken);
+
+            var accountAlreadyExists =
+                await _context.AppUsers
+                    .AsNoTracking()
+                    .AnyAsync(
+                        user =>
+                            user.NormalizedEmail ==
+                                storageEmail ||
+                            user.NormalizedPhone ==
+                                normalizedPhone,
+                        cancellationToken);
+
+            if (playerAlreadyExists ||
+                accountAlreadyExists)
+            {
+                ModelState.AddModelError(
+                    nameof(input.Phone),
+                    "A registered ParaVolley player or login account already exists with these contact details.");
+
+                return View(
+                    "~/Views/Registration/Index.cshtml",
+                    input);
+            }
+
+            var alreadyPending =
+                await _context.PlayerRegistrationApplications
+                    .AsNoTracking()
+                    .AnyAsync(
+                        application =>
+                            application.Status ==
+                                PlayerApplicationStatus.Pending &&
+                            (application.Email.ToLower() ==
+                                storageEmail ||
+                             application.Phone == input.Phone),
+                        cancellationToken);
 
             if (alreadyPending)
             {
                 ModelState.AddModelError(
-                    nameof(input.Email),
-                    "A pending player application already exists for this email address.");
+                    nameof(input.Phone),
+                    "A pending player application already exists for these contact details.");
 
                 return View(
                     "~/Views/Registration/Index.cshtml",
                     input);
             }
 
-            input.Email = input.Email.Trim();
+            input.Email = storageEmail;
             input.FullName = input.FullName.Trim();
             input.Phone = input.Phone?.Trim();
             input.Classification = input.Classification?.Trim();
@@ -566,14 +610,20 @@ namespace SportsManagementMVC.Controllers
                     new[] { application.Town, application.Province }
                         .Where(value => !string.IsNullOrWhiteSpace(value)));
 
+                var notificationEmail =
+                    LoginIdentifierHelper.IsPlaceholderEmail(
+                        application.Email)
+                        ? "Not provided"
+                        : application.Email;
+
                 var textBody =
                     $"A new ParaVolley player application was received from {application.FullName}. " +
-                    $"Email: {application.Email}. Phone: {application.Phone}. " +
+                    $"Email: {notificationEmail}. Phone: {application.Phone}. " +
                     $"Location: {(string.IsNullOrWhiteSpace(location) ? "Not provided" : location)}. " +
                     "Open Player Applications in the Admin website to review it.";
 
                 var safeName = WebUtility.HtmlEncode(application.FullName);
-                var safeEmail = WebUtility.HtmlEncode(application.Email);
+                var safeEmail = WebUtility.HtmlEncode(notificationEmail);
                 var safePhone = WebUtility.HtmlEncode(application.Phone ?? "Not provided");
                 var safeLocation = WebUtility.HtmlEncode(
                     string.IsNullOrWhiteSpace(location)
