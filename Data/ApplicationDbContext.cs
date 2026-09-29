@@ -268,6 +268,14 @@ namespace SportsManagementMVC.Data
             modelBuilder.Entity<PlayerRegistrationApplication>()
                 .Property(x => x.SubmittedAtUtc)
                 .HasColumnType("timestamp with time zone");
+
+            modelBuilder.Entity<PlayerRegistrationApplication>()
+                .HasIndex(application => application.Email)
+                .IsUnique()
+                .HasDatabaseName(
+                    "IX_PlayerRegistrationApplications_PendingEmail")
+                .HasFilter(
+                    "\"Email\" IS NOT NULL AND \"Status\" = 0");
         }
     }
 }
