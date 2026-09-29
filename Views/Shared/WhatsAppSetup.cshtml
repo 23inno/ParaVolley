@@ -1,0 +1,119 @@
+@model WhatsAppSetupViewModel
+
+@{
+    ViewData["Title"] = "Open WhatsApp Setup Message";
+}
+
+<div class="container py-5">
+    <div class="mx-auto" style="max-width:760px;">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4 p-md-5">
+                <div class="d-flex align-items-center gap-3 mb-4">
+                    <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center"
+                         style="width:52px;height:52px;flex:0 0 52px;">
+                        <i class="bi bi-whatsapp fs-4"></i>
+                    </div>
+                    <div>
+                        <h2 class="fw-bold mb-1">Open WhatsApp Setup Message</h2>
+                        <p class="text-muted mb-0">
+                            The secure setup link has been created for @Model.PersonName.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="alert alert-info">
+                    <strong>This does not send the message automatically.</strong>
+                    Open WhatsApp below, review the prepared message, then press
+                    <strong>Send</strong> in WhatsApp.
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <div class="small text-muted">Account</div>
+                        <div class="fw-semibold">@Model.AccountLabel</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="small text-muted">Login</div>
+                        <div class="fw-semibold">@Model.LoginIdentifier</div>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2 d-md-flex flex-md-wrap mb-4">
+                    <a href="@Model.DesktopUrl"
+                       class="btn btn-success btn-lg">
+                        <i class="bi bi-whatsapp me-2"></i>
+                        Open WhatsApp Desktop
+                    </a>
+
+                    <a href="@Model.WebUrl"
+                       target="_blank"
+                       rel="noopener"
+                       class="btn btn-outline-success btn-lg">
+                        <i class="bi bi-globe me-2"></i>
+                        Open WhatsApp Web
+                    </a>
+
+                    <button type="button"
+                            id="copyWhatsAppMessage"
+                            class="btn btn-outline-secondary btn-lg">
+                        <i class="bi bi-clipboard me-2"></i>
+                        Copy Message
+                    </button>
+                </div>
+
+                <div class="mb-4">
+                    <label for="whatsAppSetupMessage"
+                           class="form-label fw-semibold">
+                        Prepared message
+                    </label>
+                    <textarea id="whatsAppSetupMessage"
+                              class="form-control"
+                              rows="8"
+                              readonly>@Model.Message</textarea>
+                    <div id="copyWhatsAppStatus"
+                         class="form-text"
+                         aria-live="polite">
+                        If WhatsApp does not open, copy this message and paste it into the player's or coach's chat.
+                    </div>
+                </div>
+
+                <a asp-controller="@Model.BackController"
+                   asp-action="@Model.BackAction"
+                   asp-route-id="@Model.BackId"
+                   class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i>
+                    Back
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var copyButton = document.getElementById('copyWhatsAppMessage');
+            var messageBox = document.getElementById('whatsAppSetupMessage');
+            var status = document.getElementById('copyWhatsAppStatus');
+
+            if (!copyButton || !messageBox) return;
+
+            copyButton.addEventListener('click', async function () {
+                try {
+                    await navigator.clipboard.writeText(messageBox.value);
+                    if (status) {
+                        status.textContent = 'Message copied. Open WhatsApp and paste it into the chat.';
+                    }
+                } catch (_) {
+                    messageBox.focus();
+                    messageBox.select();
+                    document.execCommand('copy');
+
+                    if (status) {
+                        status.textContent = 'Message copied. Open WhatsApp and paste it into the chat.';
+                    }
+                }
+            });
+        });
+    </script>
+}
