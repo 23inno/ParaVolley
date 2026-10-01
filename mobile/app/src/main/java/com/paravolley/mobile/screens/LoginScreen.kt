@@ -418,11 +418,11 @@ fun LoginScreen(
                     modifier = Modifier.align(Alignment.End),
                     enabled = !isLoading,
                     onClick = {
-                        val baseUrl =
-                            BuildConfig.API_BASE_URL.trimEnd('/')
+                        val webBaseUrl =
+                            BuildConfig.PUBLIC_WEB_BASE_URL.trimEnd('/')
 
                         uriHandler.openUri(
-                            "$baseUrl/Account/ForgotPassword"
+                            "$webBaseUrl/Account/ForgotPassword"
                         )
                     }
                 ) {
