@@ -3,21 +3,21 @@ package com.paravolley.mobile.screens
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
@@ -28,6 +28,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
@@ -43,9 +44,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
@@ -90,13 +91,16 @@ fun LoginScreen(
                 errorMessage = "Enter your phone number or email."
                 emailFocusRequester.requestFocus()
             }
+
             password.isBlank() -> {
                 errorMessage = "Enter your password."
                 passwordFocusRequester.requestFocus()
             }
+
             else -> {
                 isLoading = true
                 errorMessage = null
+
                 coroutineScope.launch {
                     authRepository.login(
                         email = email,
@@ -104,16 +108,19 @@ fun LoginScreen(
                     )
                         .onSuccess { response ->
                             isLoading = false
+
                             if (response.user.role.equals("Player", ignoreCase = true)) {
                                 sessionManager.saveLogin(response)
                                 onLoginSuccessful()
                             } else {
-                                errorMessage = "This mobile app is for player accounts only."
+                                errorMessage =
+                                    "This mobile app is for player accounts only."
                             }
                         }
                         .onFailure { exception ->
                             isLoading = false
-                            errorMessage = exception.message ?: "Login failed."
+                            errorMessage =
+                                exception.message ?: "Login failed."
                         }
                 }
             }
@@ -148,54 +155,74 @@ fun LoginScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(AppColors.Green)
-                .padding(top = 40.dp, bottom = 30.dp),
+                .padding(
+                    top = 32.dp,
+                    bottom = 28.dp
+                ),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Image(
-                painter = painterResource(R.drawable.paravolley_mpumalanga_logo),
+                painter = painterResource(
+                    R.drawable.paravolley_mpumalanga_logo
+                ),
                 contentDescription = "ParaVolley Mpumalanga logo",
                 modifier = Modifier
-                    .size(96.dp)
-                    .clip(RoundedCornerShape(14.dp))
+                    .size(88.dp)
+                    .clip(RoundedCornerShape(16.dp))
             )
-            Spacer(Modifier.height(14.dp))
+
+            Spacer(Modifier.height(16.dp))
+
             Text(
+                modifier = Modifier.padding(horizontal = 16.dp),
                 text = "ParaVolley Mpumalanga",
                 color = Color.White,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 24.sp
+                fontWeight = FontWeight.Bold,
+                fontSize = 25.sp,
+                textAlign = TextAlign.Center
             )
+
             Text(
-                modifier = Modifier.padding(top = 4.dp),
+                modifier = Modifier.padding(top = 6.dp),
                 text = "Player Portal",
-                color = Color.White.copy(alpha = 0.78f),
-                fontSize = 14.sp
+                color = Color.White.copy(alpha = 0.80f),
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Normal
             )
         }
 
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 30.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp)
+                .padding(
+                    horizontal = 22.dp,
+                    vertical = 28.dp
+                ),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
                 Text(
                     text = "Welcome back",
                     color = AppColors.DarkText,
-                    fontSize = 24.sp,
+                    fontSize = 27.sp,
                     fontWeight = FontWeight.Bold
                 )
+
                 Text(
-                    text = "Sign in to access your events, attendance and player profile.",
+                    text =
+                        "Sign in to access your events, attendance and player profile.",
                     color = AppColors.GreyText,
-                    fontSize = 14.sp
+                    fontSize = 15.sp,
+                    lineHeight = 22.sp
                 )
             }
 
             OutlinedTextField(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .heightIn(min = 66.dp)
                     .focusRequester(emailFocusRequester),
                 value = email,
                 onValueChange = {
@@ -203,14 +230,36 @@ fun LoginScreen(
                     errorMessage = null
                 },
                 enabled = !isLoading,
-                label = { Text("Phone Number or Email") },
-                placeholder = { Text("079 123 4567 or email@example.com") },
+                textStyle = LocalTextStyle.current.copy(
+                    fontSize = 16.sp
+                ),
+                label = {
+                    Text(
+                        text = "Phone Number or Email",
+                        fontSize = 14.sp
+                    )
+                },
+                placeholder = {
+                    Text(
+                        text = "079 123 4567 or email@example.com",
+                        fontSize = 16.sp
+                    )
+                },
                 leadingIcon = {
-                    Icon(Icons.Filled.Email, contentDescription = null)
+                    Icon(
+                        imageVector = Icons.Filled.Email,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp)
+                    )
                 },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(
-                    imeAction = if (password.isBlank()) ImeAction.Next else ImeAction.Done
+                    imeAction =
+                        if (password.isBlank()) {
+                            ImeAction.Next
+                        } else {
+                            ImeAction.Done
+                        }
                 ),
                 keyboardActions = KeyboardActions(
                     onNext = {
@@ -224,13 +273,14 @@ fun LoginScreen(
                         }
                     }
                 ),
-                shape = RoundedCornerShape(10.dp),
+                shape = RoundedCornerShape(12.dp),
                 colors = fieldColors
             )
 
             OutlinedTextField(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .heightIn(min = 66.dp)
                     .focusRequester(passwordFocusRequester),
                 value = password,
                 onValueChange = {
@@ -238,23 +288,58 @@ fun LoginScreen(
                     errorMessage = null
                 },
                 enabled = !isLoading,
-                label = { Text("Password") },
-                placeholder = { Text("Enter your password") },
+                textStyle = LocalTextStyle.current.copy(
+                    fontSize = 16.sp
+                ),
+                label = {
+                    Text(
+                        text = "Password",
+                        fontSize = 14.sp
+                    )
+                },
+                placeholder = {
+                    Text(
+                        text = "Enter your password",
+                        fontSize = 16.sp
+                    )
+                },
                 leadingIcon = {
-                    Icon(Icons.Filled.Lock, contentDescription = null)
+                    Icon(
+                        imageVector = Icons.Filled.Lock,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp)
+                    )
                 },
                 trailingIcon = {
                     IconButton(
                         enabled = !isLoading,
-                        onClick = { passwordVisible = !passwordVisible }
+                        onClick = {
+                            passwordVisible = !passwordVisible
+                        }
                     ) {
                         Icon(
-                            imageVector = if (passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                            contentDescription = if (passwordVisible) "Hide password" else "Show password"
+                            imageVector =
+                                if (passwordVisible) {
+                                    Icons.Filled.VisibilityOff
+                                } else {
+                                    Icons.Filled.Visibility
+                                },
+                            contentDescription =
+                                if (passwordVisible) {
+                                    "Hide password"
+                                } else {
+                                    "Show password"
+                                },
+                            modifier = Modifier.size(24.dp)
                         )
                     }
                 },
-                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                visualTransformation =
+                    if (passwordVisible) {
+                        VisualTransformation.None
+                    } else {
+                        PasswordVisualTransformation()
+                    },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(
                     imeAction = ImeAction.Done
@@ -268,7 +353,7 @@ fun LoginScreen(
                         }
                     }
                 ),
-                shape = RoundedCornerShape(10.dp),
+                shape = RoundedCornerShape(12.dp),
                 colors = fieldColors
             )
 
@@ -276,24 +361,34 @@ fun LoginScreen(
                 modifier = Modifier.align(Alignment.End),
                 enabled = !isLoading,
                 onClick = {
-                    val baseUrl = BuildConfig.API_BASE_URL.trimEnd('/')
-                    uriHandler.openUri("$baseUrl/Account/ForgotPassword")
+                    val baseUrl =
+                        BuildConfig.API_BASE_URL.trimEnd('/')
+
+                    uriHandler.openUri(
+                        "$baseUrl/Account/ForgotPassword"
+                    )
                 }
             ) {
-                Text("Forgot Password?", color = AppColors.Green)
+                Text(
+                    text = "Forgot Password?",
+                    color = AppColors.Green,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
 
             errorMessage?.let { message ->
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     color = AppColors.Error.copy(alpha = 0.08f),
-                    shape = RoundedCornerShape(10.dp)
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
-                        modifier = Modifier.padding(12.dp),
+                        modifier = Modifier.padding(14.dp),
                         text = message,
                         color = AppColors.Error,
-                        fontSize = 13.sp
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp
                     )
                 }
             }
@@ -301,14 +396,16 @@ fun LoginScreen(
             Button(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp),
+                    .height(56.dp),
                 enabled = !isLoading,
-                onClick = { submitLogin() },
+                onClick = {
+                    submitLogin()
+                },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = AppColors.Yellow,
                     contentColor = AppColors.DarkText
                 ),
-                shape = RoundedCornerShape(10.dp)
+                shape = RoundedCornerShape(12.dp)
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(
@@ -317,19 +414,24 @@ fun LoginScreen(
                         strokeWidth = 2.dp
                     )
                 } else {
-                    Text("Login", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(
+                        text = "Login",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 17.sp
+                    )
                 }
             }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(14.dp))
 
             Text(
                 modifier = Modifier.fillMaxWidth(),
                 text = "Don't have an account?",
                 color = AppColors.GreyText,
                 textAlign = TextAlign.Center,
-                fontSize = 14.sp
+                fontSize = 15.sp
             )
+
             TextButton(
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !isLoading,
@@ -338,6 +440,7 @@ fun LoginScreen(
                 Text(
                     text = "Register as a Player",
                     color = AppColors.Green,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold
                 )
             }
