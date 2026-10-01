@@ -1,19 +1,23 @@
 package com.paravolley.mobile.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -26,9 +30,11 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
@@ -132,21 +138,21 @@ fun LoginScreen(
         unfocusedTextColor = AppColors.DarkText,
         cursorColor = AppColors.Green,
         focusedBorderColor = AppColors.Green,
-        unfocusedBorderColor = AppColors.Border,
+        unfocusedBorderColor = Color.Transparent,
         focusedLabelColor = AppColors.Green,
         unfocusedLabelColor = AppColors.GreyText,
         focusedLeadingIconColor = AppColors.Green,
-        unfocusedLeadingIconColor = Color(0xFF9CA3AF),
+        unfocusedLeadingIconColor = AppColors.Green,
         focusedTrailingIconColor = AppColors.Green,
-        unfocusedTrailingIconColor = Color(0xFF9CA3AF),
-        focusedContainerColor = Color.White,
-        unfocusedContainerColor = Color.White
+        unfocusedTrailingIconColor = Color(0xFF7C8793),
+        focusedContainerColor = Color(0xFFF4F8F6),
+        unfocusedContainerColor = Color(0xFFF4F8F6)
     )
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(Color(0xFFF3F6F4))
             .safeDrawingPadding()
             .verticalScroll(rememberScrollState())
             .imePadding()
@@ -156,8 +162,10 @@ fun LoginScreen(
                 .fillMaxWidth()
                 .background(AppColors.Green)
                 .padding(
-                    top = 32.dp,
-                    bottom = 28.dp
+                    start = 24.dp,
+                    end = 24.dp,
+                    top = 28.dp,
+                    bottom = 46.dp
                 ),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -167,281 +175,358 @@ fun LoginScreen(
                 ),
                 contentDescription = "ParaVolley Mpumalanga logo",
                 modifier = Modifier
-                    .size(88.dp)
-                    .clip(RoundedCornerShape(16.dp))
+                    .size(82.dp)
+                    .clip(RoundedCornerShape(18.dp))
             )
-
-            Spacer(Modifier.height(16.dp))
-
-            Text(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                text = "ParaVolley Mpumalanga",
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                fontSize = 25.sp,
-                textAlign = TextAlign.Center
-            )
-
-            Text(
-                modifier = Modifier.padding(top = 6.dp),
-                text = "Player Portal",
-                color = Color.White.copy(alpha = 0.80f),
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Normal
-            )
-        }
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    horizontal = 22.dp,
-                    vertical = 28.dp
-                ),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Text(
-                    text = "Welcome back",
-                    color = AppColors.DarkText,
-                    fontSize = 27.sp,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Text(
-                    text =
-                        "Sign in to access your events, attendance and player profile.",
-                    color = AppColors.GreyText,
-                    fontSize = 15.sp,
-                    lineHeight = 22.sp
-                )
-            }
-
-            OutlinedTextField(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 66.dp)
-                    .focusRequester(emailFocusRequester),
-                value = email,
-                onValueChange = {
-                    email = it
-                    errorMessage = null
-                },
-                enabled = !isLoading,
-                textStyle = LocalTextStyle.current.copy(
-                    fontSize = 16.sp
-                ),
-                label = {
-                    Text(
-                        text = "Phone Number or Email",
-                        fontSize = 14.sp
-                    )
-                },
-                placeholder = {
-                    Text(
-                        text = "079 123 4567 or email@example.com",
-                        fontSize = 16.sp
-                    )
-                },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Filled.Email,
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp)
-                    )
-                },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(
-                    imeAction =
-                        if (password.isBlank()) {
-                            ImeAction.Next
-                        } else {
-                            ImeAction.Done
-                        }
-                ),
-                keyboardActions = KeyboardActions(
-                    onNext = {
-                        passwordFocusRequester.requestFocus()
-                    },
-                    onDone = {
-                        if (password.isBlank()) {
-                            passwordFocusRequester.requestFocus()
-                        } else {
-                            submitLogin()
-                        }
-                    }
-                ),
-                shape = RoundedCornerShape(12.dp),
-                colors = fieldColors
-            )
-
-            OutlinedTextField(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 66.dp)
-                    .focusRequester(passwordFocusRequester),
-                value = password,
-                onValueChange = {
-                    password = it
-                    errorMessage = null
-                },
-                enabled = !isLoading,
-                textStyle = LocalTextStyle.current.copy(
-                    fontSize = 16.sp
-                ),
-                label = {
-                    Text(
-                        text = "Password",
-                        fontSize = 14.sp
-                    )
-                },
-                placeholder = {
-                    Text(
-                        text = "Enter your password",
-                        fontSize = 16.sp
-                    )
-                },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Filled.Lock,
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp)
-                    )
-                },
-                trailingIcon = {
-                    IconButton(
-                        enabled = !isLoading,
-                        onClick = {
-                            passwordVisible = !passwordVisible
-                        }
-                    ) {
-                        Icon(
-                            imageVector =
-                                if (passwordVisible) {
-                                    Icons.Filled.VisibilityOff
-                                } else {
-                                    Icons.Filled.Visibility
-                                },
-                            contentDescription =
-                                if (passwordVisible) {
-                                    "Hide password"
-                                } else {
-                                    "Show password"
-                                },
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                },
-                visualTransformation =
-                    if (passwordVisible) {
-                        VisualTransformation.None
-                    } else {
-                        PasswordVisualTransformation()
-                    },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(
-                    imeAction = ImeAction.Done
-                ),
-                keyboardActions = KeyboardActions(
-                    onDone = {
-                        if (email.isBlank()) {
-                            emailFocusRequester.requestFocus()
-                        } else {
-                            submitLogin()
-                        }
-                    }
-                ),
-                shape = RoundedCornerShape(12.dp),
-                colors = fieldColors
-            )
-
-            TextButton(
-                modifier = Modifier.align(Alignment.End),
-                enabled = !isLoading,
-                onClick = {
-                    val baseUrl =
-                        BuildConfig.API_BASE_URL.trimEnd('/')
-
-                    uriHandler.openUri(
-                        "$baseUrl/Account/ForgotPassword"
-                    )
-                }
-            ) {
-                Text(
-                    text = "Forgot Password?",
-                    color = AppColors.Green,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-
-            errorMessage?.let { message ->
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = AppColors.Error.copy(alpha = 0.08f),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text(
-                        modifier = Modifier.padding(14.dp),
-                        text = message,
-                        color = AppColors.Error,
-                        fontSize = 13.sp,
-                        lineHeight = 18.sp
-                    )
-                }
-            }
-
-            Button(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                enabled = !isLoading,
-                onClick = {
-                    submitLogin()
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = AppColors.Yellow,
-                    contentColor = AppColors.DarkText
-                ),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(22.dp),
-                        color = AppColors.DarkText,
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Text(
-                        text = "Login",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 17.sp
-                    )
-                }
-            }
 
             Spacer(Modifier.height(14.dp))
 
             Text(
-                modifier = Modifier.fillMaxWidth(),
-                text = "Don't have an account?",
-                color = AppColors.GreyText,
-                textAlign = TextAlign.Center,
-                fontSize = 15.sp
+                text = "ParaVolley Mpumalanga",
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 26.sp,
+                lineHeight = 31.sp,
+                textAlign = TextAlign.Center
             )
 
-            TextButton(
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !isLoading,
-                onClick = onRegister
+            Spacer(Modifier.height(10.dp))
+
+            Surface(
+                color = AppColors.Yellow,
+                shape = RoundedCornerShape(50)
             ) {
                 Text(
-                    text = "Register as a Player",
-                    color = AppColors.Green,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold
+                    modifier = Modifier.padding(
+                        horizontal = 16.dp,
+                        vertical = 7.dp
+                    ),
+                    text = "PLAYER PORTAL",
+                    color = AppColors.DarkText,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp
+                )
+            }
+        }
+
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .offset(y = (-22).dp),
+            color = Color.White,
+            shape = RoundedCornerShape(
+                topStart = 28.dp,
+                topEnd = 28.dp
+            ),
+            shadowElevation = 6.dp
+        ) {
+            Column(
+                modifier = Modifier.padding(
+                    start = 22.dp,
+                    end = 22.dp,
+                    top = 30.dp,
+                    bottom = 34.dp
+                ),
+                verticalArrangement = Arrangement.spacedBy(18.dp)
+            ) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(7.dp)
+                ) {
+                    Text(
+                        text = "Welcome back",
+                        color = AppColors.DarkText,
+                        fontSize = 30.sp,
+                        lineHeight = 34.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Text(
+                        text = "Sign in to continue to your player dashboard.",
+                        color = AppColors.GreyText,
+                        fontSize = 15.sp,
+                        lineHeight = 22.sp
+                    )
+                }
+
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Phone number or email",
+                        color = AppColors.DarkText,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+
+                    OutlinedTextField(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 62.dp)
+                            .focusRequester(emailFocusRequester),
+                        value = email,
+                        onValueChange = {
+                            email = it
+                            errorMessage = null
+                        },
+                        enabled = !isLoading,
+                        textStyle = LocalTextStyle.current.copy(
+                            fontSize = 16.sp
+                        ),
+                        placeholder = {
+                            Text(
+                                text = "079 123 4567 or email@example.com",
+                                fontSize = 15.sp,
+                                color = Color(0xFF8B949E)
+                            )
+                        },
+                        leadingIcon = {
+                            Surface(
+                                color = AppColors.Green.copy(alpha = 0.10f),
+                                shape = CircleShape
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Email,
+                                    contentDescription = null,
+                                    tint = AppColors.Green,
+                                    modifier = Modifier
+                                        .padding(9.dp)
+                                        .size(20.dp)
+                                )
+                            }
+                        },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            imeAction =
+                                if (password.isBlank()) {
+                                    ImeAction.Next
+                                } else {
+                                    ImeAction.Done
+                                }
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onNext = {
+                                passwordFocusRequester.requestFocus()
+                            },
+                            onDone = {
+                                if (password.isBlank()) {
+                                    passwordFocusRequester.requestFocus()
+                                } else {
+                                    submitLogin()
+                                }
+                            }
+                        ),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = fieldColors
+                    )
+                }
+
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Password",
+                        color = AppColors.DarkText,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+
+                    OutlinedTextField(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 62.dp)
+                            .focusRequester(passwordFocusRequester),
+                        value = password,
+                        onValueChange = {
+                            password = it
+                            errorMessage = null
+                        },
+                        enabled = !isLoading,
+                        textStyle = LocalTextStyle.current.copy(
+                            fontSize = 16.sp
+                        ),
+                        placeholder = {
+                            Text(
+                                text = "Enter your password",
+                                fontSize = 15.sp,
+                                color = Color(0xFF8B949E)
+                            )
+                        },
+                        leadingIcon = {
+                            Surface(
+                                color = AppColors.Green.copy(alpha = 0.10f),
+                                shape = CircleShape
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Lock,
+                                    contentDescription = null,
+                                    tint = AppColors.Green,
+                                    modifier = Modifier
+                                        .padding(9.dp)
+                                        .size(20.dp)
+                                )
+                            }
+                        },
+                        trailingIcon = {
+                            IconButton(
+                                enabled = !isLoading,
+                                onClick = {
+                                    passwordVisible = !passwordVisible
+                                }
+                            ) {
+                                Icon(
+                                    imageVector =
+                                        if (passwordVisible) {
+                                            Icons.Filled.VisibilityOff
+                                        } else {
+                                            Icons.Filled.Visibility
+                                        },
+                                    contentDescription =
+                                        if (passwordVisible) {
+                                            "Hide password"
+                                        } else {
+                                            "Show password"
+                                        }
+                                )
+                            }
+                        },
+                        visualTransformation =
+                            if (passwordVisible) {
+                                VisualTransformation.None
+                            } else {
+                                PasswordVisualTransformation()
+                            },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            imeAction = ImeAction.Done
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onDone = {
+                                if (email.isBlank()) {
+                                    emailFocusRequester.requestFocus()
+                                } else {
+                                    submitLogin()
+                                }
+                            }
+                        ),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = fieldColors
+                    )
+                }
+
+                TextButton(
+                    modifier = Modifier.align(Alignment.End),
+                    enabled = !isLoading,
+                    onClick = {
+                        val baseUrl =
+                            BuildConfig.API_BASE_URL.trimEnd('/')
+
+                        uriHandler.openUri(
+                            "$baseUrl/Account/ForgotPassword"
+                        )
+                    }
+                ) {
+                    Text(
+                        text = "Forgot password?",
+                        color = AppColors.Green,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                errorMessage?.let { message ->
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = AppColors.Error.copy(alpha = 0.08f),
+                        shape = RoundedCornerShape(14.dp)
+                    ) {
+                        Text(
+                            modifier = Modifier.padding(14.dp),
+                            text = message,
+                            color = AppColors.Error,
+                            fontSize = 13.sp,
+                            lineHeight = 18.sp
+                        )
+                    }
+                }
+
+                Button(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(58.dp),
+                    enabled = !isLoading,
+                    onClick = {
+                        submitLogin()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AppColors.Yellow,
+                        contentColor = AppColors.DarkText
+                    ),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(22.dp),
+                            color = AppColors.DarkText,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text(
+                            text = "Sign in",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 17.sp
+                        )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    HorizontalDivider(
+                        modifier = Modifier.weight(1f),
+                        color = Color(0xFFE1E7E4)
+                    )
+                    Text(
+                        text = "New to ParaVolley?",
+                        color = AppColors.GreyText,
+                        fontSize = 13.sp
+                    )
+                    HorizontalDivider(
+                        modifier = Modifier.weight(1f),
+                        color = Color(0xFFE1E7E4)
+                    )
+                }
+
+                OutlinedButton(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    enabled = !isLoading,
+                    onClick = onRegister,
+                    border = BorderStroke(
+                        width = 1.5.dp,
+                        color = AppColors.Green
+                    ),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = AppColors.Green
+                    ),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Text(
+                        text = "Register as a Player",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Text(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = "Secure player access • ParaVolley Mpumalanga",
+                    color = Color(0xFF9AA39F),
+                    textAlign = TextAlign.Center,
+                    fontSize = 12.sp
                 )
             }
         }
