@@ -27,6 +27,15 @@ val releaseApiBaseUrl = providers
     }
     ?: "https://paravolley-production.up.railway.app/"
 
+val publicWebBaseUrl = providers
+    .gradleProperty("PARAVOLLEY_PUBLIC_WEB_BASE_URL")
+    .orNull
+    ?.trim()
+    ?.let { value ->
+        if (value.endsWith("/")) value else "$value/"
+    }
+    ?: "https://paravolleympumalanga.com/"
+
 val firebaseApplicationId = providers
     .gradleProperty("PARAVOLLEY_FIREBASE_APPLICATION_ID")
     .orNull
@@ -76,6 +85,11 @@ android {
         testInstrumentationRunner =
             "androidx.test.runner.AndroidJUnitRunner"
 
+        buildConfigField(
+            "String",
+            "PUBLIC_WEB_BASE_URL",
+            publicWebBaseUrl.asBuildConfigString()
+        )
         buildConfigField(
             "boolean",
             "FIREBASE_ENABLED",
