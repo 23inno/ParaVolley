@@ -44,18 +44,18 @@ jobs:
       - name: Prepare downloadable APK
         run: |
           mkdir -p release
-          cp app/build/outputs/apk/debug/app-debug.apk release/ParaVolley-Player-v1.2.0-beta.apk
-          sha256sum release/ParaVolley-Player-v1.2.0-beta.apk > release/ParaVolley-Player-v1.2.0-beta.sha256
+          cp app/build/outputs/apk/debug/app-debug.apk release/ParaVolley-Player-v1.2.1-beta.apk
+          sha256sum release/ParaVolley-Player-v1.2.1-beta.apk > release/ParaVolley-Player-v1.2.1-beta.sha256
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.2.0-beta
-          name: ParaVolley Mpumalanga Player App v1.2.0 Beta
+          tag_name: v1.2.1-beta
+          name: ParaVolley Mpumalanga Player App v1.2.1 Beta
           prerelease: true
           target_commitish: thapelo-android-api-integration
           body: |
-            ## ParaVolley Mpumalanga Player App v1.2.0 Beta
+            ## ParaVolley Mpumalanga Player App v1.2.1 Beta
 
             This is the latest Android player application for ParaVolley Mpumalanga.
 
@@ -77,7 +77,7 @@ jobs:
             - Updated navigation, launch animation and ParaVolley branding
 
             ### Install
-            1. Download **ParaVolley-Player-v1.2.0-beta.apk** below.
+            1. Download **ParaVolley-Player-v1.2.1-beta.apk** below.
             2. Open the APK on an Android phone.
             3. Allow installation from this source if Android asks.
             4. Install ParaVolley.
@@ -87,6 +87,6 @@ jobs:
 
             **Beta notice:** This APK is intended for ParaVolley testing and direct distribution while the final store-signed release process is being prepared.
           files: |
-            mobile/release/ParaVolley-Player-v1.2.0-beta.apk
-            mobile/release/ParaVolley-Player-v1.2.0-beta.sha256
+            mobile/release/ParaVolley-Player-v1.2.1-beta.apk
+            mobile/release/ParaVolley-Player-v1.2.1-beta.sha256
           fail_on_unmatched_files: true
