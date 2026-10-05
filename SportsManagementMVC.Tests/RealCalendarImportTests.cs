@@ -97,7 +97,7 @@ public sealed class RealCalendarImportTests
         Assert.Equal("Middleburg", championship.Location);
         Assert.Equal(EventType.Tournament, championship.Type);
         Assert.Equal("Not supplied", championship.Time);
-        Assert.Equal(EventStatus.Upcoming, championship.Status);
+        Assert.Equal(EventStatus.Completed, championship.Status);
     }
 
     [Fact]
