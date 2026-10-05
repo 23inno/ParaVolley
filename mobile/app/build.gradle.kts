@@ -79,8 +79,8 @@ android {
         applicationId = "com.paravolley.mobile"
         minSdk = 24
         targetSdk = 36
-        versionCode = 3
-        versionName = "1.2.0-beta"
+        versionCode = 4
+        versionName = "1.2.2-beta"
 
         testInstrumentationRunner =
             "androidx.test.runner.AndroidJUnitRunner"
